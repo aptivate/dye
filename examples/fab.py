@@ -15,7 +15,8 @@ if not os.path.exists(ve_dir):
     sys.exit(1)
 
 fab_bin = os.path.join(ve_dir, 'bin', 'fab')
-fabfile = os.path.join(ve_dir, 'src', 'Dye', 'dye', 'fabfile.py')
+# depending on how you've installed dye, you may need to edit this line
+fabfile = os.path.join(ve_dir, 'src', 'package', 'dye', 'fabfile.py')
 
 # call the fabric in the virtual env
 fab_call = [fab_bin]
