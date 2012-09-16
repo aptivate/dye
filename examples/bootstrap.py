@@ -5,7 +5,7 @@ import os, sys, subprocess
 
 import project_settings
 
-django_dir = os.path.join(os.dirname(__file__), '..', project_settings.django_dir)
+django_dir = os.path.join(os.path.dirname(__file__), '..', project_settings.django_relative_dir)
 
 python26 = os.path.join('/', 'usr', 'bin', 'python2.6')
 python27 = os.path.join('/', 'usr', 'bin', 'python2.7')
@@ -19,4 +19,6 @@ if chosen_python is None:
     raise Exception("Failed to find a valid Python executable " +
             "in any of these locations: %s" % paths_to_try)
 
-subprocess.call([chosen_python, 'manage.py', 'update_ve'])
+manage_py = os.path.join(django_dir, 'manage.py')
+
+subprocess.call([chosen_python, manage_py, 'update_ve'])
