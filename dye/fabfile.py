@@ -1,35 +1,22 @@
 from fabric.api import env
-from fabric import utils
-
-# this is our common file that can be copied across projects
-# we deliberately import all of this to get all the commands it
-# provides as fabric commands
-from fablib import *
+from fabric import main, state, utils
 
 # this is so we can call commands not imported by the above, basically
 # commands that start with an underscore
 import fablib
+import os, sys
 
-import os
-
-
-# this function can just call the fablib _setup_path function
-# or you can use it to override the defaults
-def _local_setup():
-    # put your own defaults here
-    fablib._setup_path()
-    # override settings here
-    # if you have an ssh key and particular user you need to use
-    # then uncomment the next 2 lines
-    #env.user = "root" 
-    #env.key_filename = ["/home/shared/keypair.rsa"]
-
+def _add_commands_from_module(mod):
+    docstring, new_style, classic, default = main.load_tasks_from_module(mod)
+    # for now we are using classic style fabric tasks - add them to the commands
+    state.commands.update(classic)
 
 def projectdir(project_dir=None):
     """ set the project directory so we can import project_settings (and localfab if it exists) """
     if not project_dir:
         project_dir = os.path.dirname(__file__)
     sys.path.append(project_dir)
+    # first import the project settings
     try:
         import project_settings
     except ImportError:
@@ -37,9 +24,15 @@ def projectdir(project_dir=None):
         print "Cannot continue"
         sys.exit(1)
     fablib._setup_path(project_settings)
+
+    # Now add the extra fabric commands
+    # add fablib first, then localfab can overwrite it
+    _add_commands_from_module(fablib)
+    # if the file exists we should be able to import it - if the import raises
+    # an exception, we WANT to blow up here
     if os.path.isfile(os.path.join(project_dir, 'localfab.py')):
         import localfab
-        env.localfab = localfab
+        _add_commands_from_module(localfab)
 
 #
 # These commands set up the environment variables
@@ -50,7 +43,6 @@ def _server_setup(environment):
         utils.abort('%s not defined in project_settings.host_list' % environment)
     env.environment = environment
     env.hosts = env.host_list[environment]
-    _local_setup()
 
 def dev_server():
     """ use dev environment on remote host to play with code in production-like env"""
