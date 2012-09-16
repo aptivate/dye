@@ -10,7 +10,7 @@ setup(
     url='http://pypi.python.org/pypi/Dye/',
     license='LICENSE.txt',
     description='A set of functions to improve deploy scripts',
-    long_description=open('README.txt').read(),
+    long_description=open('README.rst').read(),
     install_requires=[
         "fabric >= 0.9",
     ],
