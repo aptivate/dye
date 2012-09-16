@@ -54,6 +54,14 @@ server_home = '/var/django'
 # the top level directory on the server
 project_dir = project_name
 
-
 # whether to use apache
 use_apache = True
+
+###################################################
+# OPTIONAL SETTINGS FOR FABRIC - will be put in env
+###################################################
+
+# if you have an ssh key and particular user you need to use
+# then uncomment the next 2 lines
+#user = "root"
+#key_filename = ["/home/shared/keypair.rsa"]
