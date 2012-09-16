@@ -112,7 +112,7 @@ def _setup_paths():
     env['deploy_dir']   = os.path.dirname(__file__)
     # what is the root of the project - one up from this directory
     env['project_dir']  = os.path.abspath(os.path.join(env['deploy_dir'], '..'))
-    env['django_dir']   = os.path.join(env['project_dir'], project_settings.django_dir)
+    env['django_dir']   = os.path.join(env['project_dir'], project_settings.django_relative_dir)
     env['ve_dir']       = os.path.join(env['django_dir'], '.ve')
     env['manage_py']    = os.path.join(env['django_dir'], 'manage.py')
     env['project_name'] = project_settings.project_name
