@@ -1,3 +1,4 @@
 Django==1.4
 mysql-python==1.2.3
-fabric
+fabric==1.4
+-e git+git://github.com/aptivate/dye.git#egg=Package

@@ -16,16 +16,22 @@ if not os.path.exists(ve_dir):
 
 fab_bin = os.path.join(ve_dir, 'bin', 'fab')
 # depending on how you've installed dye, you may need to edit this line
+# the below is for an "editable" install, what you get from the following
+# line in pip_packages.txt
+# -e git+git://github.com/aptivate/dye.git
 fabfile = os.path.join(ve_dir, 'src', 'package', 'dye', 'fabfile.py')
+
+# tell fabric that this directory is where it can find project_settings and
+# localfab (if it exists)
+osenv = os.environ
+osenv['PROJECTDIR'] = current_dir
 
 # call the fabric in the virtual env
 fab_call = [fab_bin]
 # tell it to use the fabfile from dye
 fab_call += ['-f', fabfile]
-# tell fabric that this directory is where it can find project_settings and
-# localfab (if it exists)
-fab_call += ['projectdir:' + current_dir]
 # add any arguments passed to this script
 fab_call += sys.argv[1:]
+
 # exit with the fabric exit code
-sys.exit(subprocess.call(fab_call))
+sys.exit(subprocess.call(fab_call, env=osenv))
