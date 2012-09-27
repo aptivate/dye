@@ -17,13 +17,13 @@ if not os.path.exists(ve_dir):
 # depending on how you've installed dye, you may need to edit this line
 tasks = os.path.join(ve_dir, 'src', 'package', 'dye', 'tasks.py')
 
-# call the fabric in the virtual env
+# call the tasks.py in the virtual env
 tasks_call = [tasks]
-# tell fabric that this directory is where it can find project_settings and
-# localfab (if it exists)
+# tell tasks.py that this directory is where it can find project_settings and
+# localtasks (if it exists)
 tasks_call += ['--projectdir=' + current_dir]
 # add any arguments passed to this script
 tasks_call += sys.argv[1:]
-# exit with the fabric exit code
+# exit with the tasks.py exit code
 sys.exit(subprocess.call(tasks_call))
 
