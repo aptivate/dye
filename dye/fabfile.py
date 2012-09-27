@@ -26,7 +26,7 @@ else:
 # now see if we can find localfab
 # it is important to do this after importing from fablib, so that
 # function in localfab can override those in fablib
-# We delibarately don't surround the import by try/except. If there
+# We deliberately don't surround the import by try/except. If there
 # is an error in localfab, you want it to blow up immediately, rather
 # than silently fail.
 if os.path.isfile(os.path.join(localfabdir, 'localfab.py')):
