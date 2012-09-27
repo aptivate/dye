@@ -77,14 +77,13 @@ def tasklib_list():
 
 
 def localtasks_list():
-    if localtasks == None:
-        return []
-    tasks = []
-    for task in dir(localtasks):
-        if callable(getattr(localtasks, task)):
-            if not task.startswith('_'):
-                tasks.append(task)
-    return tasks
+    tasklist = []
+    if localtasklist:
+        for task in dir(localtasklist):
+            if callable(getattr(localtasklist, task)):
+                if not task.startswith('_'):
+                    tasklist.append(task)
+    return tasklist
 
 
 def tasks_available():
