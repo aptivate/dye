@@ -7,9 +7,17 @@ from fablib import *
 # commands that start with an underscore
 import fablib
 
+# Per project tasks can be defined in a file called localfab.py - we will
+# import the functions from localfab.py if it exists. But first we need to
+# know where to look.
 
-# add the project directory to the python path, if set in environ
+# This fabfile can be called normally (in the same directory) or it can be
+# installed as a python package, in which case the fab.py wrapper can call
+# it from the directory that contains project_settings.py (and, optionally,
+# localfab.py) It communicates which directory that is through an environment
+# variable.
 if 'PROJECTDIR' in os.environ:
+    # add the project directory to the python path, if set in environ
     sys.path.append(os.environ['PROJECTDIR'])
     localfabdir = os.environ['PROJECTDIR']
 else:
@@ -18,6 +26,9 @@ else:
 # now see if we can find localfab
 # it is important to do this after importing from fablib, so that
 # function in localfab can override those in fablib
+# We delibarately don't surround the import by try/except. If there
+# is an error in localfab, you want it to blow up immediately, rather
+# than silently fail.
 if os.path.isfile(os.path.join(localfabdir, 'localfab.py')):
     from localfab import *
 

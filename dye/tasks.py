@@ -22,7 +22,8 @@ General arguments are:
 
     -h, --help       Print this help text
     -p, --projectdir Set the project dir (where to find project_settings.py
-                     and localtasks.py) Defaults to same directory as tasks.py
+                     and, optionally, localtasks.py) Defaults to the directory
+                     that contains tasks.py
     -q, --quiet      Print less output while executing (note: not none)
     -v, --verbose    Print extra output while executing
 
@@ -186,8 +187,9 @@ def main():
     sys.path.append(project_dir)
     import project_settings
     # now see if we can find localtasks
-    # it is important to do this after importing from tasklib, so that
-    # function in localtasks can override those in tasklib
+    # We deliberately don't surround the import by try/except. If there
+    # is an error in localfab, you want it to blow up immediately, rather
+    # than silently fail.
     if os.path.isfile(os.path.join(project_dir, 'localtasks.py')):
         import localtasks
         if (hasattr(localtasks, '_setup_paths')):
