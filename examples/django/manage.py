@@ -146,9 +146,14 @@ if 'IGNORE_DOTVE' not in os.environ:
 if __name__ == "__main__":
     sys.path.append(DEPLOY_DIR)
     from project_settings import project_name
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "settings")
 
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", project_name + ".settings")
+    try:
+        import settings
+    except ImportError as e:
+        raise ImportError("%s\n\nFailed to import settings module: "
+            "does it contain errors? Did you run tasks.py deploy:dev?"
+            % e)
 
     from django.core.management import execute_from_command_line
-
     execute_from_command_line(sys.argv)
