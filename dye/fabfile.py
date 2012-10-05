@@ -23,14 +23,6 @@ if 'PROJECTDIR' in os.environ:
 else:
     localfabdir = os.path.dirname(__file__)
 
-# now see if we can find localfab
-# it is important to do this after importing from fablib, so that
-# function in localfab can override those in fablib
-# We deliberately don't surround the import by try/except. If there
-# is an error in localfab, you want it to blow up immediately, rather
-# than silently fail.
-if os.path.isfile(os.path.join(localfabdir, 'localfab.py')):
-    from localfab import *
 
 # import the project settings
 import project_settings
@@ -65,3 +57,15 @@ def staging():
 def production():
     """ use production environment on remote host"""
     _server_setup('production')
+
+# now see if we can find localfab
+# it is important to do this after importing from fablib, and after
+# defining the above functions, so that functions in localfab can
+# override those in fablib and fabfile.
+#
+# We deliberately don't surround the import by try/except. If there
+# is an error in localfab, you want it to blow up immediately, rather
+# than silently fail.
+localfab = None
+if os.path.isfile(os.path.join(localfabdir, 'localfab.py')):
+    from localfab import *
