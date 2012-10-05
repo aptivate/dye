@@ -44,7 +44,7 @@ def _server_setup(environment):
         utils.abort('%s not defined in project_settings.host_list' % environment)
     env.environment = environment
     env.hosts = env.host_list[environment]
-    fablib._setup_path(project_settings)
+    fablib._setup_paths(project_settings)
 
 def dev_server():
     """ use dev environment on remote host to play with code in production-like env"""
