@@ -386,6 +386,8 @@ def link_local_settings(environment):
         import shutil
         shutil.copy2(source, target)
 
+def collect_static():
+    return _manage_py(["collectstatic", "--noinput"])
 
 
 def _get_cache_table():
@@ -676,6 +678,8 @@ def deploy(environment=None):
     update_git_submodules()
     create_ve()
     update_db()
+
+    collect_static()
 
     if hasattr(env['localtasks'], 'post_deploy'):
         env['localtasks'].post_deploy(environment)
