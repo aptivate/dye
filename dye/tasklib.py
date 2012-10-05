@@ -349,6 +349,19 @@ def create_private_settings():
 
 def link_local_settings(environment):
     """ link local_settings.py.environment as local_settings.py """
+
+    # check that settings imports local_settings, as it always should,
+    # and if we forget to add that to our project, it could cause mysterious
+    # failures
+    settings_file = os.path.join(env['django_dir'], 'settings.py')
+    with open(settings_file) as settings_file:
+        matching_lines = [line for line in settings_file
+            if line.find('local_settings')]
+    if not matching_lines:
+        print "Fatal error: settings.py doesn't seem to import " \
+            "local_settings.*: %s" % settings_file
+        sys.exit(1)
+
     # die if the correct local settings does not exist
     if not env['quiet']:
         print "### creating link to local_settings.py"
