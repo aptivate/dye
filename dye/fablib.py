@@ -14,7 +14,7 @@ def _setup_paths(project_settings):
     # first merge in variables from project_settings - but ignore __doc__ etc
     user_settings = [x for x in vars(project_settings).keys() if not x.startswith('__')]
     for setting in user_settings:
-        env[setting] = project_settings[setting]
+        env[setting] = vars(project_settings)[setting]
 
     # allow for project_settings having set up some of these differently
     h.set_dict_if_not_set(env, 'verbose',      False)
