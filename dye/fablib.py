@@ -111,15 +111,11 @@ def deploy(revision=None, keep=None):
     with settings(warn_only=True):
         apache_cmd('stop')
     checkout_or_update(revision)
-    if env.use_virtualenv:
-        update_requirements()
 
-    # if we're going to call tasks.py then this has to be done first:
-    create_private_settings()
-    link_local_settings()
-
-    update_db()
-
+    # Use tasks.py deploy:env to actually do the deployment, including
+    # creating the virtualenv if it thinks it necessary, ignoring
+    # env.use_virtualenv as tasks.py knows nothing about it.
+    _tasks('deploy:' + env.environment)
 
     if env.project_type == "django":
         rm_pyc_files()
@@ -464,24 +460,6 @@ def touch():
     require('vcs_root', provided_by=env.valid_envs)
     wsgi_dir = os.path.join(env.vcs_root, 'wsgi')
     sudo_or_run('touch ' + os.path.join(wsgi_dir, 'wsgi_handler.py'))
-
-def create_private_settings():
-    _tasks('create_private_settings')
-
-def link_local_settings():
-    """link the local_settings.py file for this environment"""
-    _tasks('link_local_settings:' + env.environment)
-
-    # check that settings imports local_settings, as it always should,
-    # and if we forget to add that to our project, it could cause mysterious
-    # failures
-    if env.project_type == "django":
-        run('grep -q "local_settings" %s' %
-            os.path.join(env.django_root, 'settings.py'))
-
-        # touch the wsgi file to reload apache
-        touch()
-
 
 def rm_pyc_files():
     """Remove all the old pyc files to prevent stale files being used"""
