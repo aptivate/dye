@@ -398,6 +398,7 @@ def link_local_settings(environment):
     else:
         import shutil
         shutil.copy2(source, target)
+    env['environment'] = environment
 
 def collect_static():
     return _manage_py(["collectstatic", "--noinput"])
@@ -413,7 +414,7 @@ def _get_cache_table():
         return None
     return settings.CACHES['default']['LOCATION'] 
 
-def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, skip_grant=False, database='default'):
+def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, database='default'):
     """ create the database, and do syncdb and migrations
     Note that if syncdb is true, then migrations will always be done if one of
     the Django apps has a directory called 'migrations/'
@@ -437,7 +438,7 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, skip_g
             # we want to skip the grant when we are running fast tests -
             # when running mysql in RAM with --skip-grant-tables the following
             # line will give errors
-            if not skip_grant:
+            if env['environment'] != 'dev_fasttests':
                 _mysql_exec_as_root(('GRANT ALL PRIVILEGES ON %s.* TO \'%s\'@\'localhost\' IDENTIFIED BY \'%s\'' %
                         (db_name, db_user, db_pw)))
 
@@ -631,7 +632,7 @@ def quick_test(*extra_args):
 
     link_local_settings('dev_fasttests')
     create_ve()
-    update_db(skip_grant=True)
+    update_db()
     run_tests(*extra_args)
     link_local_settings(original_environment)
 
@@ -683,7 +684,8 @@ def run_jenkins():
 def _infer_environment():
     local_settings = os.path.join(env['django_dir'], 'local_settings.py')
     if os.path.exists(local_settings):
-        return os.readlink(local_settings).split('.')[-1]
+        env['environment'] = os.readlink(local_settings).split('.')[-1]
+        return env['environment']
     else:
         print 'no environment set, or pre-existing'
         sys.exit(2)
