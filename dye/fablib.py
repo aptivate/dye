@@ -309,12 +309,15 @@ def checkout_or_update(revision=None):
     You can also specify a revision to checkout, as an argument."""
     require('project_root', 'repo_type', 'vcs_root', 'repository',
         provided_by=env.valid_envs)
-    if env.repo_type == "svn":
-        _checkout_or_update_svn(revision)
-    elif env.repo_type == "git":
-        _checkout_or_update_git(revision)
-    elif env.repo_type == "cvs":
-        _checkout_or_update_cvs(revision)
+    checkout_fn = {
+            'cvs': _checkout_or_update_cvs,
+            'svn': _checkout_or_update_svn,
+            'git': _checkout_or_update_git,
+            }
+    if env.repo_type.lower() in checkout_fn:
+        checkout_fn[env.repo_type](revision)
+    else:
+        utils.abort('Unsupported VCS: %s' % env.repo_type.lower())
 
 def _checkout_or_update_svn(revision=None):
     # function to ask for svnuser and svnpass
