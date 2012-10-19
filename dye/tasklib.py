@@ -413,7 +413,7 @@ def _get_cache_table():
         return None
     return settings.CACHES['default']['LOCATION'] 
 
-def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, database='default'):
+def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, skip_grant=False, database='default'):
     """ create the database, and do syncdb and migrations
     Note that if syncdb is true, then migrations will always be done if one of
     the Django apps has a directory called 'migrations/'
@@ -434,8 +434,12 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, databa
     if db_engine.endswith('mysql'):
         if not db_exists(db_user, db_pw, db_name, db_port, db_host):
             _mysql_exec_as_root('CREATE DATABASE %s CHARACTER SET utf8' % db_name)
-            _mysql_exec_as_root(('GRANT ALL PRIVILEGES ON %s.* TO \'%s\'@\'localhost\' IDENTIFIED BY \'%s\'' %
-                (db_name, db_user, db_pw)))
+            # we want to skip the grant when we are running fast tests -
+            # when running mysql in RAM with --skip-grant-tables the following
+            # line will give errors
+            if not skip_grant:
+                _mysql_exec_as_root(('GRANT ALL PRIVILEGES ON %s.* TO \'%s\'@\'localhost\' IDENTIFIED BY \'%s\'' %
+                        (db_name, db_user, db_pw)))
 
         if not db_exists(db_user, db_pw, 'test_'+db_name, db_port, db_host):
             create_test_db(drop_after_create=drop_test_db, database=database)
@@ -627,7 +631,7 @@ def quick_test(*extra_args):
 
     link_local_settings('dev_fasttests')
     create_ve()
-    update_db()
+    update_db(skip_grant=True)
     run_tests(*extra_args)
     link_local_settings(original_environment)
 
