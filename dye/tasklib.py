@@ -19,6 +19,7 @@
 """
 
 import os, sys
+import exceptions
 import getpass
 import random
 
@@ -725,3 +726,11 @@ def patch_south():
     if patch_applied != 0:
         cmd = ['patch', '-N', '-p0', south_db_init, patch_file]
         _check_call_wrapper(cmd)
+
+class TaskFatalError(exceptions.StandardError):
+    def __init__(self, exit_code=1, error_text=''):
+        StandardError.__init__(self)
+        self.error_text = error_text
+        self.exit_code = exit_code
+    def __str__(self):
+        return self.error_text
