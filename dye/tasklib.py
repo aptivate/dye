@@ -19,7 +19,6 @@
 """
 
 import os, sys
-import exceptions
 import getpass
 import random
 
@@ -164,7 +163,7 @@ def _manage_py(args, cwd=None):
         output_lines.append(line)
     returncode = popen.wait()
     if returncode != 0:
-        _exit(popen.returncode,
+        sys.exit(popen.returncode,
                 "Failed to execute command: %s: returned %s\n%s" % (manage_cmd,
                 returncode, "\n".join(output_lines)))
     return output_lines
@@ -224,7 +223,7 @@ def _get_django_db_settings(database='default'):
                     db_host = local_settings.DATABASE_HOST
         except AttributeError:
             # we've failed to find the details we need - give up
-            _exit(1, "Failed to find database settings")
+            sys.exit(1, "Failed to find database settings")
     env['db_port'] = db_port
     env['db_host'] = db_host
     return (db_engine, db_name, db_user, db_pw, db_port, db_host)
@@ -358,7 +357,7 @@ def link_local_settings(environment):
         matching_lines = [line for line in settings_file
             if line.find('local_settings')]
     if not matching_lines:
-        _exit(1, "Fatal error: settings.py doesn't seem to import " +
+        sys.exit(1, "Fatal error: settings.py doesn't seem to import " +
             "local_settings.*: %s" % settings_file)
 
     # die if the correct local settings does not exist
@@ -367,7 +366,7 @@ def link_local_settings(environment):
     local_settings_env_path = os.path.join(env['django_dir'],
                                     'local_settings.py.'+environment)
     if not os.path.exists(local_settings_env_path):
-        _exit(1, "Could not find file to link to: %s" % local_settings_env_path)
+        sys.exit(1, "Could not find file to link to: %s" % local_settings_env_path)
 
     files_to_remove = ('local_settings.py', 'local_settings.pyc')
     for file in files_to_remove:
@@ -410,7 +409,7 @@ def _get_cache_table():
         return None
     if not settings.CACHES['default']['BACKEND'].endswith('DatabaseCache'):
         return None
-    return settings.CACHES['default']['LOCATION'] 
+    return settings.CACHES['default']['LOCATION']
 
 def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, database='default'):
     """ create the database, and do syncdb and migrations
@@ -500,7 +499,7 @@ def dump_db(dump_filename='db_dump.sql', for_rsync=False):
     """Dump the database in the current working directory"""
     db_engine, db_name, db_user, db_pw, db_port, db_host = _get_django_db_settings()
     if not db_engine.endswith('mysql'):
-        _exit(1, 'dump_db only knows how to dump mysql so far')
+        sys.exit(1, 'dump_db only knows how to dump mysql so far')
     dump_cmd = ['/usr/bin/mysqldump', '--user='+db_user, '--password='+db_pw,
                 '--host='+db_host]
     if db_port != None:
@@ -521,13 +520,13 @@ def restore_db(dump_filename):
     """Restore a database dump file by name"""
     db_engine, db_name, db_user, db_pw, db_port, db_host = _get_django_db_settings()
     if not db_engine.endswith('mysql'):
-        _exit(1, 'restore_db only knows how to restore mysql so far')
+        sys.exit(1, 'restore_db only knows how to restore mysql so far')
     restore_cmd = ['/usr/bin/mysql', '--user='+db_user, '--password='+db_pw,
                 '--host='+db_host]
     if db_port != None:
         restore_cmd.append('--port='+db_port)
     restore_cmd.append(db_name)
-    
+
     dump_file = open(dump_filename, 'r')
     if env['verbose']:
         print 'Executing dump command: %s\nSending stdin to %s' % (' '.join(restore_cmd), dump_filename)
@@ -549,7 +548,7 @@ def update_git_submodules():
 def setup_db_dumps(dump_dir):
     """ set up mysql database dumps in root crontab """
     if not os.path.isabs(dump_dir):
-        _exit(1, 'dump_dir must be an absolute path, you gave %s' % dump_dir)
+        sys.exit(1, 'dump_dir must be an absolute path, you gave %s' % dump_dir)
     project_name = env['django_dir'].split('/')[-1]
     cron_file = os.path.join('/etc', 'cron.daily', 'dump_'+project_name)
 
@@ -682,7 +681,7 @@ def _infer_environment():
         env['environment'] = os.readlink(local_settings).split('.')[-1]
         return env['environment']
     else:
-        _exit(2, 'no environment set, or pre-existing')
+        sys.exit(2, 'no environment set, or pre-existing')
 
 
 def deploy(environment=None):
@@ -720,14 +719,3 @@ def patch_south():
         cmd = ['patch', '-N', '-p0', south_db_init, patch_file]
         _check_call_wrapper(cmd)
 
-def _exit(exit_code, error_text):
-    """ equivalent to sys.exit, but more friendly to tests """
-    raise TaskFatalError(exit_code, error_text)
-
-class TaskFatalError(exceptions.StandardError):
-    def __init__(self, exit_code=1, error_text=''):
-        StandardError.__init__(self)
-        self.error_text = error_text
-        self.exit_code = exit_code
-    def __str__(self):
-        return self.error_text
