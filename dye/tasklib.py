@@ -411,7 +411,7 @@ def _get_cache_table():
         return None
     if not settings.CACHES['default']['BACKEND'].endswith('DatabaseCache'):
         return None
-    return settings.CACHES['default']['LOCATION'] 
+    return settings.CACHES['default']['LOCATION']
 
 def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, skip_grant=False, database='default'):
     """ create the database, and do syncdb and migrations
@@ -492,8 +492,9 @@ def create_test_db(drop_after_create=True, database='default'):
 
     test_db_name = 'test_' + db_name
     _mysql_exec_as_root('CREATE DATABASE %s CHARACTER SET utf8' % test_db_name)
-    _mysql_exec_as_root(('GRANT ALL PRIVILEGES ON %s.* TO \'%s\'@\'localhost\' IDENTIFIED BY \'%s\'' %
-        (test_db_name, db_user, db_pw)))
+    if env['environment'] != 'dev_fasttests':
+        _mysql_exec_as_root(('GRANT ALL PRIVILEGES ON %s.* TO \'%s\'@\'localhost\' IDENTIFIED BY \'%s\'' %
+            (test_db_name, db_user, db_pw)))
     if drop_after_create:
         _mysql_exec_as_root(('DROP DATABASE %s' % test_db_name))
 
