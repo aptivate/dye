@@ -1,0 +1,14 @@
+- add tests
+-- start with tasklib - local changes
+-- fab stuff - ssh to localhost ... (how to do with jenkins?)
+
+- add support for other web servers (nginx ...)
+-- change 'use_apache = True' to "webserver = 'apache'" (or None ...)
+
+- add support for Debian family of servers (for apache config)
+-- autodetect? presence of /etc/redhat-release /etc/debian_version (use for apache config directory etc)
+-- or just look for /etc/httpd/ vs /etc/apache2/ ?
+
+- support rollback with backwards migrations
+
+- test tasklib on Mac and Windows
