@@ -53,6 +53,7 @@ if 'IGNORE_DOTVE' not in os.environ:
         sys.exit(1)
 
     def update_ve_timestamp():
+        os.utime(VE_ROOT, None)
         file(VE_TIMESTAMP, 'w').close()
 
     def virtualenv_needs_update():
