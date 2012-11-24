@@ -1,7 +1,6 @@
 - convert deploy scripts to use separate deploy virtualenv
 -- also support both editable and plain paths (maybe?)
 -- check older versions of virtualenv support the --python= option
--- fabfile needs to call bootstrap.py before tasks.py
 
 - add tests
 -- start with tasklib - local changes

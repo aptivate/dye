@@ -129,6 +129,8 @@ def deploy(revision=None, keep=None):
         webserver_cmd('reload')
     checkout_or_update(revision)
 
+    # create the deploy virtualenv if we use it
+    create_deploy_virtualenv()
     # Use tasks.py deploy:env to actually do the deployment, including
     # creating the virtualenv if it thinks it necessary, ignoring
     # env.use_virtualenv as tasks.py knows nothing about it.
@@ -426,6 +428,12 @@ def sudo_or_run(command):
     else:
         return run(command)
 
+def create_deploy_virtualenv():
+    """ if using new style dye stuff, create the virtualenv to hold dye """
+    require('deploy_root', provided_by=env.valid_envs)
+    bootstrap_path = os.path.join(env.deploy_root, 'bootstrap.py')
+    if files.exists(bootstrap_path):
+        sudo_or_run(bootstrap_path)
 
 def update_requirements():
     """ update external dependencies on remote host """

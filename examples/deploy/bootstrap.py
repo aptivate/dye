@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # a script to set up the virtualenv so we can use fabric and tasks
 
-import os, sys, subprocess
+import os, sys
+import getopt
+import subprocess
 
 PACKAGES = [
     'fabric==1.4',
@@ -34,16 +36,35 @@ def create_virtualenv(ve_dir):
         ]
     subprocess.check_call(ve_cmd)
 
-def main():
+def main(argv):
+    quiet = False
+    verbose = False
+    try:
+        opts, args = getopt.getopt(argv[1:], 'hqv', 
+                ['help', 'quiet', 'verbose'])
+    except getopt.error, msg:
+        print 'Bad options: %s' % msg
+        return 1
+    # process options
+    for o, a in opts:
+        if o in ("-h", "--help"):
+            pass
+            #print_help_text()
+        if o in ("-q", "--quiet"):
+            quiet = True
+        if o in ("-v", "--verbose"):
+            verbose = True
+
     current_dir = os.path.dirname(__file__)
     ve_dir = os.path.join(current_dir, '.ve.deploy')
 
     # check if virtualenv exists
     if os.path.isdir(ve_dir):
-        # if it does, offer to recreate
-        choice = raw_input("deploy virtualenv already exists, do you want to recreate it? (y|N) ")
-        if len(choice) == 0 or choice[0].lower() != 'y':
-            return 0
+        if not quiet:
+            # if it does, offer to recreate
+            choice = raw_input("deploy virtualenv already exists, do you want to recreate it? (y|N) ")
+            if len(choice) == 0 or choice[0].lower() != 'y':
+                return 0
         # remove old ve
         import shutil
         shutil.rmtree(ve_dir)
@@ -52,6 +73,8 @@ def main():
     create_virtualenv(ve_dir)
 
     # TODO: could now print instructions for local deploy and fab deploy ...
+    if verbose:
+        print "Now you can run tasks.py or fab.py"
 
 if __name__ == '__main__':
-    sys.exit(main())
+    sys.exit(main(sys.argv))
