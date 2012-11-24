@@ -1,0 +1,32 @@
+# Migrating to dye from our old deploy scripts
+
+## fabric
+
+The big change is that you use a standard fabfile.py and put your settings in
+project_settings.py and your custom fabric functions in localfab.py (analagous
+to localtasks.py)
+
+## tasks.py
+
+You shouldn't have to alter your localtasks.py
+
+# Notes on upgrading
+
+## 24/11/2012
+
+In fablib, changed deploy() to use apache reload. If you have a deploy() in
+localfab.py then update it with the changes from fablib. See the diff for this
+commit: 56579c6807191b1772bb89fa3e68cdf7965f1142
+
+## 19/10/2012
+
+Made fablib be able to deal with different webservers. (For now we've only set
+up apache, but the infrastructure is there). So in project_settings.py you need
+to change:
+
+env.use_apache = True       becomes      env.webserver = 'apache'
+env.use_apache = False      becomes      env.webserver = None
+
+fablib.apache_cmd('xyz')    becomes      env.webserver_cmd('xyz')
+
+commit: 91b66b43f66e45a2a42c9586469482dd1f39697e
