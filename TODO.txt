@@ -1,13 +1,17 @@
+- convert deploy scripts to use separate deploy virtualenv
+-- also support both editable and plain paths (maybe?)
+-- check older versions of virtualenv support the --python= option
+-- fabfile needs to call bootstrap.py before tasks.py
+
 - add tests
 -- start with tasklib - local changes
 -- fab stuff - ssh to localhost ... (how to do with jenkins?)
 
 - add support for other web servers (nginx ...)
--- change 'use_apache = True' to "webserver = 'apache'" (or None ...)
+-- add support for others
 
 - add support for Debian family of servers (for apache config)
--- autodetect? presence of /etc/redhat-release /etc/debian_version (use for apache config directory etc)
--- or just look for /etc/httpd/ vs /etc/apache2/ ?
+-- add support for other serves
 
 - support rollback with backwards migrations
 
