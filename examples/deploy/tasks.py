@@ -2,11 +2,10 @@
 # a script to set up the virtualenv so we can use fabric and tasks
 
 import os, sys, subprocess
-import project_settings
 
 current_dir = os.path.dirname(__file__)
 # this directory should contain the virtualenv
-ve_dir = os.path.join(current_dir, '..', project_settings.django_relative_dir, '.ve')
+ve_dir = os.path.join(current_dir, '.ve.deploy')
 
 if not os.path.exists(ve_dir):
     print "Expected virtualenv does not exist"
@@ -15,10 +14,11 @@ if not os.path.exists(ve_dir):
     sys.exit(1)
 
 # depending on how you've installed dye, you may need to edit this line
+ve_python = os.path.join(ve_dir, 'bin', 'python')
 tasks = os.path.join(ve_dir, 'src', 'package', 'dye', 'tasks.py')
 
 # call the tasks.py in the virtual env
-tasks_call = [tasks]
+tasks_call = [ve_python, tasks]
 # tell tasks.py that this directory is where it can find project_settings and
 # localtasks (if it exists)
 tasks_call += ['--projectdir=' + current_dir]

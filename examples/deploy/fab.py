@@ -2,11 +2,10 @@
 # a script to set up the virtualenv so we can use fabric and tasks
 
 import os, sys, subprocess
-import project_settings
 
 current_dir = os.path.dirname(__file__)
 # this directory should contain the virtualenv
-ve_dir = os.path.join(current_dir, '..', project_settings.django_relative_dir, '.ve')
+ve_dir = os.path.join(current_dir, '.ve.deploy')
 
 if not os.path.exists(ve_dir):
     print "Expected virtualenv does not exist"
@@ -15,11 +14,16 @@ if not os.path.exists(ve_dir):
     sys.exit(1)
 
 fab_bin = os.path.join(ve_dir, 'bin', 'fab')
+
 # depending on how you've installed dye, you may need to edit this line
+
 # the below is for an "editable" install, what you get from the following
 # line in pip_packages.txt
 # -e git+git://github.com/aptivate/dye.git
 fabfile = os.path.join(ve_dir, 'src', 'package', 'dye', 'fabfile.py')
+
+# alternatively here is the path for non-editable install
+#fabfile = os.path.join(ve_dir, 'lib', 'python2.6', 'site-packages', 'dye', 'fabfile.py')
 
 # tell fabric that this directory is where it can find project_settings and
 # localfab (if it exists)
