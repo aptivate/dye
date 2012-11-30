@@ -6,7 +6,7 @@ setup(
     author='Hamish Downer',
     author_email='hamish+dye@aptivate.org',
     packages=['dye', 'dye.test'],
-    #scripts=['bin/stowe-towels.py','bin/wash-towels.py'],
+    scripts=['dye/tasks.py'],
     url='http://pypi.python.org/pypi/Dye/',
     license='LICENSE.txt',
     description='A set of functions to improve deploy scripts',
