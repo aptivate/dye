@@ -54,7 +54,7 @@ import os, sys
 import getopt
 import inspect
 
-import tasklib
+from dye import tasklib
 
 localtasks = None
 
