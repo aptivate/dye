@@ -156,7 +156,7 @@ def main(argv):
     # parse command line options
     try:
         opts, args = getopt.getopt(argv[1:], "dhp:qv", 
-                ["description", "help", "projectdir", "quiet", "verbose"])
+                ["description", "help", "projectdir=", "quiet", "verbose"])
     except getopt.error, msg:
         print msg
         print "for help use --help"
