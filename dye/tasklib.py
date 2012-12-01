@@ -171,8 +171,9 @@ def _manage_py(args, cwd=None):
         output_lines.append(line)
     returncode = popen.wait()
     if returncode != 0:
-        sys.exit("Failed to execute command: %s: returned %s\n%s" % (manage_cmd,
-                returncode, "\n".join(output_lines)))
+        print >>sys.stderr, "Failed to execute command: %s: returned %s\n%s" % \
+            (manage_cmd, returncode, "\n".join(output_lines))
+        sys.exit(popen.returncode)
     return output_lines
 
 
