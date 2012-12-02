@@ -689,7 +689,8 @@ def _manage_py_jenkins():
 
 def _rm_all_pyc():
     """Remove all pyc files, to be sure"""
-    _call_wrapper('find . -name \*.pyc | xargs rm', shell=True, cwd=env['vcs_root_dir'])
+    _call_wrapper('find . -name \*.pyc -print0 | xargs -0 rm', shell=True,
+        cwd=env['vcs_root_dir'])
 
 
 def run_jenkins():
