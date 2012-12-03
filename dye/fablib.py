@@ -35,16 +35,8 @@ def _setup_paths(project_settings):
     if env.use_virtualenv:
         h.set_dict_if_not_set(env, 'virtualenv_root', os.path.join(env.django_root, '.ve'))
 
-    python26 = os.path.join('/', 'usr', 'bin', 'python2.6')
-    if os.path.exists(python26):
-        h.set_dict_if_not_set(env, 'python_bin', python26)
-    else:
-        h.set_dict_if_not_set(env, 'python_bin', os.path.join('/', 'usr', 'bin', 'python'))
-
-    h.set_dict_if_not_set(env, 'tasks_bin',
-            env.python_bin + ' ' + os.path.join(env.deploy_root, 'tasks.py'))
-    h.set_dict_if_not_set(env, 'local_tasks_bin',
-            env.python_bin + ' ' + os.path.join(os.path.dirname(__file__), 'tasks.py'))
+    h.set_dict_if_not_set(env, 'local_tasks_bin', os.path.join('/', 'usr', 'bin', 'python') +
+            ' ' + os.path.join(os.path.dirname(__file__), 'tasks.py'))
 
     # valid environments - used for require statements in fablib
     env.valid_envs = env.host_list.keys()
@@ -63,10 +55,22 @@ def _linux_type():
             utils.abort("could not determine linux type of server we're deploying to")
     return env.linux_type
 
+def _get_python():
+    if 'python_bin' not in env:
+        python26 = os.path.join('/', 'usr', 'bin', 'python2.6')
+        if files.exists(python26):
+            env.python_bin = python26
+        else:
+            env.python_bin = os.path.join('/', 'usr', 'bin', 'python')
+    return env.python_bin
+
+def _get_tasks_bin():
+    if 'tasks_bin' not in env:
+        env.tasks_bin = _get_python() + ' ' + os.path.join(env.deploy_root, 'tasks.py')
+    return env.tasks_bin
 
 def _tasks(tasks_args, verbose=False):
-    require('tasks_bin', provided_by=env.valid_envs)
-    tasks_cmd = env.tasks_bin
+    tasks_cmd = _get_tasks_bin()
     if env.verbose or verbose:
         tasks_cmd += ' -v'
     sudo_or_run(tasks_cmd + ' ' + tasks_args)
@@ -267,11 +271,11 @@ def local_test():
 
 def remote_test():
     """ run the django tests remotely - staging only """
-    require('django_root', 'python_bin', provided_by=env.valid_envs)
+    require('django_root', provided_by=env.valid_envs)
     if env.environment == 'production':
         utils.abort('do not run tests on the production environment')
     with cd(env.django_root):
-        sudo_or_run(env.python_bin + env.test_cmd)
+        sudo_or_run(_get_python() + env.test_cmd)
 
 def version():
     """ return the deployed VCS revision and commit comments"""
@@ -441,8 +445,7 @@ def update_requirements():
 
 def collect_static_files():
     """ coolect static files in the 'static' directory """
-    require('tasks_bin', provided_by=env.valid_envs)
-    sudo(env.tasks_bin + ' collect_static')
+    sudo(_get_tasks_bin() + ' collect_static')
 
 def clean_db(revision=None):
     """ delete the entire database """

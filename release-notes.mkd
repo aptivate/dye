@@ -12,6 +12,14 @@ You shouldn't have to alter your localtasks.py
 
 # Notes on upgrading
 
+## 03/12/2012
+
+`env.python_bin` and `env.tasks_bin` have gone. Remove any require() calls
+that mention them and replace the use of the these variables with:
+
+    fablib._get_python()
+    fablib._get_tasks_bin()
+
 ## 24/11/2012
 
 In fablib, changed deploy() to use apache reload. If you have a deploy() in
