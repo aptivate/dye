@@ -369,11 +369,11 @@ def _checkout_or_update_git(revision=None):
         # if on branch then merge, otherwise just print a warning
         with cd(env.vcs_root):
             with settings(warn_only=True):
-                branch = sudo_or_run('git rev-parse --abbrev-ref HEAD')
-            if branch != 'HEAD':
+                current_branch = sudo_or_run('git rev-parse --abbrev-ref HEAD')
+            if current_branch != 'HEAD':
                 # we are on a branch
                 stash_result = sudo_or_run('git stash')
-                sudo_or_run('git merge origin/%s' % branch)
+                sudo_or_run('git merge origin/%s' % current_branch)
                 # if we did a stash, now undo it
                 if not stash_result.startswith("No local changes"):
                     sudo_or_run('git stash pop')
