@@ -38,3 +38,9 @@ env.use_apache = False      becomes      env.webserver = None
 fablib.apache_cmd('xyz')    becomes      env.webserver_cmd('xyz')
 
 commit: 91b66b43f66e45a2a42c9586469482dd1f39697e
+
+## Older
+
+In project_settings.py we now use `django_relative_dir` rather than `django_dir`
+to remove ambiguity. You may need to update `wsgi/wsgi_handler.py` to use the new
+name.
