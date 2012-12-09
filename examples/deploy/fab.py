@@ -38,4 +38,7 @@ fab_call += ['-f', fabfile]
 fab_call += sys.argv[1:]
 
 # exit with the fabric exit code
-sys.exit(subprocess.call(fab_call, env=osenv))
+try:
+    sys.exit(subprocess.call(fab_call, env=osenv))
+except OSError as e:
+    raise Exception("Failed to execute %s: %s" % (fab_call, e))
