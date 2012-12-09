@@ -8,6 +8,7 @@ import subprocess
 PACKAGES = [
     'fabric==1.4',
     '-e git+git://github.com/aptivate/dye.git#egg=Package',
+    'virtualenv==1.8.4'
     ]
 
 def find_python():
