@@ -30,12 +30,30 @@ def create_virtualenv(ve_dir):
     # use the python we want
     # ensure we don't end up with the system python
     python_bin = find_python()
-    ve_cmd = ['virtualenv',
-        '-python_bin=' + python_bin,
+    
+    virtualenv = '/usr/bin/virtualenv-2.6'
+    if not os.path.exists(virtualenv):
+        virtualenv = '/usr/bin/virtualenv'
+    
+    ve_cmd = [virtualenv,
+        '--python=' + python_bin,
         '--no-site-packages',
         ve_dir,
         ]
-    subprocess.check_call(ve_cmd)
+    
+    try:
+        subprocess.check_call(ve_cmd)
+    except OSError as e:
+        raise Exception("Failed to create virtualenv: %s: %s" % (ve_cmd, e))
+    
+    pip_cmd = [os.path.join(ve_dir, 'bin', 'pip'), 'install']
+    pip_cmd.extend(PACKAGES)
+
+    try:
+        subprocess.check_call(pip_cmd)
+    except OSError as e:
+        raise Exception("Failed to install bootstrap packages: %s: %s" %
+            (pip_cmd, e))
 
 def main(argv):
     quiet = False
