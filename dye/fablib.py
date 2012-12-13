@@ -145,9 +145,11 @@ def deploy(revision=None, keep=None):
         if env.environment == 'production':
             setup_db_dumps()
 
-    # bring this vhost back in
+    # bring this vhost back in, reload the webserver and touch the WSGI
+    # handler (which reloads the wsgi app)
     link_webserver_conf()
     webserver_cmd('reload')
+    touch_wsgi()
 
 def set_up_celery_daemon():
     require('vcs_root', provided_by=env)
@@ -487,7 +489,7 @@ def setup_db_dumps():
     require('dump_dir', provided_by=env.valid_envs)
     _tasks('setup_db_dumps:' + env.dump_dir)
 
-def touch():
+def touch_wsgi():
     """ touch wsgi file to trigger reload """
     require('vcs_root', provided_by=env.valid_envs)
     wsgi_dir = os.path.join(env.vcs_root, 'wsgi')
