@@ -353,6 +353,8 @@ def link_local_settings(environment):
     # and if we forget to add that to our project, it could cause mysterious
     # failures
     settings_file = os.path.join(env['django_dir'], 'settings.py')
+    if not(os.path.isfile(settings_file)):
+        sys.exit(1, "Fatal error: settings.py doesn't seem to exist")
     with open(settings_file) as settings_file:
         matching_lines = [line for line in settings_file
             if line.find('local_settings')]
