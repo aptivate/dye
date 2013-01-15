@@ -35,22 +35,75 @@ class TestTaskLib(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.testdir)
 
+    def create_settings_py(self):
+        settings_path = os.path.join(tasklib.env['django_dir'], 'settings.py')
+        with open(settings_path, 'w') as f:
+            f.write('import local_settings')
+
     def test_link_local_settings_exits_if_settings_py_not_present(self):
         """ We don't create settings.py, just call link_local_settings()
         and see if it dies with the correct error """
-        self.assertRaises(tasklib.link_local_settings('dev'),
-                SystemExit)
-
+        self.assertRaises(tasklib.link_local_settings('dev'), SystemExit)
 
     def test_link_local_settings(self):
+        self.create_settings_py()
         local_settings_path = os.path.join(tasklib.env['django_dir'], 'local_settings.py')
         local_settings_dev_path = local_settings_path + '.dev'
         # create local_settings.py.dev, run link_local_settings, confirm it exists
-        lsdev = open(local_settings_dev_path, 'w')
-        lsdev.write('# python file')
-        lsdev.close()
+        with open(local_settings_dev_path, 'w') as lsdev:
+            lsdev.write('# python file')
         tasklib.link_local_settings('dev')
         self.assertTrue(os.path.islink(local_settings_path))
+        # assert the link goes to the correct file
+        linkto = os.readlink(local_settings_path)
+        self.assertEqual(linkto, 'local_settings.py.dev')
+
+    # database tests?!? as root and as user
+
+    # find migrations
+
+    # create rollback version
+
+    # create dir if not exists
+
+    # get django db settings
+
+    # clean db
+
+    # clean ve
+
+    # update ve
+
+    # create private settings
+
+    # get cache table
+
+    # update db
+
+    # db exists
+
+    # db table exists
+
+    # create test db
+
+    # dump db
+
+    # restore db
+
+    # update git submodules
+
+    # manage py jenkins
+
+    # run jenkins
+
+    # rm all pyc
+
+    # infer evironment
+
+    # deploy
+
+    # patch south
+
 
 if __name__ == '__main__':
     unittest.main()
