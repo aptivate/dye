@@ -395,7 +395,8 @@ def _checkout_or_update_git(revision=None):
             # check if revision is a branch, and do a merge if it is
             with settings(warn_only=True):
                 rev_is_branch = sudo_or_run('git branch -r | grep %s' % revision)
-            if rev_is_branch.succeeded:
+            # use old fabric style here to support Ubuntu 10.04
+            if not rev_is_branch.failed:
                 sudo_or_run('git merge origin/%s' % revision)
             # if we did a stash, now undo it
             if not stash_result.startswith("No local changes"):
