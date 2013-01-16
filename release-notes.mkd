@@ -12,6 +12,11 @@ You shouldn't have to alter your localtasks.py
 
 # Notes on upgrading
 
+## 16/01/2013
+
+Git projects can now specify a default branch per server. See the example
+project_settings.py for how to specify it. This replaces env.branch
+
 ## 03/12/2012
 
 `env.python_bin` and `env.tasks_bin` have gone. Remove any require() calls

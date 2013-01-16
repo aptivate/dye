@@ -48,6 +48,14 @@ host_list = {
         'dev_server':   ['fen-vz-' + project_name + '-dev.fen.aptivate.org',],
         }
 
+# this is the default git branch to use on each server
+default_branch = {
+        'production':   'master',
+        'staging':      'master',
+        'staging_test': 'master',
+        'dev_server':   'develop',
+        }
+
 # where on the server the django apps are deployed
 server_home = '/var/django'
 
