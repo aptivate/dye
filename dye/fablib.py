@@ -20,7 +20,7 @@ def _setup_paths(project_settings):
     h.set_dict_if_not_set(env, 'verbose',      False)
     h.set_dict_if_not_set(env, 'use_sudo',     True)
     h.set_dict_if_not_set(env, 'cvs_rsh',      'CVS_RSH="ssh"')
-    h.set_dict_if_not_set(env, 'branch',       'master')
+    h.set_dict_if_not_set(env, 'default_branch', {'production': 'master', 'staging': 'master'})
     h.set_dict_if_not_set(env, 'project_root', os.path.join(env.server_home, env.project_dir))
     h.set_dict_if_not_set(env, 'vcs_root',     os.path.join(env.project_root, 'dev'))
     h.set_dict_if_not_set(env, 'prev_root',    os.path.join(env.project_root, 'previous'))
@@ -295,6 +295,44 @@ def version():
     else:
         utils.abort('Unsupported repo type: %s' % (env.repo_type))
 
+def _check_git_branch():
+    env.revision = None
+    with cd(env.vcs_root):
+        with settings(warn_only=True):
+            # get branch information
+            server_branch = sudo_or_run('git rev-parse --abbrev-ref HEAD')
+            server_commit = sudo_or_run('git rev-parse HEAD')
+            local_branch = local('git rev-parse --abbrev-ref HEAD', capture=True)
+            default_branch = env.default_branch.get(env.environment, 'master')
+            git_branch_r = sudo_or_run('git branch -r')
+            git_branch_r = git_branch_r.split('\n')
+            branches = [b.split('/')[-1].strip() for b in git_branch_r if 'HEAD' not in b]
+
+        # if all branches are the same, just stick to this branch
+        if server_branch == local_branch == default_branch:
+            env.revision = server_branch
+        else:
+            if server_branch == 'HEAD':
+                # not on a branch - just print a warning
+                utils.puts('The server git repository is not on a branch')
+
+            utils.puts('Branch mismatch found:')
+            utils.puts('* %s is the default branch for this server' % default_branch)
+            if server_branch == 'HEAD':
+                utils.puts('* %s is the commit checked out on the server.' % server_commit)
+            else:
+                utils.puts('* %s is the branch currently checked out on the server' % server_branch)
+            utils.puts('* %s is the current branch of your local git repo' % local_branch)
+            utils.puts('')
+            utils.puts('Available branches are:')
+            for branch in branches:
+                utils.puts('* %s' % branch)
+            utils.puts('')
+            validate_branch = '^' + '|'.join(branches) + '$'
+
+            env.revision = prompt('Which branch would you like to use on the server? (or hit Ctrl-C to exit)',
+                    default=default_branch, validate=validate_branch)
+
 def check_for_local_changes():
     """ check if there are local changes on the remote server """
     require('repo_type', 'vcs_root', provided_by=env.valid_envs)
@@ -316,6 +354,8 @@ def check_for_local_changes():
                         default='no', validate=r'^yes|no$')
                 if cont == 'no':
                     utils.abort('Aborting deployment')
+            if env.repo_type == 'git':
+                _check_git_branch()
 
 def checkout_or_update(revision=None):
     """ checkout or update the project from version control.
@@ -357,6 +397,7 @@ def _checkout_or_update_svn(revision=None):
             with hide('running'):
                 sudo_or_run(cmd)
 
+
 def _checkout_or_update_git(revision=None):
     # if the .git directory exists, do an update, otherwise do
     # a clone
@@ -368,39 +409,25 @@ def _checkout_or_update_git(revision=None):
             sudo_or_run('git fetch origin')
     else:
         with cd(env.project_root):
+            default_branch = env.default_branch.get(env.environment, 'master')
             sudo_or_run('git clone -b %s %s %s' %
-                    (env.branch, env.repository, env.vcs_root))
+                    (default_branch, env.repository, env.vcs_root))
     if revision == None:
-        # no revision
-        # if on branch then merge, otherwise just print a warning
-        with cd(env.vcs_root):
-            with settings(warn_only=True):
-                current_branch = sudo_or_run('git rev-parse --abbrev-ref HEAD')
-            if current_branch != 'HEAD':
-                # we are on a branch
-                stash_result = sudo_or_run('git stash')
-                sudo_or_run('git merge origin/%s' % current_branch)
-                # if we did a stash, now undo it
-                if not stash_result.startswith("No local changes"):
-                    sudo_or_run('git stash pop')
-            else:
-                # not on a branch - just print a warning
-                utils.warn('The server git repository is not on a branch')
-                utils.warn('No checkout or merge has been done - you should probably')
-                utils.warn('redeploy and specify a branch or revision to checkout.')
-    else:
-        with cd(env.vcs_root):
-            stash_result = sudo_or_run('git stash')
-            sudo_or_run('git checkout %s' % revision)
-            # check if revision is a branch, and do a merge if it is
-            with settings(warn_only=True):
-                rev_is_branch = sudo_or_run('git branch -r | grep %s' % revision)
-            # use old fabric style here to support Ubuntu 10.04
-            if not rev_is_branch.failed:
-                sudo_or_run('git merge origin/%s' % revision)
-            # if we did a stash, now undo it
-            if not stash_result.startswith("No local changes"):
-                sudo_or_run('git stash pop')
+        revision = env.revision
+
+    with cd(env.vcs_root):
+        stash_result = sudo_or_run('git stash')
+        sudo_or_run('git checkout %s' % revision)
+        # check if revision is a branch, and do a merge if it is
+        with settings(warn_only=True):
+            rev_is_branch = sudo_or_run('git branch -r | grep %s' % revision)
+        # use old fabric style here to support Ubuntu 10.04
+        if not rev_is_branch.failed:
+            sudo_or_run('git merge origin/%s' % revision)
+        # if we did a stash, now undo it
+        if not stash_result.startswith("No local changes"):
+            sudo_or_run('git stash pop')
+
     if files.exists(os.path.join(env.vcs_root, ".gitmodules")):
         with cd(env.vcs_root):
             sudo_or_run('git submodule update --init')
