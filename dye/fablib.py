@@ -466,15 +466,9 @@ def sudo_or_run(command):
 def create_deploy_virtualenv():
     """ if using new style dye stuff, create the virtualenv to hold dye """
     require('deploy_root', provided_by=env.valid_envs)
-    
-    python26 = os.path.join('/', 'usr', 'bin', 'python2.6')
-    if files.exists(python26):
-        python = python26
-    else:
-        python = os.path.join('/', 'usr', 'bin', 'python')
 
     bootstrap_path = os.path.join(env.deploy_root, 'bootstrap.py')
-    sudo_or_run('%s %s' % (python, bootstrap_path))
+    sudo_or_run('%s %s' % (_get_python(), bootstrap_path))
 
 def update_requirements():
     """ update external dependencies on remote host """
