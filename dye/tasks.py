@@ -54,7 +54,13 @@ import os, sys
 import getopt
 import inspect
 
-from dye import tasklib
+# if using dye as a module then tasklib is in dye, but
+# if using the dye files in a single directory, then it
+# isn't. If both imports fail then we should blow up here.
+try:
+    from dye import tasklib
+except ImportError:
+    import tasklib
 
 localtasks = None
 
