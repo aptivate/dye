@@ -430,6 +430,7 @@ def _checkout_or_update_git(revision=None):
 
     if files.exists(os.path.join(env.vcs_root, ".gitmodules")):
         with cd(env.vcs_root):
+            sudo_or_run('git submodule sync')
             sudo_or_run('git submodule update --init')
 
 def _checkout_or_update_cvs(revision):
