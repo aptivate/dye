@@ -314,20 +314,20 @@ def _check_git_branch():
         else:
             if server_branch == 'HEAD':
                 # not on a branch - just print a warning
-                utils.puts('The server git repository is not on a branch')
+                print 'The server git repository is not on a branch'
 
-            utils.puts('Branch mismatch found:')
-            utils.puts('* %s is the default branch for this server' % default_branch)
+            print 'Branch mismatch found:'
+            print '* %s is the default branch for this server' % default_branch
             if server_branch == 'HEAD':
-                utils.puts('* %s is the commit checked out on the server.' % server_commit)
+                print '* %s is the commit checked out on the server.' % server_commit
             else:
-                utils.puts('* %s is the branch currently checked out on the server' % server_branch)
-            utils.puts('* %s is the current branch of your local git repo' % local_branch)
-            utils.puts('')
-            utils.puts('Available branches are:')
+                print '* %s is the branch currently checked out on the server' % server_branch
+            print '* %s is the current branch of your local git repo' % local_branch
+            print ''
+            print 'Available branches are:'
             for branch in branches:
-                utils.puts('* %s' % branch)
-            utils.puts('')
+                print '* %s' % branch
+            print ''
             validate_branch = '^' + '|'.join(branches) + '$'
 
             env.revision = prompt('Which branch would you like to use on the server? (or hit Ctrl-C to exit)',
@@ -354,8 +354,8 @@ def check_for_local_changes():
                         default='no', validate=r'^yes|no$')
                 if cont == 'no':
                     utils.abort('Aborting deployment')
-            if env.repo_type == 'git':
-                _check_git_branch()
+        if env.repo_type == 'git':
+            _check_git_branch()
 
 def checkout_or_update(revision=None):
     """ checkout or update the project from version control.
