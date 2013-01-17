@@ -161,24 +161,24 @@ def main(argv):
     project_dir = os.path.dirname(__file__)
     # parse command line options
     try:
-        opts, args = getopt.getopt(argv[1:], "dhpqv", 
-                ["description", "help", "projectdir", "quiet", "verbose"])
+        opts, args = getopt.getopt(argv[1:], "dhp:qv", 
+                ["description", "help", "projectdir=", "quiet", "verbose"])
     except getopt.error, msg:
         print msg
         print "for help use --help"
         sys.exit(2)
     # process options
-    for o, a in opts:
-        if o in ("-h", "--help"):
+    for opt, arg in opts:
+        if opt in ("-h", "--help"):
             print_help_text()
-        if o in ("-v", "--verbose"):
+        if opt in ("-v", "--verbose"):
             verbose = True
-        if o in ("-q", "--quiet"):
+        if opt in ("-q", "--quiet"):
             quiet = True
-        if o in ("-d", "--description"):
+        if opt in ("-d", "--description"):
             describe_task(args)
-        if o in ("-p", "--projectdir"):
-            project_dir = a
+        if opt in ("-p", "--projectdir"):
+            project_dir = arg
     if verbose and quiet:
         print "Cannot set both verbose and quiet"
         sys.exit(2)
