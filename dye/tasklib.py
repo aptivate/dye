@@ -345,6 +345,9 @@ def create_private_settings():
             f.write("DB_PASSWORD = '%s'\n" % db_password)
         finally:
             f.close()
+        # need to think about how to ensure this is owned by apache
+        # despite having been created by root
+        #os.chmod(private_settings_file, 0400)
 
 def link_local_settings(environment):
     """ link local_settings.py.environment as local_settings.py """
