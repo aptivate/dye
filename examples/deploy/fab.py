@@ -28,7 +28,7 @@ fabfile = os.path.join(ve_dir, 'src', 'package', 'dye', 'fabfile.py')
 # tell fabric that this directory is where it can find project_settings and
 # localfab (if it exists)
 osenv = os.environ
-osenv['PROJECTDIR'] = current_dir
+osenv['DEPLOYDIR'] = current_dir
 
 # call the fabric in the virtual env
 fab_call = [fab_bin]

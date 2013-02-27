@@ -16,10 +16,10 @@ import fablib
 # it from the directory that contains project_settings.py (and, optionally,
 # localfab.py) It communicates which directory that is through an environment
 # variable.
-if 'PROJECTDIR' in os.environ:
+if 'DEPLOYDIR' in os.environ:
     # add the project directory to the python path, if set in environ
-    sys.path.append(os.environ['PROJECTDIR'])
-    localfabdir = os.environ['PROJECTDIR']
+    sys.path.append(os.environ['DEPLOYDIR'])
+    localfabdir = os.environ['DEPLOYDIR']
 else:
     localfabdir = os.path.dirname(__file__)
 
