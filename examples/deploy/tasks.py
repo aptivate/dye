@@ -21,7 +21,7 @@ tasks = os.path.join(ve_dir, 'src', 'package', 'dye', 'tasks.py')
 tasks_call = [ve_python, tasks]
 # tell tasks.py that this directory is where it can find project_settings and
 # localtasks (if it exists)
-tasks_call += ['--projectdir=' + current_dir]
+tasks_call += ['--deploydir=' + current_dir]
 # add any arguments passed to this script
 tasks_call += sys.argv[1:]
 # exit with the tasks.py exit code

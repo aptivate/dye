@@ -21,9 +21,11 @@
 General arguments are:
 
     -h, --help       Print this help text
-    -p, --projectdir Set the project dir (where to find project_settings.py
+    -d, --deploydir  Set the project dir (where to find project_settings.py
                      and, optionally, localtasks.py) Defaults to the directory
                      that contains tasks.py
+    -t, --task-description <task_name>
+                     Print a description of a task and exit
     -q, --quiet      Print less output while executing (note: not none)
     -v, --verbose    Print extra output while executing
 
@@ -41,9 +43,9 @@ Multiple arguments are separated by commas:
 $ ./tasks.py deploy:environment=staging,arg2=somevalue
 
 You can get a description of a function (the docstring, and a basic 
-description of the arguments it takes) by using -d thus:
+description of the arguments it takes) by using -t thus:
 
-    -d <function_name>
+    -t <function_name>
 
 If you need to know more, then you'll have to look at the code of the 
 function in tasklib.py (or localtasks.py) to see what arguments the 
@@ -161,8 +163,8 @@ def main(argv):
     project_dir = os.path.dirname(__file__)
     # parse command line options
     try:
-        opts, args = getopt.getopt(argv[1:], "dhp:qv", 
-                ["description", "help", "projectdir=", "quiet", "verbose"])
+        opts, args = getopt.getopt(argv[1:], "thd:qv", 
+                ["task-description", "help", "deploydir=", "quiet", "verbose"])
     except getopt.error, msg:
         print msg
         print "for help use --help"
@@ -175,9 +177,9 @@ def main(argv):
             verbose = True
         if opt in ("-q", "--quiet"):
             quiet = True
-        if opt in ("-d", "--description"):
+        if opt in ("-t", "--task-description"):
             describe_task(args)
-        if opt in ("-p", "--projectdir"):
+        if opt in ("-d", "--deploydir"):
             project_dir = arg
     if verbose and quiet:
         print "Cannot set both verbose and quiet"
