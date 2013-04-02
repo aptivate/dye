@@ -407,30 +407,30 @@ def _checkout_or_update_git(revision=None):
             sudo_or_run('git remote add origin %s' % env.repository)
             # fetch now, merge later (if on branch)
             sudo_or_run('git fetch origin')
+
+        if revision == None:
+            revision = env.revision
+
+        with cd(env.vcs_root):
+            stash_result = sudo_or_run('git stash')
+            sudo_or_run('git checkout %s' % revision)
+            # check if revision is a branch, and do a merge if it is
+            with settings(warn_only=True):
+                rev_is_branch = sudo_or_run('git branch -r | grep %s' % revision)
+            # use old fabric style here to support Ubuntu 10.04
+            if not rev_is_branch.failed:
+                sudo_or_run('git merge origin/%s' % revision)
+            # if we did a stash, now undo it
+            if not stash_result.startswith("No local changes"):
+                sudo_or_run('git stash pop')
     else:
         with cd(env.project_root):
             default_branch = env.default_branch.get(env.environment, 'master')
             sudo_or_run('git clone -b %s %s %s' %
                     (default_branch, env.repository, env.vcs_root))
-    if revision == None:
-        revision = env.revision
-
-    with cd(env.vcs_root):
-        stash_result = sudo_or_run('git stash')
-        sudo_or_run('git checkout %s' % revision)
-        # check if revision is a branch, and do a merge if it is
-        with settings(warn_only=True):
-            rev_is_branch = sudo_or_run('git branch -r | grep %s' % revision)
-        # use old fabric style here to support Ubuntu 10.04
-        if not rev_is_branch.failed:
-            sudo_or_run('git merge origin/%s' % revision)
-        # if we did a stash, now undo it
-        if not stash_result.startswith("No local changes"):
-            sudo_or_run('git stash pop')
 
     if files.exists(os.path.join(env.vcs_root, ".gitmodules")):
         with cd(env.vcs_root):
-            sudo_or_run('git submodule sync')
             sudo_or_run('git submodule update --init')
 
 def _checkout_or_update_cvs(revision):
@@ -466,9 +466,9 @@ def sudo_or_run(command):
 def create_deploy_virtualenv():
     """ if using new style dye stuff, create the virtualenv to hold dye """
     require('deploy_root', provided_by=env.valid_envs)
-
     bootstrap_path = os.path.join(env.deploy_root, 'bootstrap.py')
-    sudo_or_run('%s %s' % (_get_python(), bootstrap_path))
+    if files.exists(bootstrap_path):
+        sudo_or_run('%s %s' % (_get_python(), bootstrap_path))
 
 def update_requirements():
     """ update external dependencies on remote host """
@@ -561,7 +561,7 @@ def _webserver_conf_path():
             }
     key = env.webserver + '_' + _linux_type()
     if key in webserver_conf_dir:
-        return os.path.join(webserver_conf_dir[key], 
+        return os.path.join(webserver_conf_dir[key],
                 env.project_name+'_'+env.environment+'.conf')
     else:
         utils.abort('webserver %s is not supported (linux type %s)' %
