@@ -6,6 +6,8 @@ Cuisine: https://github.com/sebastien/cuisine - this is more like puppet/chef, b
 
 Fabmagic: https://github.com/Lispython/fabmagic - recipes - should investigate more
 
+Fabtools: https://github.com/ronnix/fabtools/ - interesting, they do functional testing using vagrant
+
 Deployer: https://github.com/jonathanslenders/python-deployer - bit nearer, need to get head around it.
 
 Neckbeard: https://github.com/winhamwr/neckbeard - AWS based deploy, including using local chef scripts to set up the server in the first place.
