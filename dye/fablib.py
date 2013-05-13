@@ -489,8 +489,7 @@ def create_deploy_virtualenv():
     """ if using new style dye stuff, create the virtualenv to hold dye """
     require('deploy_root', provided_by=env.valid_envs)
     bootstrap_path = os.path.join(env.deploy_root, 'bootstrap.py')
-    if files.exists(bootstrap_path):
-        sudo_or_run('%s %s' % (_get_python(), bootstrap_path))
+    sudo_or_run('%s %s --quiet' % (_get_python(), bootstrap_path))
 
 
 def update_requirements():
