@@ -21,7 +21,7 @@
 General arguments are:
 
     -h, --help       Print this help text
-    -d, --deploydir  Set the project dir (where to find project_settings.py
+    -d, --deploydir  Set the deploy dir (where to find project_settings.py
                      and, optionally, localtasks.py) Defaults to the directory
                      that contains tasks.py
     -t, --task-description <task_name>
@@ -42,17 +42,18 @@ Multiple arguments are separated by commas:
 
 $ ./tasks.py deploy:environment=staging,arg2=somevalue
 
-You can get a description of a function (the docstring, and a basic 
+You can get a description of a function (the docstring, and a basic
 description of the arguments it takes) by using -t thus:
 
     -t <function_name>
 
-If you need to know more, then you'll have to look at the code of the 
-function in tasklib.py (or localtasks.py) to see what arguments the 
+If you need to know more, then you'll have to look at the code of the
+function in tasklib.py (or localtasks.py) to see what arguments the
 function accepts.
 """
 
-import os, sys
+import os
+import sys
 import getopt
 import inspect
 
@@ -66,6 +67,7 @@ except ImportError:
 
 localtasks = None
 
+
 def invalid_command(cmd):
     print "Tasks.py:"
     print
@@ -73,6 +75,7 @@ def invalid_command(cmd):
     print
     print "For help use --help"
     sys.exit(2)
+
 
 def get_public_callables(mod):
     callables = []
@@ -83,15 +86,17 @@ def get_public_callables(mod):
                     callables.append(task)
     return callables
 
+
 def tasklib_list():
     return get_public_callables(tasklib)
+
 
 def localtasks_list():
     return get_public_callables(localtasks)
 
 
 def tasks_available():
-    tasks = list(set(tasklib_list()+localtasks_list()))
+    tasks = list(set(tasklib_list() + localtasks_list()))
     tasks.sort()
     return tasks
 
@@ -110,14 +115,14 @@ def print_help_text():
 def print_description(task_name, task_function):
     print "%s:" % task_name
     print
-    if task_function.func_doc != None:
+    if task_function.func_doc is not None:
         print task_function.func_doc
     else:
         print "No description found for %s" % task_name
     print
     argspec = inspect.getargspec(task_function)
     if len(argspec.args) == 0:
-        if argspec.varargs == None:
+        if argspec.varargs is None:
             print "%s takes no arguments." % task_name
         else:
             print "%s takes no named arguments, but instead takes a variable " % task_name
@@ -126,7 +131,7 @@ def print_description(task_name, task_function):
         print "Arguments taken by %s:" % task_name
         for arg in argspec.args:
             print "* %s" % arg
-        if argspec.varargs != None:
+        if argspec.varargs is not None:
             print
             print "You can also add a variable number of arguments."
     print
@@ -146,6 +151,7 @@ def describe_task(args):
             print
         sys.exit(0)
 
+
 def convert_args(value):
     if value.lower() == 'true':
         return True
@@ -156,14 +162,15 @@ def convert_args(value):
     else:
         return value
 
+
 def main(argv):
     global localtasks
     verbose = False
     quiet = False
-    project_dir = os.path.dirname(__file__)
+    deploy_dir = os.path.dirname(__file__)
     # parse command line options
     try:
-        opts, args = getopt.getopt(argv[1:], "thd:qv", 
+        opts, args = getopt.getopt(argv[1:], "thd:qv",
                 ["task-description", "help", "deploydir=", "quiet", "verbose"])
     except getopt.error, msg:
         print msg
@@ -180,20 +187,21 @@ def main(argv):
         if opt in ("-t", "--task-description"):
             describe_task(args)
         if opt in ("-d", "--deploydir"):
-            project_dir = arg
+            deploy_dir = arg
     if verbose and quiet:
         print "Cannot set both verbose and quiet"
         sys.exit(2)
     tasklib.env['verbose'] = verbose
     tasklib.env['quiet'] = quiet
+    tasklib.env['deploy_dir'] = deploy_dir
 
-    sys.path.append(project_dir)
+    sys.path.append(deploy_dir)
     import project_settings
     # now see if we can find localtasks
     # We deliberately don't surround the import by try/except. If there
     # is an error in localfab, you want it to blow up immediately, rather
     # than silently fail.
-    if os.path.isfile(os.path.join(project_dir, 'localtasks.py')):
+    if os.path.isfile(os.path.join(deploy_dir, 'localtasks.py')):
         import localtasks
         if (hasattr(localtasks, '_setup_paths')):
             localtasks._setup_paths()

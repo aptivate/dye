@@ -106,14 +106,14 @@ def _setup_paths(project_settings, localtasks):
     for setting in user_settings:
         env[setting] = vars(project_settings)[setting]
 
-    env['localtasks']   = localtasks
-    env['deploy_dir']   = os.path.dirname(__file__)
+    env['localtasks'] = localtasks
+    env['deploy_dir'] = os.path.dirname(__file__)
     # what is the root of the project - one up from this directory
-    env.setdefault('project_dir',
+    env.setdefault('vcs_root_dir',
         os.path.abspath(os.path.join(env['deploy_dir'], '..')))
-    env['django_dir']   = os.path.join(env['project_dir'], project_settings.django_relative_dir)
-    env['ve_dir']       = os.path.join(env['django_dir'], '.ve')
-    env['manage_py']    = os.path.join(env['django_dir'], 'manage.py')
+    env['django_dir'] = os.path.join(env['vcs_root_dir'], project_settings.django_relative_dir)
+    env['ve_dir']     = os.path.join(env['django_dir'], '.ve')
+    env['manage_py']  = os.path.join(env['django_dir'], 'manage.py')
 
     python26 = os.path.join('/', 'usr', 'bin', 'python2.6')
     python27 = os.path.join('/', 'usr', 'bin', 'python2.7')
@@ -146,7 +146,7 @@ def _manage_py(args, cwd=None):
     if env.has_key('manage_py_settings'):
         manage_cmd.append('--settings=%s' % env['manage_py_settings'])
 
-    if cwd == None:
+    if cwd is None:
         cwd = env['django_dir']
 
     if env['verbose']:
@@ -542,14 +542,14 @@ def restore_db(dump_filename):
 
 def update_git_submodules():
     """If this is a git project then check for submodules and update"""
-    git_modules_file = os.path.join(env['project_dir'], '.gitmodules')
+    git_modules_file = os.path.join(env['vcs_root_dir'], '.gitmodules')
     if os.path.exists(git_modules_file):
         if not env['quiet']:
             print "### updating git submodules"
             git_submodule_cmd = 'git submodule update --init'
         else:
             git_submodule_cmd = 'git submodule --quiet update --init'
-        _check_call_wrapper(git_submodule_cmd, cwd=env['project_dir'], shell=True)
+        _check_call_wrapper(git_submodule_cmd, cwd=env['vcs_root_dir'], shell=True)
 
 def setup_db_dumps(dump_dir):
     """ set up mysql database dumps in root crontab """
@@ -653,18 +653,18 @@ def _install_django_jenkins():
 def _manage_py_jenkins():
     """ run the jenkins command """
     args = ['jenkins', ]
-    args += ['--pylint-rcfile', os.path.join(env['project_dir'], 'jenkins', 'pylint.rc')]
-    coveragerc_filepath = os.path.join(env['project_dir'], 'jenkins', 'coverage.rc')
+    args += ['--pylint-rcfile', os.path.join(env['vcs_root_dir'], 'jenkins', 'pylint.rc')]
+    coveragerc_filepath = os.path.join(env['vcs_root_dir'], 'jenkins', 'coverage.rc')
     if os.path.exists(coveragerc_filepath):
         args += ['--coverage-rcfile', coveragerc_filepath]
     args += env['django_apps']
     if not env['quiet']:
         print "### Running django-jenkins, with args; %s" % args
-    _manage_py(args, cwd=env['project_dir'])
+    _manage_py(args, cwd=env['vcs_root_dir'])
 
 def _rm_all_pyc():
     """Remove all pyc files, to be sure"""
-    _call_wrapper('find . -name \*.pyc | xargs rm', shell=True, cwd=env['project_dir'])
+    _call_wrapper('find . -name \*.pyc | xargs rm', shell=True, cwd=env['vcs_root_dir'])
 
 def run_jenkins():
     """ make sure the local settings is correct and the database exists """
