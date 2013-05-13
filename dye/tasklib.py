@@ -114,7 +114,7 @@ def _setup_paths(project_settings, localtasks):
     env.setdefault('deploy_dir', os.path.dirname(__file__))
     # what is the root of the project - one up from this directory
     env.setdefault('vcs_root_dir',
-        os.path.abspath(os.path.join(env['deploy_dir'], '..')))
+        os.path.abspath(os.path.join(env['deploy_dir'], os.pardir)))
     env.setdefault('django_dir',
                    os.path.join(env['vcs_root_dir'],
                                 project_settings.django_relative_dir))
@@ -744,7 +744,8 @@ def patch_south():
         python = 'python2.7'
     south_db_init = os.path.join(env['ve_dir'],
                 'lib/%s/site-packages/south/db/__init__.py' % python)
-    patch_file = os.path.join(env['deploy_dir'], 'south.patch')
+    patch_file = os.path.join(os.path.dirname(__file__), os.pardir, 'patch',
+                             'south.patch')
     # check if patch already applied - patch will fail if it is
     patch_applied = _call_wrapper(['grep', '-q', 'pydev', south_db_init])
     if patch_applied != 0:
