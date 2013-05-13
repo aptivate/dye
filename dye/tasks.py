@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # This script is to set up various things for our projects. It can be used by:
 #
