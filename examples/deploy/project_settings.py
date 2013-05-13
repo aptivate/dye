@@ -10,7 +10,7 @@ project_name = "insert_project_name_here"
 
 # The django apps that are part of this project - used for running tests
 # and migrations
-django_apps  = ['project_app', ]
+django_apps = ['project_app1', 'project_app2']
 
 # repository type can be "cvs", "svn" or "git"
 repo_type = "svn"
@@ -33,7 +33,7 @@ project_type = "django"
 use_virtualenv = True
 
 # the path from the project root to the django root dir
-django_relative_dir   = "django/" + project_name
+django_relative_dir = "django/" + project_name
 
 test_cmd = ' manage.py test -v0 ' + ' '.join(django_apps)
 
@@ -42,25 +42,25 @@ test_cmd = ' manage.py test -v0 ' + ' '.join(django_apps)
 
 # production server - if commented out then the production task will abort
 host_list = {
-        'production':   ['lin-' + project_name + '.aptivate.org:48001',],
-        'staging':      ['fen-vz-' + project_name + '.fen.aptivate.org',],
-        'staging_test': ['fen-vz-' + project_name + '.fen.aptivate.org',],
-        'dev_server':   ['fen-vz-' + project_name + '-dev.fen.aptivate.org',],
-        }
+    'production':   ['lin-' + project_name + '.aptivate.org:48001'],
+    'staging':      ['fen-vz-' + project_name + '.fen.aptivate.org'],
+    'staging_test': ['fen-vz-' + project_name + '.fen.aptivate.org'],
+    'dev_server':   ['fen-vz-' + project_name + '-dev.fen.aptivate.org'],
+}
 
 # this is the default git branch to use on each server
 default_branch = {
-        'production':   'master',
-        'staging':      'master',
-        'staging_test': 'master',
-        'dev_server':   'develop',
-        }
+    'production':   'master',
+    'staging':      'master',
+    'staging_test': 'master',
+    'dev_server':   'develop',
+}
 
 # where on the server the django apps are deployed
 server_home = '/var/django'
 
 # the top level directory on the server
-project_dir = project_name
+server_project_home = server_home + '/' + project_name
 
 # which web server to use (or None)
 webserver = 'apache'

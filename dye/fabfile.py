@@ -45,8 +45,9 @@ def dev_server():
 def staging_test():
     """ use staging environment on remote host to run tests"""
     # this is on the same server as the customer facing stage site
-    # so we need project_root to be different ...
-    env.project_dir = env.project_name + '_test'
+    # so we need server_project_home to be different ...
+    env.server_project_home = os.path.join(
+        env.server_home, env.project_name + '_test')
     env.webserver = None
     _server_setup('staging_test')
 

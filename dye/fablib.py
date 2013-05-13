@@ -21,10 +21,10 @@ def _setup_paths(project_settings):
     h.set_dict_if_not_set(env, 'use_sudo',     True)
     h.set_dict_if_not_set(env, 'cvs_rsh',      'CVS_RSH="ssh"')
     h.set_dict_if_not_set(env, 'default_branch', {'production': 'master', 'staging': 'master'})
-    h.set_dict_if_not_set(env, 'project_root', os.path.join(env.server_home, env.project_dir))
-    h.set_dict_if_not_set(env, 'vcs_root',     os.path.join(env.project_root, 'dev'))
-    h.set_dict_if_not_set(env, 'prev_root',    os.path.join(env.project_root, 'previous'))
-    h.set_dict_if_not_set(env, 'dump_dir',     os.path.join(env.project_root, 'dbdumps'))
+    h.set_dict_if_not_set(env, 'server_project_home', os.path.join(env.server_home, env.project_name))
+    h.set_dict_if_not_set(env, 'vcs_root',     os.path.join(env.server_project_home, 'dev'))
+    h.set_dict_if_not_set(env, 'prev_root',    os.path.join(env.server_project_home, 'previous'))
+    h.set_dict_if_not_set(env, 'dump_dir',     os.path.join(env.server_project_home, 'dbdumps'))
     h.set_dict_if_not_set(env, 'deploy_root',  os.path.join(env.vcs_root, 'deploy'))
     h.set_dict_if_not_set(env, 'settings',     '%(project_name)s.settings' % env)
 
@@ -93,7 +93,7 @@ def deploy_clean(revision=None):
     """ delete the entire install and do a clean install """
     if env.environment == 'production':
         utils.abort('do not delete the production environment!!!')
-    require('project_root', provided_by=env.valid_envs)
+    require('server_project_home', provided_by=env.valid_envs)
     # TODO: dump before cleaning database?
     with settings(warn_only=True):
         webserver_cmd('stop')
@@ -102,7 +102,7 @@ def deploy_clean(revision=None):
     deploy(revision)
 
 def clean_files():
-    sudo_or_run('rm -rf %s' % env.project_root)
+    sudo_or_run('rm -rf %s' % env.server_project_home)
 
 def _create_dir_if_not_exists(path):
     if not files.exists(path):
@@ -117,10 +117,10 @@ def deploy(revision=None, keep=None):
       the latest will be checked out)
     * keep is the number of old versions to keep around for rollback (default
       5)"""
-    require('project_root', provided_by=env.valid_envs)
+    require('server_project_home', provided_by=env.valid_envs)
     check_for_local_changes()
 
-    _create_dir_if_not_exists(env.project_root)
+    _create_dir_if_not_exists(env.server_project_home)
 
     if files.exists(env.vcs_root):
         create_copy_for_rollback(keep)
@@ -281,7 +281,7 @@ def remote_test():
 
 def version():
     """ return the deployed VCS revision and commit comments"""
-    require('project_root', 'repo_type', 'vcs_root', 'repository',
+    require('server_project_home', 'repo_type', 'vcs_root', 'repository',
         provided_by=env.valid_envs)
     if env.repo_type == "git":
         with cd(env.vcs_root):
@@ -363,7 +363,7 @@ def checkout_or_update(revision=None):
     This command works with svn, git and cvs repositories.
 
     You can also specify a revision to checkout, as an argument."""
-    require('project_root', 'repo_type', 'vcs_root', 'repository',
+    require('server_project_home', 'repo_type', 'vcs_root', 'repository',
         provided_by=env.valid_envs)
     checkout_fn = {
             'cvs': _checkout_or_update_cvs,
@@ -393,7 +393,7 @@ def _checkout_or_update_svn(revision=None):
         cmd = cmd % ('checkout', env.svnuser, env.svnpass, env.repository, env.vcs_root)
         if revision:
             cmd += "@" + revision
-        with cd(env.project_root):
+        with cd(env.server_project_home):
             with hide('running'):
                 sudo_or_run(cmd)
 
@@ -424,7 +424,7 @@ def _checkout_or_update_git(revision=None):
             if not stash_result.startswith("No local changes"):
                 sudo_or_run('git stash pop')
     else:
-        with cd(env.project_root):
+        with cd(env.server_project_home):
             default_branch = env.default_branch.get(env.environment, 'master')
             sudo_or_run('git clone -b %s %s %s' %
                     (default_branch, env.repository, env.vcs_root))
@@ -443,7 +443,7 @@ def _checkout_or_update_cvs(revision):
         else:
             user_spec = ""
 
-        with cd(env.project_root):
+        with cd(env.server_project_home):
             cvs_options = '-d:%s:%s%s:%s' % (env.cvs_connection_type,
                                              user_spec,
                                              env.repository,

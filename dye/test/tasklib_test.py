@@ -22,8 +22,8 @@ class TestTaskLib(unittest.TestCase):
                 project_settings.project_name)
         tasklib._setup_paths(project_settings, None)
         tasklib.env['deploy_dir']   = os.path.dirname(__file__)
-        tasklib.env['project_dir']  = self.testdir
-        tasklib.env['django_dir']   = os.path.join(tasklib.env['project_dir'],
+        tasklib.env['vcs_root_dir']  = self.testdir
+        tasklib.env['django_dir']   = os.path.join(tasklib.env['vcs_root_dir'],
                 project_settings.django_relative_dir)
         tasklib.env['ve_dir']       = os.path.join(tasklib.env['django_dir'], '.ve')
         tasklib.env['python_bin']   = os.path.join(tasklib.env['ve_dir'], 'bin', 'python2.6')
