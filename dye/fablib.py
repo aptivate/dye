@@ -8,7 +8,6 @@ from fabric.state import env
 from fabric.contrib import files
 from fabric import utils
 
-import helper as h
 
 def _setup_paths(project_settings):
     # first merge in variables from project_settings - but ignore __doc__ etc
@@ -17,25 +16,27 @@ def _setup_paths(project_settings):
         env[setting] = vars(project_settings)[setting]
 
     # allow for project_settings having set up some of these differently
-    h.set_dict_if_not_set(env, 'verbose',      False)
-    h.set_dict_if_not_set(env, 'use_sudo',     True)
-    h.set_dict_if_not_set(env, 'cvs_rsh',      'CVS_RSH="ssh"')
-    h.set_dict_if_not_set(env, 'default_branch', {'production': 'master', 'staging': 'master'})
-    h.set_dict_if_not_set(env, 'server_project_home', os.path.join(env.server_home, env.project_name))
-    h.set_dict_if_not_set(env, 'vcs_root',     os.path.join(env.server_project_home, 'dev'))
-    h.set_dict_if_not_set(env, 'prev_root',    os.path.join(env.server_project_home, 'previous'))
-    h.set_dict_if_not_set(env, 'dump_dir',     os.path.join(env.server_project_home, 'dbdumps'))
-    h.set_dict_if_not_set(env, 'deploy_root',  os.path.join(env.vcs_root, 'deploy'))
-    h.set_dict_if_not_set(env, 'settings',     '%(project_name)s.settings' % env)
+    env.verbose = env.get('verbose', False)
+    env.use_sudo = env.get('use_sudo', True)
+    env.cvs_rsh = env.get('cvs_rsh', 'CVS_RSH="ssh"')
+    env.default_branch = env.get('default_branch', {'production': 'master', 'staging': 'master'})
+    env.server_project_home = env.get('server_project_home', os.path.join(env.server_home, env.project_name))
+    env.vcs_root = env.get('vcs_root', os.path.join(env.server_project_home, 'dev'))
+    env.prev_root = env.get('prev_root', os.path.join(env.server_project_home, 'previous'))
+    env.dump_dir = env.get('dump_dir', os.path.join(env.server_project_home, 'dbdumps'))
+    env.deploy_root = env.get('deploy_root', os.path.join(env.vcs_root, 'deploy'))
+    env.settings = env.get('settings', '%(project_name)s.settings' % env)
 
     if env.project_type == "django":
-        h.set_dict_if_not_set(env, 'django_relative_dir', env.project_name)
-        h.set_dict_if_not_set(env, 'django_root', os.path.join(env.vcs_root, env.django_relative_dir))
+        env.django_relative_dir = env.get('django_relative_dir', env.project_name)
+        env.django_root = env.get('django_root', os.path.join(env.vcs_root, env.django_relative_dir))
 
     if env.use_virtualenv:
-        h.set_dict_if_not_set(env, 'virtualenv_root', os.path.join(env.django_root, '.ve'))
+        env.virtualenv_root = env.get('virtualenv_root',
+                                      os.path.join(env.django_root, '.ve'))
 
-    h.set_dict_if_not_set(env, 'local_tasks_bin', os.path.join('/', 'usr', 'bin', 'python') +
+    env.local_tasks_bin = env.get('local_tasks_bin',
+            os.path.join('/', 'usr', 'bin', 'python') +
             ' ' + os.path.join(os.path.dirname(__file__), 'tasks.py'))
 
     # valid environments - used for require statements in fablib
@@ -55,6 +56,7 @@ def _linux_type():
             utils.abort("could not determine linux type of server we're deploying to")
     return env.linux_type
 
+
 def _get_python():
     if 'python_bin' not in env:
         python26 = os.path.join('/', 'usr', 'bin', 'python2.6')
@@ -64,10 +66,12 @@ def _get_python():
             env.python_bin = os.path.join('/', 'usr', 'bin', 'python')
     return env.python_bin
 
+
 def _get_tasks_bin():
     if 'tasks_bin' not in env:
         env.tasks_bin = _get_python() + ' ' + os.path.join(env.deploy_root, 'tasks.py')
     return env.tasks_bin
+
 
 def _tasks(tasks_args, verbose=False):
     tasks_cmd = _get_tasks_bin()
@@ -75,11 +79,12 @@ def _tasks(tasks_args, verbose=False):
         tasks_cmd += ' -v'
     sudo_or_run(tasks_cmd + ' ' + tasks_args)
 
+
 def _get_svn_user_and_pass():
-    if not env.has_key('svnuser') or len(env.svnuser) == 0:
+    if 'svnuser' not in env or len(env.svnuser) == 0:
         # prompt user for username
         prompt('Enter SVN username:', 'svnuser')
-    if not env.has_key('svnpass') or len(env.svnpass) == 0:
+    if 'svnpass' not in env or len(env.svnpass) == 0:
         # prompt user for password
         env.svnpass = getpass.getpass('Enter SVN password:')
 
@@ -101,12 +106,15 @@ def deploy_clean(revision=None):
     clean_files()
     deploy(revision)
 
+
 def clean_files():
     sudo_or_run('rm -rf %s' % env.server_project_home)
+
 
 def _create_dir_if_not_exists(path):
     if not files.exists(path):
         sudo_or_run('mkdir -p %s' % path)
+
 
 def deploy(revision=None, keep=None):
     """ update remote host environment (virtualenv, deploy, update)
@@ -151,6 +159,7 @@ def deploy(revision=None, keep=None):
     webserver_cmd('reload')
     touch_wsgi()
 
+
 def set_up_celery_daemon():
     require('vcs_root', provided_by=env)
     for command in ('celerybeat', 'celeryd'):
@@ -164,13 +173,14 @@ def set_up_celery_daemon():
         celery_configuration_destination = os.path.join('/etc', 'default')
 
         sudo_or_run(" ".join(['cp', celery_run_script_location,
-                               celery_run_script_destination]))
+                    celery_run_script_destination]))
 
         sudo_or_run(" ".join(['chmod', '+x', celery_run_script]))
 
         sudo_or_run(" ".join(['cp', celery_configuration_location,
-                               celery_configuration_destination]))
+                    celery_configuration_destination]))
         sudo_or_run('/etc/init.d/%s restart' % command)
+
 
 def create_copy_for_rollback(keep):
     """Copy the current version out of the way so we can rollback to it if required."""
@@ -187,7 +197,7 @@ def create_copy_for_rollback(keep):
             # just in case there is some other reason why the dump fails
             with settings(warn_only=True):
                 _tasks('dump_db')
-    if keep == None or int(keep) > 0:
+    if keep is None or int(keep) > 0:
         delete_old_versions(keep)
 
 
@@ -196,8 +206,8 @@ def delete_old_versions(keep=None):
     require('prev_root', provided_by=env.valid_envs)
     # the -1 argument ensures one directory per line
     prev_versions = run('ls -1 ' + env.prev_root).split('\n')
-    if keep == None:
-        if env.has_key('versions_to_keep'):
+    if keep is None:
+        if 'versions_to_keep' in env:
             keep = env.versions_to_keep
         else:
             keep = 5
@@ -279,6 +289,7 @@ def remote_test():
     with cd(env.django_root):
         sudo_or_run(_get_python() + env.test_cmd)
 
+
 def version():
     """ return the deployed VCS revision and commit comments"""
     require('server_project_home', 'repo_type', 'vcs_root', 'repository',
@@ -294,6 +305,7 @@ def version():
                 sudo_or_run(cmd)
     else:
         utils.abort('Unsupported repo type: %s' % (env.repo_type))
+
 
 def _check_git_branch():
     env.revision = None
@@ -333,14 +345,15 @@ def _check_git_branch():
             env.revision = prompt('Which branch would you like to use on the server? (or hit Ctrl-C to exit)',
                     default=default_branch, validate=validate_branch)
 
+
 def check_for_local_changes():
     """ check if there are local changes on the remote server """
     require('repo_type', 'vcs_root', provided_by=env.valid_envs)
     status_cmd = {
-            'svn': 'svn status --quiet',
-            'git': 'git status --short',
-            'cvs': '#not worked out yet'
-            }
+        'svn': 'svn status --quiet',
+        'git': 'git status --short',
+        'cvs': '#not worked out yet'
+    }
     if env.repo_type == 'cvs':
         print "TODO: write CVS status command"
         return
@@ -357,6 +370,7 @@ def check_for_local_changes():
         if env.repo_type == 'git':
             _check_git_branch()
 
+
 def checkout_or_update(revision=None):
     """ checkout or update the project from version control.
 
@@ -366,14 +380,15 @@ def checkout_or_update(revision=None):
     require('server_project_home', 'repo_type', 'vcs_root', 'repository',
         provided_by=env.valid_envs)
     checkout_fn = {
-            'cvs': _checkout_or_update_cvs,
-            'svn': _checkout_or_update_svn,
-            'git': _checkout_or_update_git,
-            }
+        'cvs': _checkout_or_update_cvs,
+        'svn': _checkout_or_update_svn,
+        'git': _checkout_or_update_git,
+    }
     if env.repo_type.lower() in checkout_fn:
         checkout_fn[env.repo_type](revision)
     else:
         utils.abort('Unsupported VCS: %s' % env.repo_type.lower())
+
 
 def _checkout_or_update_svn(revision=None):
     # function to ask for svnuser and svnpass
@@ -408,7 +423,7 @@ def _checkout_or_update_git(revision=None):
             # fetch now, merge later (if on branch)
             sudo_or_run('git fetch origin')
 
-        if revision == None:
+        if revision is None:
             revision = env.revision
 
         with cd(env.vcs_root):
@@ -433,12 +448,13 @@ def _checkout_or_update_git(revision=None):
         with cd(env.vcs_root):
             sudo_or_run('git submodule update --init')
 
+
 def _checkout_or_update_cvs(revision):
     if files.exists(env.vcs_root):
         with cd(env.vcs_root):
             sudo_or_run('CVS_RSH="ssh" cvs update -d -P')
     else:
-        if env.has_key('cvs_user'):
+        if 'cvs_user' in env:
             user_spec = env.cvs_user + "@"
         else:
             user_spec = ""
@@ -457,11 +473,13 @@ def _checkout_or_update_cvs(revision):
                                                       command_options,
                                                       env.cvs_project))
 
+
 def sudo_or_run(command):
     if env.use_sudo:
         return sudo(command)
     else:
         return run(command)
+
 
 def create_deploy_virtualenv():
     """ if using new style dye stuff, create the virtualenv to hold dye """
@@ -470,19 +488,23 @@ def create_deploy_virtualenv():
     if files.exists(bootstrap_path):
         sudo_or_run('%s %s' % (_get_python(), bootstrap_path))
 
+
 def update_requirements():
     """ update external dependencies on remote host """
     _tasks('update_ve')
 
+
 def collect_static_files():
     """ coolect static files in the 'static' directory """
     sudo(_get_tasks_bin() + ' collect_static')
+
 
 def clean_db(revision=None):
     """ delete the entire database """
     if env.environment == 'production':
         utils.abort('do not delete the production database!!!')
     _tasks("clean_db")
+
 
 def get_remote_dump(filename='/tmp/db_dump.sql', local_filename='./db_dump.sql',
         rsync=True):
@@ -500,6 +522,7 @@ def get_remote_dump(filename='/tmp/db_dump.sql', local_filename='./db_dump.sql',
         get(filename, local_path=local_filename)
     sudo_or_run('rm ' + filename)
 
+
 def get_remote_dump_and_load(filename='/tmp/db_dump.sql',
         local_filename='./db_dump.sql', keep_dump=True, rsync=True):
     """ do a remote database dump, copy it to the local filesystem and then
@@ -509,20 +532,24 @@ def get_remote_dump_and_load(filename='/tmp/db_dump.sql',
     if not keep_dump:
         local('rm ' + local_filename)
 
+
 def update_db(force_use_migrations=False):
     """ create and/or update the database, do migrations etc """
     _tasks('update_db:force_use_migrations=%s' % force_use_migrations)
+
 
 def setup_db_dumps():
     """ set up mysql database dumps """
     require('dump_dir', provided_by=env.valid_envs)
     _tasks('setup_db_dumps:' + env.dump_dir)
 
+
 def touch_wsgi():
     """ touch wsgi file to trigger reload """
     require('vcs_root', provided_by=env.valid_envs)
     wsgi_dir = os.path.join(env.vcs_root, 'wsgi')
     sudo_or_run('touch ' + os.path.join(wsgi_dir, 'wsgi_handler.py'))
+
 
 def rm_pyc_files():
     """Remove all the old pyc files to prevent stale files being used"""
@@ -531,12 +558,13 @@ def rm_pyc_files():
         with cd(env.django_root):
             sudo_or_run('find . -name \*.pyc | xargs rm')
 
+
 def link_webserver_conf(unlink=False):
     """link the webserver conf file"""
     require('vcs_root', provided_by=env.valid_envs)
-    if env.webserver == None:
+    if env.webserver is None:
         return
-    vcs_conf_file = os.path.join(env.vcs_root, env.webserver, env.environment+'.conf')
+    vcs_conf_file = os.path.join(env.vcs_root, env.webserver, env.environment + '.conf')
     webserver_conf = _webserver_conf_path()
     if unlink:
         if files.exists(webserver_conf):
@@ -554,11 +582,12 @@ def link_webserver_conf(unlink=False):
             sudo_or_run('ln -s %s %s' % (webserver_conf, webserver_conf_enabled))
         webserver_configtest()
 
+
 def _webserver_conf_path():
     webserver_conf_dir = {
-            'apache_redhat': '/etc/httpd/conf.d',
-            'apache_debian': '/etc/apache2/sites-available',
-            }
+        'apache_redhat': '/etc/httpd/conf.d',
+        'apache_debian': '/etc/apache2/sites-available',
+    }
     key = env.webserver + '_' + _linux_type()
     if key in webserver_conf_dir:
         return os.path.join(webserver_conf_dir[key],
@@ -567,12 +596,13 @@ def _webserver_conf_path():
         utils.abort('webserver %s is not supported (linux type %s)' %
                 (env.webserver, _linux_type()))
 
+
 def webserver_configtest():
     """ test webserver configuration """
     tests = {
-            'apache_redhat': '/usr/sbin/httpd -S',
-            'apache_debian': '/usr/sbin/apache2ctl -S',
-            }
+        'apache_redhat': '/usr/sbin/httpd -S',
+        'apache_debian': '/usr/sbin/apache2ctl -S',
+    }
     if env.webserver:
         key = env.webserver + '_' + _linux_type()
         if key in tests:
@@ -595,14 +625,12 @@ def webserver_restart():
 def webserver_cmd(cmd):
     """ run cmd against webserver init.d script """
     cmd_strings = {
-            'apache_redhat': '/etc/init.d/httpd',
-            'apache_debian': '/etc/init.d/apache2',
-            }
+        'apache_redhat': '/etc/init.d/httpd',
+        'apache_debian': '/etc/init.d/apache2',
+    }
     if env.webserver:
         key = env.webserver + '_' + _linux_type()
         if key in cmd_strings:
             sudo(cmd_strings[key] + ' ' + cmd)
         else:
             utils.abort('webserver %s is not supported' % env.webserver)
-
-
