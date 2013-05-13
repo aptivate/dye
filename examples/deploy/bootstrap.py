@@ -29,7 +29,7 @@ def find_python():
     return chosen_python
 
 
-def create_virtualenv(ve_dir):
+def create_virtualenv(ve_dir, bundle=None):
     # use the python we want
     # ensure we don't end up with the system python
     python_bin = find_python()
@@ -51,7 +51,10 @@ def create_virtualenv(ve_dir):
         raise Exception("Failed to create virtualenv: %s: %s" % (ve_cmd, e))
 
     pip_cmd = [os.path.join(ve_dir, 'bin', 'pip'), 'install']
-    pip_cmd.extend(PACKAGES)
+    if bundle:
+        pip_cmd.append(bundle)
+    else:
+        pip_cmd.extend(PACKAGES)
 
     try:
         subprocess.check_call(pip_cmd)
@@ -63,9 +66,10 @@ def create_virtualenv(ve_dir):
 def main(argv):
     quiet = False
     verbose = False
+    bundle = None
     try:
-        opts, args = getopt.getopt(argv[1:], 'hqv',
-                ['help', 'quiet', 'verbose'])
+        opts, args = getopt.getopt(argv[1:], 'b:hqv',
+                ['bundle=', 'help', 'quiet', 'verbose'])
     except getopt.error, msg:
         print 'Bad options: %s' % msg
         return 1
@@ -78,6 +82,8 @@ def main(argv):
             quiet = True
         if o in ("-v", "--verbose"):
             verbose = True
+        if o in ("-b", "--bundle"):
+            bundle = a
 
     current_dir = os.path.dirname(__file__)
     ve_dir = os.path.join(current_dir, '.ve.deploy')
@@ -94,7 +100,7 @@ def main(argv):
         shutil.rmtree(ve_dir)
 
     # create the virtualenv and fill it
-    create_virtualenv(ve_dir)
+    create_virtualenv(ve_dir, bundle)
 
     # TODO: could now print instructions for local deploy and fab deploy ...
     if verbose:
