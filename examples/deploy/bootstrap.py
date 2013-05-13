@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # a script to set up the virtualenv so we can use fabric and tasks
 
-import os, sys
+import os
+import sys
 import getopt
 import subprocess
 
@@ -9,7 +10,8 @@ PACKAGES = [
     'fabric==1.4',
     '-e git+git://github.com/aptivate/dye.git#egg=Package',
     'virtualenv==1.8.4'
-    ]
+]
+
 
 def find_python():
     """ work out which python to use """
@@ -26,26 +28,28 @@ def find_python():
                 "in any of these locations: %s" % paths_to_try)
     return chosen_python
 
+
 def create_virtualenv(ve_dir):
     # use the python we want
     # ensure we don't end up with the system python
     python_bin = find_python()
-    
+
     virtualenv = '/usr/bin/virtualenv-2.6'
     if not os.path.exists(virtualenv):
         virtualenv = '/usr/bin/virtualenv'
-    
-    ve_cmd = [virtualenv,
+
+    ve_cmd = [
+        virtualenv,
         '--python=' + python_bin,
         '--no-site-packages',
         ve_dir,
-        ]
-    
+    ]
+
     try:
         subprocess.check_call(ve_cmd)
     except OSError as e:
         raise Exception("Failed to create virtualenv: %s: %s" % (ve_cmd, e))
-    
+
     pip_cmd = [os.path.join(ve_dir, 'bin', 'pip'), 'install']
     pip_cmd.extend(PACKAGES)
 
@@ -55,11 +59,12 @@ def create_virtualenv(ve_dir):
         raise Exception("Failed to install bootstrap packages: %s: %s" %
             (pip_cmd, e))
 
+
 def main(argv):
     quiet = False
     verbose = False
     try:
-        opts, args = getopt.getopt(argv[1:], 'hqv', 
+        opts, args = getopt.getopt(argv[1:], 'hqv',
                 ['help', 'quiet', 'verbose'])
     except getopt.error, msg:
         print 'Bad options: %s' % msg
