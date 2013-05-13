@@ -18,7 +18,8 @@
 
 """
 
-import os, sys
+import os
+import sys
 import getpass
 import random
 
@@ -75,6 +76,7 @@ except ImportError:
         def __init__(self, returncode, cmd):
             self.returncode = returncode
             self.cmd = cmd
+
         def __str__(self):
             return "Command '%s' returned non-zero exit status %d" % (self.cmd, self.returncode)
 
@@ -88,6 +90,7 @@ def _call_wrapper(argv, **kwargs):
         print "Executing command: %s" % command
     return _call_command(argv, **kwargs)
 
+
 def _check_call_wrapper(argv, accepted_returncode_list=[0], **kwargs):
     try:
         returncode = _call_wrapper(argv, **kwargs)
@@ -99,21 +102,24 @@ def _check_call_wrapper(argv, accepted_returncode_list=[0], **kwargs):
 
 env = {}
 
+
 def _setup_paths(project_settings, localtasks):
     """Set up the paths used by other tasks"""
     # first merge in variables from project_settings - but ignore __doc__ etc
     user_settings = [x for x in vars(project_settings).keys() if not x.startswith('__')]
     for setting in user_settings:
-        env[setting] = vars(project_settings)[setting]
+        env.setdefault(setting, vars(project_settings)[setting])
 
-    env['localtasks'] = localtasks
-    env['deploy_dir'] = os.path.dirname(__file__)
+    env.setdefault('localtasks', localtasks)
+    env.setdefault('deploy_dir', os.path.dirname(__file__))
     # what is the root of the project - one up from this directory
     env.setdefault('vcs_root_dir',
         os.path.abspath(os.path.join(env['deploy_dir'], '..')))
-    env['django_dir'] = os.path.join(env['vcs_root_dir'], project_settings.django_relative_dir)
-    env['ve_dir']     = os.path.join(env['django_dir'], '.ve')
-    env['manage_py']  = os.path.join(env['django_dir'], 'manage.py')
+    env.setdefault('django_dir',
+                   os.path.join(env['vcs_root_dir'],
+                                project_settings.django_relative_dir))
+    env.setdefault('ve_dir', os.path.join(env['django_dir'], '.ve'))
+    env.setdefault('manage_py', os.path.join(env['django_dir'], 'manage.py'))
 
     python26 = os.path.join('/', 'usr', 'bin', 'python2.6')
     python27 = os.path.join('/', 'usr', 'bin', 'python2.7')
@@ -128,7 +134,8 @@ def _setup_paths(project_settings, localtasks):
                 "in any of these locations: %s" % paths_to_try)
     if env['verbose']:
         print "Using Python from %s" % chosen_python
-    env['python_bin'] = chosen_python
+    env.setdefault('python_bin', chosen_python)
+
 
 def _manage_py(args, cwd=None):
     # for manage.py, always use the system python 2.6
@@ -143,7 +150,7 @@ def _manage_py(args, cwd=None):
         manage_cmd.extend(args)
 
     # Allow manual specification of settings file
-    if env.has_key('manage_py_settings'):
+    if 'manage_py_settings' in env:
         manage_cmd.append('--settings=%s' % env['manage_py_settings'])
 
     if cwd is None:
@@ -192,7 +199,7 @@ def _get_django_db_settings(database='default'):
     import local_settings
 
     db_user = 'nouser'
-    db_pw   = 'nopass'
+    db_pw = 'nopass'
     db_host = '127.0.0.1'
     db_port = None
     # there are two ways of having the settings:
@@ -201,26 +208,22 @@ def _get_django_db_settings(database='default'):
     try:
         db = local_settings.DATABASES[database]
         db_engine = db['ENGINE']
-        db_name   = db['NAME']
+        db_name = db['NAME']
         if db_engine.endswith('mysql'):
-            db_user   = db['USER']
-            db_pw     = db['PASSWORD']
-            if db.has_key('PORT'):
-                db_port = db['PORT']
-            if db.has_key('HOST'):
-                db_host = db['HOST']
+            db_user = db['USER']
+            db_pw = db['PASSWORD']
+            db_port = db.get('PORT', db_port)
+            db_host = db.get('HOST', db_host)
 
     except (AttributeError, KeyError):
         try:
             db_engine = local_settings.DATABASE_ENGINE
-            db_name   = local_settings.DATABASE_NAME
+            db_name = local_settings.DATABASE_NAME
             if db_engine.endswith('mysql'):
-                db_user   = local_settings.DATABASE_USER
-                db_pw     = local_settings.DATABASE_PASSWORD
-                if hasattr(local_settings, 'DATABASE_PORT'):
-                    db_port = local_settings.DATABASE_PORT
-                if hasattr(local_settings, 'DATABASE_HOST'):
-                    db_host = local_settings.DATABASE_HOST
+                db_user = local_settings.DATABASE_USER
+                db_pw = local_settings.DATABASE_PASSWORD
+                db_port = getattr(local_settings, 'DATABASE_PORT', db_port)
+                db_host = getattr(local_settings, 'DATABASE_HOST', db_host)
         except AttributeError:
             # we've failed to find the details we need - give up
             sys.exit("Failed to find database settings")
@@ -235,10 +238,10 @@ def _mysql_exec_as_root(mysql_cmd, root_password=None):
     # getting stuck in a loop
     if not root_password:
         root_password = _get_mysql_root_password()
-    mysql_call = ['mysql', '-u', 'root', '-p'+root_password]
+    mysql_call = ['mysql', '-u', 'root', '-p%s' % root_password]
     mysql_call += ['--host=%s' % env['db_host']]
 
-    if env['db_port'] != None:
+    if env['db_port'] is not None:
         mysql_call += ['--port=%s' % env['db_port']]
     mysql_call += ['-e']
     _check_call_wrapper(mysql_call + [mysql_cmd])
@@ -252,10 +255,11 @@ def _test_mysql_root_password(password):
         return False
     return True
 
+
 def _get_mysql_root_password():
     # first try to read the root password from a file
     # otherwise ask the user
-    if not env.has_key('root_pw'):
+    if 'root_pw' not in env:
         root_pw = None
         # first try and get password from file
         root_pw_file = '/root/mysql_root_password'
@@ -327,6 +331,7 @@ def update_ve(force=False):
     """ Update the virtualenv """
     create_ve(force)
 
+
 def create_private_settings():
     """ create private settings file
     - contains generated DB password and secret key"""
@@ -349,6 +354,7 @@ def create_private_settings():
         # despite having been created by root
         #os.chmod(private_settings_file, 0400)
 
+
 def link_local_settings(environment):
     """ link local_settings.py.environment as local_settings.py """
 
@@ -369,7 +375,7 @@ def link_local_settings(environment):
     if not env['quiet']:
         print "### creating link to local_settings.py"
     local_settings_env_path = os.path.join(env['django_dir'],
-                                    'local_settings.py.'+environment)
+            'local_settings.py.' + environment)
     if not os.path.exists(local_settings_env_path):
         sys.exit("Could not find file to link to: %s" % local_settings_env_path)
 
@@ -402,6 +408,7 @@ def link_local_settings(environment):
         shutil.copy2(source, target)
     env['environment'] = environment
 
+
 def collect_static():
     return _manage_py(["collectstatic", "--noinput"])
 
@@ -415,6 +422,7 @@ def _get_cache_table():
     if not settings.CACHES['default']['BACKEND'].endswith('DatabaseCache'):
         return None
     return settings.CACHES['default']['LOCATION']
+
 
 def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, database='default'):
     """ create the database, and do syncdb and migrations
@@ -444,7 +452,7 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, databa
                 _mysql_exec_as_root(('GRANT ALL PRIVILEGES ON %s.* TO \'%s\'@\'localhost\' IDENTIFIED BY \'%s\'' %
                         (db_name, db_user, db_pw)))
 
-        if not db_exists(db_user, db_pw, 'test_'+db_name, db_port, db_host):
+        if not db_exists(db_user, db_pw, 'test_' + db_name, db_port, db_host):
             create_test_db(drop_after_create=drop_test_db, database=database)
 
     #print 'syncdb: %s' % type(syncdb)
@@ -464,11 +472,12 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, databa
         if use_migrations:
             _manage_py(['migrate', '--noinput'])
 
+
 def db_exists(db_user, db_pw, db_name, db_port, db_host):
-    db_exist_call = ['mysql', '-u', db_user, '-p'+db_pw]
+    db_exist_call = ['mysql', '-u', db_user, '-p%s ' % db_pw]
     db_exist_call += ['--host=%s' % db_host]
 
-    if db_port != None:
+    if db_port is not None:
         db_exist_call += ['--port=%s' % db_port]
 
     db_exist_call += [db_name, '-e', 'quit']
@@ -478,17 +487,19 @@ def db_exists(db_user, db_pw, db_name, db_port, db_host):
     except CalledProcessError:
         return False
 
+
 def db_table_exists(table_name, db_user, db_pw, db_name, db_port, db_host):
-    table_list_call = ['mysql', '-u', db_user, '-p'+db_pw]
+    table_list_call = ['mysql', '-u', db_user, '-p%s' % db_pw]
     table_list_call += ['--host=%s' % db_host]
 
-    if db_port != None:
+    if db_port is not None:
         table_list_call += ['--port=%s' % db_port]
 
     table_list_call += [db_name, '-e', 'show tables']
     tables = _capture_command(table_list_call)
     table_list = tables.split()
     return table_name in table_list
+
 
 def create_test_db(drop_after_create=True, database='default'):
     db_engine, db_name, db_user, db_pw, db_port, db_host = _get_django_db_settings(database=database)
@@ -501,15 +512,20 @@ def create_test_db(drop_after_create=True, database='default'):
     if drop_after_create:
         _mysql_exec_as_root(('DROP DATABASE %s' % test_db_name))
 
+
 def dump_db(dump_filename='db_dump.sql', for_rsync=False):
     """Dump the database in the current working directory"""
     db_engine, db_name, db_user, db_pw, db_port, db_host = _get_django_db_settings()
     if not db_engine.endswith('mysql'):
         sys.exit('dump_db only knows how to dump mysql so far')
-    dump_cmd = ['/usr/bin/mysqldump', '--user='+db_user, '--password='+db_pw,
-                '--host='+db_host]
-    if db_port != None:
-        dump_cmd.append('--port='+db_port)
+    dump_cmd = [
+        '/usr/bin/mysqldump',
+        '--user=' + db_user,
+        '--password=' + db_pw,
+        '--host=' + db_host
+    ]
+    if db_port is not None:
+        dump_cmd.append('--port=' + db_port)
     # this option will mean that there will be one line per insert
     # thus making the dump file better for rsync, but slightly bigger
     if for_rsync:
@@ -522,15 +538,20 @@ def dump_db(dump_filename='db_dump.sql', for_rsync=False):
     _call_command(dump_cmd, stdout=dump_file)
     dump_file.close()
 
+
 def restore_db(dump_filename):
     """Restore a database dump file by name"""
     db_engine, db_name, db_user, db_pw, db_port, db_host = _get_django_db_settings()
     if not db_engine.endswith('mysql'):
         sys.exit('restore_db only knows how to restore mysql so far')
-    restore_cmd = ['/usr/bin/mysql', '--user='+db_user, '--password='+db_pw,
-                '--host='+db_host]
-    if db_port != None:
-        restore_cmd.append('--port='+db_port)
+    restore_cmd = [
+        '/usr/bin/mysql',
+        '--user=' + db_user,
+        '--password=' + db_pw,
+        '--host=' + db_host
+    ]
+    if db_port is not None:
+        restore_cmd.append('--port=' + db_port)
     restore_cmd.append(db_name)
 
     dump_file = open(dump_filename, 'r')
@@ -551,12 +572,13 @@ def update_git_submodules():
             git_submodule_cmd = 'git submodule --quiet update --init'
         _check_call_wrapper(git_submodule_cmd, cwd=env['vcs_root_dir'], shell=True)
 
+
 def setup_db_dumps(dump_dir):
     """ set up mysql database dumps in root crontab """
     if not os.path.isabs(dump_dir):
         sys.exit('dump_dir must be an absolute path, you gave %s' % dump_dir)
     project_name = env['django_dir'].split('/')[-1]
-    cron_file = os.path.join('/etc', 'cron.daily', 'dump_'+project_name)
+    cron_file = os.path.join('/etc', 'cron.daily', 'dump_' + project_name)
 
     db_engine, db_name, db_user, db_pw, db_port, db_host = _get_django_db_settings()
     if db_engine.endswith('mysql'):
@@ -650,6 +672,7 @@ def _install_django_jenkins():
     for cmd in cmds:
         _check_call_wrapper(cmd)
 
+
 def _manage_py_jenkins():
     """ run the jenkins command """
     args = ['jenkins', ]
@@ -662,9 +685,11 @@ def _manage_py_jenkins():
         print "### Running django-jenkins, with args; %s" % args
     _manage_py(args, cwd=env['vcs_root_dir'])
 
+
 def _rm_all_pyc():
     """Remove all pyc files, to be sure"""
     _call_wrapper('find . -name \*.pyc | xargs rm', shell=True, cwd=env['vcs_root_dir'])
+
 
 def run_jenkins():
     """ make sure the local settings is correct and the database exists """
@@ -692,7 +717,7 @@ def _infer_environment():
 
 def deploy(environment=None):
     """Do all the required steps in order"""
-    if environment == None:
+    if environment is None:
         environment = _infer_environment()
         if env['verbose']:
             print "Inferred environment as %s" % environment
@@ -711,6 +736,7 @@ def deploy(environment=None):
     print "\n*** Finished deploying %s for %s." % (
             env['project_name'], environment)
 
+
 def patch_south():
     """ patch south to fix pydev errors """
     python = 'python2.6'
@@ -724,4 +750,3 @@ def patch_south():
     if patch_applied != 0:
         cmd = ['patch', '-N', '-p0', south_db_init, patch_file]
         _check_call_wrapper(cmd)
-

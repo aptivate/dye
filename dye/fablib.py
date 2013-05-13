@@ -16,28 +16,31 @@ def _setup_paths(project_settings):
         env[setting] = vars(project_settings)[setting]
 
     # allow for project_settings having set up some of these differently
-    env.verbose = env.get('verbose', False)
-    env.use_sudo = env.get('use_sudo', True)
-    env.cvs_rsh = env.get('cvs_rsh', 'CVS_RSH="ssh"')
-    env.default_branch = env.get('default_branch', {'production': 'master', 'staging': 'master'})
-    env.server_project_home = env.get('server_project_home', os.path.join(env.server_home, env.project_name))
-    env.vcs_root = env.get('vcs_root', os.path.join(env.server_project_home, 'dev'))
-    env.prev_root = env.get('prev_root', os.path.join(env.server_project_home, 'previous'))
-    env.dump_dir = env.get('dump_dir', os.path.join(env.server_project_home, 'dbdumps'))
-    env.deploy_root = env.get('deploy_root', os.path.join(env.vcs_root, 'deploy'))
-    env.settings = env.get('settings', '%(project_name)s.settings' % env)
+    env.setdefault('verbose', False)
+    env.setdefault('use_sudo', True)
+    env.setdefault('cvs_rsh', 'CVS_RSH="ssh"')
+    env.setdefault('default_branch', {'production': 'master', 'staging': 'master'})
+    env.setdefault('server_project_home',
+                   os.path.join(env.server_home, env.project_name))
+    env.setdefault('vcs_root', os.path.join(env.server_project_home, 'dev'))
+    env.setdefault('prev_root', os.path.join(env.server_project_home, 'previous'))
+    env.setdefault('dump_dir', os.path.join(env.server_project_home, 'dbdumps'))
+    env.setdefault('deploy_root', os.path.join(env.vcs_root, 'deploy'))
+    env.setdefault('settings', '%(project_name)s.settings' % env)
 
     if env.project_type == "django":
-        env.django_relative_dir = env.get('django_relative_dir', env.project_name)
-        env.django_root = env.get('django_root', os.path.join(env.vcs_root, env.django_relative_dir))
+        env.setdefault('django_relative_dir', env.project_name)
+        env.setdefault('django_root',
+                       os.path.join(env.vcs_root, env.django_relative_dir))
 
     if env.use_virtualenv:
-        env.virtualenv_root = env.get('virtualenv_root',
-                                      os.path.join(env.django_root, '.ve'))
+        env.setdefault('virtualenv_root',
+                       os.path.join(env.django_root, '.ve'))
 
-    env.local_tasks_bin = env.get('local_tasks_bin',
+    env.setdefault('local_tasks_bin',
             os.path.join('/', 'usr', 'bin', 'python') +
-            ' ' + os.path.join(os.path.dirname(__file__), 'tasks.py'))
+            ' ' +
+            os.path.join(os.path.dirname(__file__), 'tasks.py'))
 
     # valid environments - used for require statements in fablib
     env.valid_envs = env.host_list.keys()
@@ -591,7 +594,7 @@ def _webserver_conf_path():
     key = env.webserver + '_' + _linux_type()
     if key in webserver_conf_dir:
         return os.path.join(webserver_conf_dir[key],
-                env.project_name+'_'+env.environment+'.conf')
+            '%s_%s.conf' % (env.project_name, env.environment))
     else:
         utils.abort('webserver %s is not supported (linux type %s)' %
                 (env.webserver, _linux_type()))
