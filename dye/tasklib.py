@@ -111,7 +111,7 @@ def _setup_paths(project_settings, localtasks):
         env.setdefault(setting, vars(project_settings)[setting])
 
     env.setdefault('localtasks', localtasks)
-    env.setdefault('deploy_dir', os.path.dirname(__file__))
+    env.setdefault('deploy_dir', project_settings.deploy_dir)
     # what is the root of the project - one up from this directory
     env.setdefault('vcs_root_dir',
         os.path.abspath(os.path.join(env['deploy_dir'], os.pardir)))

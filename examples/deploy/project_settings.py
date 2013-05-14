@@ -56,6 +56,10 @@ default_branch = {
     'dev_server':   'develop',
 }
 
+# set the deploy directory to be the one containing this file
+import os
+deploy_dir = os.path.dirname(__file__)
+
 # where on the server the django apps are deployed
 server_home = '/var/django'
 
