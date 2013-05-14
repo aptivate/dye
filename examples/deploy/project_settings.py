@@ -1,4 +1,5 @@
 # this is for settings to be used by tasks.py
+from os import path
 
 ###############################
 # THESE SETTINGS MUST BE EDITED
@@ -57,14 +58,15 @@ default_branch = {
 }
 
 # set the deploy directory to be the one containing this file
-import os
-deploy_dir = os.path.dirname(__file__)
+deploy_dir = path.dirname(__file__)
 
 # where on the server the django apps are deployed
 server_home = '/var/django'
 
 # the top level directory on the server
-server_project_home = server_home + '/' + project_name
+# underneath it there will be dev/ containing the live instance
+# and previous/ containing old copies for rollback
+server_project_home = path.join(server_home, project_name)
 
 # which web server to use (or None)
 webserver = 'apache'
