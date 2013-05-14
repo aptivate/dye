@@ -1,4 +1,5 @@
-import os, sys
+import os
+import sys
 import shutil
 import unittest
 
@@ -13,21 +14,22 @@ import project_settings
 tasklib.env['verbose'] = False
 tasklib.env['quiet'] = False
 
+
 class TestTaskLib(unittest.TestCase):
     def setUp(self):
         self.testdir = os.path.join(os.path.dirname(__file__), 'testdir')
         project_settings.project_name = 'testproj'
-        project_settings.django_apps = ['testapp',]
-        project_settings.django_relative_dir   = ("django/" +
+        project_settings.django_apps = ['testapp']
+        project_settings.django_relative_dir = ("django/" +
                 project_settings.project_name)
         tasklib._setup_paths(project_settings, None)
-        tasklib.env['deploy_dir']   = os.path.dirname(__file__)
-        tasklib.env['vcs_root_dir']  = self.testdir
-        tasklib.env['django_dir']   = os.path.join(tasklib.env['vcs_root_dir'],
+        tasklib.env['deploy_dir'] = os.path.dirname(__file__)
+        tasklib.env['vcs_root_dir'] = self.testdir
+        tasklib.env['django_dir'] = os.path.join(tasklib.env['vcs_root_dir'],
                 project_settings.django_relative_dir)
-        tasklib.env['ve_dir']       = os.path.join(tasklib.env['django_dir'], '.ve')
-        tasklib.env['python_bin']   = os.path.join(tasklib.env['ve_dir'], 'bin', 'python2.6')
-        tasklib.env['manage_py']    = os.path.join(tasklib.env['django_dir'], 'manage.py')
+        tasklib.env['ve_dir'] = os.path.join(tasklib.env['django_dir'], '.ve')
+        tasklib.env['python_bin'] = os.path.join(tasklib.env['ve_dir'], 'bin', 'python2.6')
+        tasklib.env['manage_py'] = os.path.join(tasklib.env['django_dir'], 'manage.py')
         # set up directories
         if not os.path.exists(tasklib.env['django_dir']):
             os.makedirs(tasklib.env['django_dir'])
