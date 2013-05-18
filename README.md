@@ -2,6 +2,15 @@
 DYE
 ===
 
+UNSTABLE SOFTWARE
+=================
+
+*Please be aware that DYE is not stable yet - it is a rework of our internal
+deployment scripts to make them easier to reuse, and the rework is a work in
+progress.  Please have a play, test against your dev server and give us
+feedback.  But don't download and immediately run against your production
+server.*
+
 DYE is a bacronym for "Deploy Your Environment" - a set of scripts and
 functions to deploy your web app along with the required python libraries in a
 virtualenv, either locally or on a remote server. It is built on fabric. It is
