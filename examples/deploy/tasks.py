@@ -1,8 +1,16 @@
 #!/usr/bin/env python
 # a script to set up the virtualenv so we can use fabric and tasks
+
 import os
 import sys
 import subprocess
+from .ve_mgr import check_python_version
+
+# check python version is high enough
+MIN_PYTHON_MAJOR_VERSION = 2
+MIN_PYTHON_MINOR_VERSION = 6
+check_python_version(
+    MIN_PYTHON_MAJOR_VERSION, MIN_PYTHON_MINOR_VERSION, __file__)
 
 current_dir = os.path.dirname(__file__)
 # this directory should contain the virtualenv

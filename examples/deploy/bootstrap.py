@@ -4,73 +4,23 @@
 import os
 import sys
 import getopt
-import subprocess
+import ve_mgr
 
-PACKAGES = [
-    'fabric==1.4',
-    '-e git+git://github.com/aptivate/dye.git#egg=Package',
-    'virtualenv==1.8.4',
-    'distribute>=0.6.28',
-]
+# check python version is high enough
+MIN_PYTHON_MAJOR_VERSION = 2
+MIN_PYTHON_MINOR_VERSION = 6
+update_ve.check_python_version(
+    MIN_PYTHON_MAJOR_VERSION, MIN_PYTHON_MINOR_VERSION, __file__)
 
-
-def find_python():
-    """ work out which python to use """
-    generic_python = os.path.join('/', 'usr', 'bin', 'python')
-    python26 = generic_python + '2.6'
-    python27 = generic_python + '2.7'
-    paths_to_try = (python27, python26, generic_python, sys.executable)
-    chosen_python = None
-    for python in paths_to_try:
-        if os.path.exists(python):
-            chosen_python = python
-    if chosen_python is None:
-        raise Exception("Failed to find a valid Python executable " +
-                "in any of these locations: %s" % paths_to_try)
-    return chosen_python
-
-
-def create_virtualenv(ve_dir, bundle=None):
-    # use the python we want
-    # ensure we don't end up with the system python
-    python_bin = find_python()
-
-    virtualenv = '/usr/bin/virtualenv-2.6'
-    if not os.path.exists(virtualenv):
-        virtualenv = '/usr/bin/virtualenv'
-
-    ve_cmd = [
-        virtualenv,
-        '--python=' + python_bin,
-        '--no-site-packages',
-        ve_dir,
-    ]
-
-    try:
-        subprocess.check_call(ve_cmd)
-    except OSError as e:
-        raise Exception("Failed to create virtualenv: %s: %s" % (ve_cmd, e))
-
-    pip_cmd = [os.path.join(ve_dir, 'bin', 'pip'), 'install']
-    if bundle:
-        pip_cmd.append(bundle)
-    else:
-        pip_cmd.extend(PACKAGES)
-
-    try:
-        subprocess.check_call(pip_cmd)
-    except OSError as e:
-        raise Exception("Failed to install bootstrap packages: %s: %s" %
-            (pip_cmd, e))
+DEPLOY_DIR = os.path.abspath(os.path.dirname(__file__))
+REQUIREMENTS = os.path.join(DEPLOY_DIR, 'bootstrap_requirements.txt')
 
 
 def main(argv):
-    quiet = False
     verbose = False
-    bundle = None
     try:
-        opts, args = getopt.getopt(argv[1:], 'b:hqv',
-                ['bundle=', 'help', 'quiet', 'verbose'])
+        opts, args = getopt.getopt(argv[1:], 'hqv',
+                ['help', 'quiet', 'verbose'])
     except getopt.error, msg:
         print 'Bad options: %s' % msg
         return 1
@@ -79,29 +29,14 @@ def main(argv):
         if o in ("-h", "--help"):
             pass
             #print_help_text()
-        if o in ("-q", "--quiet"):
-            quiet = True
         if o in ("-v", "--verbose"):
             verbose = True
-        if o in ("-b", "--bundle"):
-            bundle = a
 
     current_dir = os.path.dirname(__file__)
     ve_dir = os.path.join(current_dir, '.ve.deploy')
 
-    # check if virtualenv exists
-    if os.path.isdir(ve_dir):
-        if not quiet:
-            # if it does, offer to recreate
-            choice = raw_input("deploy virtualenv already exists, do you want to recreate it? (y|N) ")
-            if len(choice) == 0 or choice[0].lower() != 'y':
-                return 0
-        # remove old ve
-        import shutil
-        shutil.rmtree(ve_dir)
-
-    # create the virtualenv and fill it
-    create_virtualenv(ve_dir, bundle)
+    updater = ve_mgr.UpdateVE(ve_dir, REQUIREMENTS)
+    updater.update_ve()
 
     # TODO: could now print instructions for local deploy and fab deploy ...
     if verbose:

@@ -1,7 +1,16 @@
 #!/usr/bin/env python
 # a script to set up the virtualenv so we can use fabric and tasks
 
-import os, sys, subprocess
+import os
+import sys
+import subprocess
+from .ve_mgr import check_python_version
+
+# check python version is high enough
+MIN_PYTHON_MAJOR_VERSION = 2
+MIN_PYTHON_MINOR_VERSION = 6
+check_python_version(
+    MIN_PYTHON_MAJOR_VERSION, MIN_PYTHON_MINOR_VERSION, __file__)
 
 current_dir = os.path.dirname(__file__)
 # this directory should contain the virtualenv
@@ -38,7 +47,4 @@ fab_call += ['-f', fabfile]
 fab_call += sys.argv[1:]
 
 # exit with the fabric exit code
-try:
-    sys.exit(subprocess.call(fab_call, env=osenv))
-except OSError as e:
-    raise Exception("Failed to execute %s: %s" % (fab_call, e))
+sys.exit(subprocess.call(fab_call, env=osenv))
