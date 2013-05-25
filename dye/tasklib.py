@@ -111,14 +111,9 @@ def _setup_paths(project_settings, localtasks):
         env.setdefault(setting, vars(project_settings)[setting])
 
     env.setdefault('localtasks', localtasks)
-    env.setdefault('deploy_dir', project_settings.deploy_dir)
     # what is the root of the project - one up from this directory
     env.setdefault('vcs_root_dir',
         os.path.abspath(os.path.join(env['deploy_dir'], os.pardir)))
-    env.setdefault('django_dir',
-                   os.path.join(env['vcs_root_dir'],
-                                project_settings.django_relative_dir))
-    env.setdefault('ve_dir', os.path.join(env['django_dir'], '.ve'))
     env.setdefault('manage_py', os.path.join(env['django_dir'], 'manage.py'))
 
     python26 = os.path.join('/', 'usr', 'bin', 'python2.6')
