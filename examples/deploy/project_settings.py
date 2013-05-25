@@ -1,4 +1,5 @@
 # this is for settings to be used by tasks.py
+import os
 from os import path
 
 ###############################
@@ -33,11 +34,33 @@ project_type = "django"
 # does this virtualenv for python packages
 use_virtualenv = True
 
-# the path from the project root to the django root dir
-django_relative_dir = "django/" + project_name
+################################
+# PATHS TO IMPORTANT DIRECTORIES
+################################
+
+# set the deploy directory to be the one containing this file
+deploy_dir = path.dirname(__file__)
+
+vcs_root = path.abspath(path.join(deploy_dir, os.pardir))
+
+# the path from the VCS root to the django root dir
+django_dir = path.join(vcs_root, "django", project_name)
+#django_dir = path.join(vcs_root, "django", "website")
+
+# the path from the VCS root to the virtualenv dir
+ve_dir = path.join(django_dir, '.ve')
+
+# requirements can be in a single file, or in a directory
+# the requirements file
+requirements_per_env = False
+requirements_file = path.join(deploy_dir, 'pip_packages.txt')
+
+# the requirements directory
+#requirements_per_env = True
+#requirements_dir = path.join(deploy_dir, 'requirements')
+# and the files should be path.join(requirements_dir, '%s.txt' % environment)
 
 test_cmd = ' manage.py test -v0 ' + ' '.join(django_apps)
-
 
 # servers, for use by fabric
 
@@ -56,9 +79,6 @@ default_branch = {
     'staging_test': 'master',
     'dev_server':   'develop',
 }
-
-# set the deploy directory to be the one containing this file
-deploy_dir = path.dirname(__file__)
 
 # where on the server the django apps are deployed
 server_home = '/var/django'

@@ -5,20 +5,37 @@ import subprocess
 from os import path
 
 
+def find_package_dir_in_ve(ve_dir, package):
+    python = os.listdir(path.join(ve_dir, 'lib'))[0]
+    site_dir = path.join(ve_dir, 'lib', python, 'site-packages')
+    package_dir = path.join(site_dir, package)
+    egglink = path.join(site_dir, package + '.egg-link')
+    if path.isdir(package_dir):
+        return package_dir
+    elif path.isfile(egglink):
+        return open(egglink, 'r').readline().strip()
+    else:
+        return None
+
+
+def find_file(location_list):
+    for file_location in location_list:
+        if os.path.exists(file_location):
+            return file_location
+    return None
+
+
 def find_python():
     """ work out which python to use """
     generic_python = os.path.join('/', 'usr', 'bin', 'python')
     python26 = generic_python + '2.6'
     python27 = generic_python + '2.7'
     paths_to_try = (python27, python26, generic_python, sys.executable)
-    chosen_python = None
-    for python in paths_to_try:
-        if os.path.exists(python):
-            chosen_python = python
-    if chosen_python is None:
+    python_exe = find_file(paths_to_try)
+    if not python_exe:
         raise Exception("Failed to find a valid Python executable " +
                 "in any of these locations: %s" % paths_to_try)
-    return chosen_python
+    return python_exe
 
 
 def check_python_version(min_python_major_version, min_python_minor_version, py_path):
@@ -51,14 +68,35 @@ def check_python_version(min_python_major_version, min_python_minor_version, py_
             sys.exit(1)
 
 
+def in_virtualenv():
+    """ Are we already in a virtualenv """
+    return 'VIRTUAL_ENV' in os.environ or 'IN_VIRTUALENV' in os.environ
+
+
 class UpdateVE(object):
 
-    def __init__(self, ve_root, requirements):
-        assert ve_root is not None
-        assert requirements is not None
+    def __init__(self, ve_root=None, requirements=None):
 
-        self.requirements = requirements
-        self.ve_root = ve_root
+        if requirements:
+            self.requirements = requirements
+        else:
+            try:
+                from project_settings import requirements_file
+            except ImportError:
+                print >> sys.stderr, "could not find requirements_file in project_settings.py"
+                raise
+            self.requirements = requirements_file
+
+        if ve_root:
+            self.ve_root = ve_root
+        else:
+            try:
+                from project_settings import ve_dir
+            except ImportError:
+                print >> sys.stderr, "could not find ve_dir in project_settings.py"
+                raise
+            self.ve_root = ve_dir
+
         self.ve_timestamp = path.join(self.ve_root, 'timestamp')
 
     def update_ve_timestamp(self):

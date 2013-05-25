@@ -4,26 +4,22 @@
 import os
 import sys
 import subprocess
-from .ve_mgr import check_python_version
+from project_settings import ve_dir
+from ve_mgr import check_python_version
 
 # check python version is high enough
-MIN_PYTHON_MAJOR_VERSION = 2
-MIN_PYTHON_MINOR_VERSION = 6
-check_python_version(
-    MIN_PYTHON_MAJOR_VERSION, MIN_PYTHON_MINOR_VERSION, __file__)
-
-current_dir = os.path.dirname(__file__)
-# this directory should contain the virtualenv
-ve_dir = os.path.join(current_dir, '.ve.deploy')
+check_python_version(2, 6, __file__)
 
 if not os.path.exists(ve_dir):
     print "Expected virtualenv does not exist"
     print "(required for correct version of fabric and dye)"
-    print "Please run './bootstrap.sh' to create virtualenv"
+    print "Please run './bootstrap.py' to create virtualenv"
     sys.exit(1)
 
 # depending on how you've installed dye, you may need to edit this line
 tasks = os.path.join(ve_dir, 'bin', 'tasks.py')
+
+current_dir = os.path.dirname(__file__)
 
 # call the tasks.py in the virtual env
 tasks_call = [tasks]
@@ -32,6 +28,9 @@ tasks_call = [tasks]
 tasks_call += ['--deploydir=' + current_dir]
 # add any arguments passed to this script
 tasks_call += sys.argv[1:]
+
+if '-v' in sys.argv or '--verbose' in sys.argv:
+    print "Running tasks.py in ve: %s" % ' '.join(tasks_call)
+
 # exit with the tasks.py exit code
-print "Running tasks.py in ve: %s" % ' '.join(tasks_call)
 sys.exit(subprocess.call(tasks_call))

@@ -2,42 +2,32 @@
 # a script to set up the virtualenv so we can use fabric and tasks
 
 import os
+from os import path
 import sys
 import subprocess
-from .ve_mgr import check_python_version
+from project_settings import ve_dir
+from ve_mgr import check_python_version, find_package_dir_in_ve
 
 # check python version is high enough
-MIN_PYTHON_MAJOR_VERSION = 2
-MIN_PYTHON_MINOR_VERSION = 6
-check_python_version(
-    MIN_PYTHON_MAJOR_VERSION, MIN_PYTHON_MINOR_VERSION, __file__)
+check_python_version(2, 6, __file__)
 
-current_dir = os.path.dirname(__file__)
-# this directory should contain the virtualenv
-ve_dir = os.path.join(current_dir, '.ve.deploy')
-
-if not os.path.exists(ve_dir):
+if not path.exists(ve_dir):
     print "Expected virtualenv does not exist"
     print "(required for correct version of fabric and dye)"
-    print "Please run './bootstrap.sh' to create virtualenv"
+    print "Please run './bootstrap.py' to create virtualenv"
     sys.exit(1)
 
-fab_bin = os.path.join(ve_dir, 'bin', 'fab')
+fab_bin = path.join(ve_dir, 'bin', 'fab')
 
-# depending on how you've installed dye, you may need to edit this line
-
-# the below is for an "editable" install, what you get from the following
-# line in pip_packages.txt
-# -e git+git://github.com/aptivate/dye.git
-fabfile = os.path.join(ve_dir, 'src', 'package', 'dye', 'fabfile.py')
-
-# alternatively here is the path for non-editable install
-#fabfile = os.path.join(ve_dir, 'lib', 'python2.6', 'site-packages', 'dye', 'fabfile.py')
+dye_pkg_dir = find_package_dir_in_ve(ve_dir, 'dye')
+if not dye_pkg_dir:
+    sys.exit('Could not find fabfile in dye package')
+fabfile = path.join(dye_pkg_dir, 'dye', 'fabfile.py')
 
 # tell fabric that this directory is where it can find project_settings and
 # localfab (if it exists)
 osenv = os.environ
-osenv['DEPLOYDIR'] = current_dir
+osenv['DEPLOYDIR'] = path.dirname(__file__)
 
 # call the fabric in the virtual env
 fab_call = [fab_bin]
@@ -45,6 +35,8 @@ fab_call = [fab_bin]
 fab_call += ['-f', fabfile]
 # add any arguments passed to this script
 fab_call += sys.argv[1:]
+
+#print "Running fab.py in ve: %s" % ' '.join(fab_call)
 
 # exit with the fabric exit code
 sys.exit(subprocess.call(fab_call, env=osenv))
