@@ -1,5 +1,6 @@
 import os
 import getpass
+import re
 import time
 
 from fabric.context_managers import cd, hide, settings
@@ -320,7 +321,7 @@ def _check_git_branch():
             server_commit = sudo_or_run('git rev-parse HEAD')
             local_branch = local('git rev-parse --abbrev-ref HEAD', capture=True)
             default_branch = env.default_branch.get(env.environment, 'master')
-            git_branch_r = sudo_or_run('git branch -r')
+            git_branch_r = sudo_or_run('git branch --color=never -r')
             git_branch_r = git_branch_r.split('\n')
             branches = [b.split('/')[-1].strip() for b in git_branch_r if 'HEAD' not in b]
 
@@ -344,7 +345,8 @@ def _check_git_branch():
             for branch in branches:
                 print '* %s' % branch
             print ''
-            validate_branch = '^' + '|'.join(branches) + '$'
+            escaped_branches = [re.escape(b) for b in branches]
+            validate_branch = '^' + '|'.join(escaped_branches) + '$'
 
             env.revision = prompt('Which branch would you like to use on the server? (or hit Ctrl-C to exit)',
                     default=default_branch, validate=validate_branch)
