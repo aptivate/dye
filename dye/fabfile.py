@@ -41,6 +41,11 @@ def _server_setup(environment):
     fablib._setup_paths(project_settings)
 
 
+def localhost():
+    """ use localhost as a target for easy testing """
+    _server_setup('localhost')
+
+
 def dev_server():
     """ use dev environment on remote host to play with code in production-like env"""
     _server_setup('dev_server')
