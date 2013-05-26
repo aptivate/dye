@@ -137,8 +137,8 @@ class UpdateVE(object):
         # if we need to create the virtualenv, then we must do that from
         # outside the virtualenv. The code inside this if statement will only
         # be run outside the virtualenv.
-        if destroy_old_ve and path.exists(self.ve_root):
-            shutil.rmtree(self.ve_root)
+        if destroy_old_ve:
+            self.clean_ve()
         if not path.exists(self.ve_root):
             import virtualenv
             virtualenv.logger = virtualenv.Logger(consumers=[])
@@ -153,3 +153,8 @@ class UpdateVE(object):
         if pip_retcode == 0:
             self.update_ve_timestamp()
         sys.exit(pip_retcode)
+
+    def clean_ve(self):
+        """ delete the virtualenv """
+        if path.exists(self.ve_root):
+            shutil.rmtree(self.ve_root)
