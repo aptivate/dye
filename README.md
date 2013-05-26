@@ -40,6 +40,7 @@ A bare bones project structure would be:
         pip_packages.txt       <- list of python packages to install
         project_settings.py
         tasks.py
+        ve_mgr.py
     /django
         /django_project        <- top level for Django project
             manage.py          <- a modified version of manage.py - see examples/
@@ -56,7 +57,7 @@ A bare bones project structure would be:
         wsgi_handler.py
 
 A certain amount of the directory structure can be overridden in
-project_settings.py but that is not well tested.
+project_settings.py but that is not well tested currently.
 
 Tasks.py
 ========
@@ -92,6 +93,10 @@ This is a file where you can define your own functions to do stuff that you
 need for your project. You can also override functions from tasklib.py simply
 by defining a function with the same name as the function in tasklib.py
 
+You can override the main `deploy()` function, but you might lose out if the
+deploy function starts to do more.  Generally a better strategy is to define a
+`post_deploy()` function - this will be called by dye if it exists.
+
 manage.py
 ---------
 
@@ -122,16 +127,20 @@ where possible. Our standard fab deploy will:
 
 * check if you have made any local changes to the server. If it finds any it
   will alert you to them and give you the choice of whether to continue or not.
+* if using git it will check the branch set in project_settings.py, the branch
+  currently on the server and the branch you are currently on locally.  If there
+  is a mismatch it will ask you to confirm what branch you want to use.
 * create a copy of the current deploy, and a database dump, so you can rollback
   easily to the last known state.
-* stop the web server
+* unlink the webserver config and reload the web server (effectively turning off
+  the site)
 * create the directory on the server (if this is the first deploy)
 * checkout or update the project from your repository (git, svn and CVS
   currently supported)
 * ensure the virtualenv is created and packages installed (as bootstrap.py does)
 * call tasks.py deploy
-* link the relevant apache config into apache
-* start the webserver
+* relink the webserver config and reload the web server (effectively turning on
+  the site again)
 
 As with tasks.py you can add extra functions and override the default behaviour
 by putting functions in:
