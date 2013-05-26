@@ -136,7 +136,7 @@ def _setup_paths(project_settings, localtasks):
 
 
 def _manage_py(args, cwd=None):
-    # for manage.py, always use the system python 2.6
+    # for manage.py, always use the system python
     # otherwise the update_ve will fail badly, as it deletes
     # the virtualenv part way through the process ...
     manage_cmd = [env['python_bin'], env['manage_py']]
@@ -291,11 +291,6 @@ def _get_mysql_root_password():
     return env['root_pw']
 
 
-def clean_ve():
-    """Delete the virtualenv so we can start again"""
-    _check_call_wrapper(['rm', '-rf', env['ve_dir']])
-
-
 def clean_db(database='default'):
     """Delete the database for a clean start"""
     # first work out the database username and password
@@ -314,21 +309,6 @@ def clean_db(database='default'):
 
         test_db_name = 'test_' + db_name
         _mysql_exec_as_root('DROP DATABASE IF EXISTS %s' % test_db_name)
-
-
-def create_ve(force=False):
-    """Create the virtualenv"""
-    if not env['quiet']:
-        print "### Creating/updating virtualenv - this could take some time"
-    cmd = ['update_ve']
-    if force:
-        cmd = ['update_ve', '--force']
-    _manage_py(cmd)
-
-
-def update_ve(force=False):
-    """ Update the virtualenv """
-    create_ve(force)
 
 
 def create_private_settings():
@@ -652,7 +632,6 @@ def quick_test(*extra_args):
     original_environment = _infer_environment()
 
     link_local_settings('dev_fasttests')
-    create_ve()
     update_db()
     run_tests(*extra_args)
     link_local_settings(original_environment)
@@ -696,8 +675,6 @@ def run_jenkins():
     env['verbose'] = True
     # don't want any stray pyc files causing trouble
     _rm_all_pyc()
-    # do this to ensure we delete the old virtualenv
-    update_ve(force=True)
     _install_django_jenkins()
     create_private_settings()
     link_local_settings('jenkins')
@@ -725,7 +702,6 @@ def deploy(environment=None):
     create_private_settings()
     link_local_settings(environment)
     update_git_submodules()
-    create_ve()
     update_db()
 
     collect_static()
