@@ -39,9 +39,12 @@ def _setup_paths(project_settings):
                        os.path.join(env.django_root, '.ve'))
 
     # local_tasks_bin is the local copy of tasks.py
-    # TODO: should this actually be the copy from where ever fab.py
-    # is being run from ...
-    env.setdefault('local_tasks_bin',
+    # this should be the copy from where ever fab.py is being run from ...
+    if 'DEPLOYDIR' in os.environ:
+        env.setdefault('local_tasks_bin',
+            os.path.join(os.environ['DEPLOYDIR'], 'tasks.py'))
+    else:
+        env.setdefault('local_tasks_bin',
             os.path.join(os.path.dirname(__file__), 'tasks.py'))
 
     # valid environments - used for require statements in fablib
