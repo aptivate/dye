@@ -41,11 +41,11 @@ use_virtualenv = True
 # set the deploy directory to be the one containing this file
 deploy_dir = path.dirname(__file__)
 
-vcs_root = path.abspath(path.join(deploy_dir, os.pardir))
+local_vcs_root = path.abspath(path.join(deploy_dir, os.pardir))
 
 # the path from the VCS root to the django root dir
-django_dir = path.join(vcs_root, "django", project_name)
-#django_dir = path.join(vcs_root, "django", "website")
+django_dir = path.join(local_vcs_root, "django", project_name)
+#django_dir = path.join(local_vcs_root, "django", "website")
 
 # the path from the VCS root to the virtualenv dir
 ve_dir = path.join(django_dir, '.ve')
