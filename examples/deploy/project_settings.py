@@ -39,29 +39,29 @@ use_virtualenv = True
 ################################
 
 # set the deploy directory to be the one containing this file
-deploy_dir = path.dirname(__file__)
+local_deploy_dir = path.dirname(__file__)
 
-local_vcs_root = path.abspath(path.join(deploy_dir, os.pardir))
+local_vcs_root = path.abspath(path.join(local_deploy_dir, os.pardir))
 
 # the path from the VCS root to the django root dir
-django_dir = path.join(local_vcs_root, "django", project_name)
-#django_dir = path.join(local_vcs_root, "django", "website")
+relative_django_dir = path.join('django', project_name)
+#relative_django_dir = path.join('django', 'website')
 
-# the directory containing the django settings.py file
-django_settings_dir = django_dir
-#django_settings_dir = path.join(django_dir, project_name)
+# the directory the settings live in, relative to the vcs root
+relative_django_settings_dir = path.join(relative_django_dir, project_name)
+#relative_django_settings_dir = relative_django_dir
 
 # the path from the VCS root to the virtualenv dir
-ve_dir = path.join(django_dir, '.ve')
+relative_ve_dir = path.join(relative_django_dir, '.ve')
 
 # requirements can be in a single file, or in a directory
 # the requirements file
 requirements_per_env = False
-requirements_file = path.join(deploy_dir, 'pip_packages.txt')
+local_requirements_file = path.join(local_deploy_dir, 'pip_packages.txt')
 
 # the requirements directory
 #requirements_per_env = True
-#requirements_dir = path.join(deploy_dir, 'requirements')
+#local_requirements_dir = path.join(local_deploy_dir, 'requirements')
 # and the files should be path.join(requirements_dir, '%s.txt' % environment)
 
 test_cmd = ' manage.py test -v0 ' + ' '.join(django_apps)

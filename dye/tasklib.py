@@ -19,6 +19,7 @@
 """
 
 import os
+from os import path
 import sys
 import getpass
 import random
@@ -116,19 +117,29 @@ def _setup_paths(project_settings, localtasks):
         env['vcs_root_dir'] = env['local_vcs_root']
     else:
         env['vcs_root_dir'] = \
-            os.path.abspath(os.path.join(env['deploy_dir'], os.pardir))
-    env.setdefault('manage_py', os.path.join(env['django_dir'], 'manage.py'))
+            path.abspath(path.join(env['deploy_dir'], os.pardir))
+
     # the django settings will be in the django_dir for old school projects
     # otherwise it should be defined in the project_settings
-    env.setdefault('django_settings_dir', env['django_dir'])
+    env.setdefault('relative_django_settings_dir', env['relative_django_dir'])
+    env.setdefault('relative_ve_dir', path.join(env['relative_django_dir'], '.ve'))
 
-    python26 = os.path.join('/', 'usr', 'bin', 'python2.6')
-    python27 = os.path.join('/', 'usr', 'bin', 'python2.7')
-    generic_python = os.path.join('/', 'usr', 'bin', 'python')
+    # now create the absolute paths of everything else
+    env.setdefault('django_dir',
+                   path.join(env['vcs_root_dir'], env['relative_django_dir']))
+    env.setdefault('django_settings_dir',
+                   path.join(env['vcs_root_dir'], env['relative_django_settings_dir']))
+    env.setdefault('ve_dir',
+                   path.join(env['vcs_root_dir'], env['relative_ve_dir']))
+    env.setdefault('manage_py', path.join(env['django_dir'], 'manage.py'))
+
+    python26 = path.join('/', 'usr', 'bin', 'python2.6')
+    python27 = path.join('/', 'usr', 'bin', 'python2.7')
+    generic_python = path.join('/', 'usr', 'bin', 'python')
     paths_to_try = (python26, python27, generic_python, sys.executable)
     chosen_python = None
     for python in paths_to_try:
-        if os.path.exists(python):
+        if path.exists(python):
             chosen_python = python
     if chosen_python is None:
         raise Exception("Failed to find a valid Python executable " +
@@ -179,7 +190,7 @@ def _manage_py(args, cwd=None):
 
 
 def _create_dir_if_not_exists(dir_path, world_writeable=False, owner=None):
-    if not os.path.exists(dir_path):
+    if not path.exists(dir_path):
         _check_call_wrapper(['mkdir', '-p', dir_path])
     if world_writeable:
         _check_call_wrapper(['chmod', '-R', '777', dir_path])
@@ -301,10 +312,10 @@ def clean_db(database='default'):
     # then see if the database exists
     if db_engine.endswith('sqlite'):
         # delete sqlite file
-        if os.path.isabs(db_name):
+        if path.isabs(db_name):
             db_path = db_name
         else:
-            db_path = os.path.abspath(os.path.join(env['django_dir'], db_name))
+            db_path = path.abspath(path.join(env['django_dir'], db_name))
         os.remove(db_path)
     elif db_engine.endswith('mysql'):
         # DROP DATABASE
@@ -317,9 +328,9 @@ def clean_db(database='default'):
 def create_private_settings():
     """ create private settings file
     - contains generated DB password and secret key"""
-    private_settings_file = os.path.join(env['django_settings_dir'],
+    private_settings_file = path.join(env['django_settings_dir'],
                                     'private_settings.py')
-    if not os.path.exists(private_settings_file):
+    if not path.exists(private_settings_file):
         if not env['quiet']:
             print "### creating private_settings.py"
         # don't use "with" for compatibility with python 2.3 on whov2hinari
@@ -343,8 +354,8 @@ def link_local_settings(environment):
     # check that settings imports local_settings, as it always should,
     # and if we forget to add that to our project, it could cause mysterious
     # failures
-    settings_file = os.path.join(env['django_settings_dir'], 'settings.py')
-    if not(os.path.isfile(settings_file)):
+    settings_file = path.join(env['django_settings_dir'], 'settings.py')
+    if not(path.isfile(settings_file)):
         sys.exit(1, "Fatal error: settings.py doesn't seem to exist")
     with open(settings_file) as settings_file:
         matching_lines = [line for line in settings_file
@@ -356,20 +367,20 @@ def link_local_settings(environment):
     # die if the correct local settings does not exist
     if not env['quiet']:
         print "### creating link to local_settings.py"
-    local_settings_env_path = os.path.join(env['django_settings_dir'],
+    local_settings_env_path = path.join(env['django_settings_dir'],
             'local_settings.py.' + environment)
-    if not os.path.exists(local_settings_env_path):
+    if not path.exists(local_settings_env_path):
         sys.exit("Could not find file to link to: %s" % local_settings_env_path)
 
     files_to_remove = ('local_settings.py', 'local_settings.pyc')
     for file in files_to_remove:
-        full_path = os.path.join(env['django_settings_dir'], file)
-        if os.path.exists(full_path):
+        full_path = path.join(env['django_settings_dir'], file)
+        if path.exists(full_path):
             os.remove(full_path)
 
-    source = os.path.join(env['django_settings_dir'], 'local_settings.py.%s' %
+    source = path.join(env['django_settings_dir'], 'local_settings.py.%s' %
         environment)
-    target = os.path.join(env['django_settings_dir'], 'local_settings.py')
+    target = path.join(env['django_settings_dir'], 'local_settings.py')
 
     if os.name == 'posix':
         os.symlink('local_settings.py.%s' % environment, target)
@@ -379,7 +390,7 @@ def link_local_settings(environment):
         except ImportError:
             raise Exception("It looks like the PyWin32 extensions are not " +
                 "installed")
-        if os.path.exists(target):
+        if path.exists(target):
             os.unlink(target)
         try:
             win32file.CreateSymbolicLink(target, source)
@@ -448,7 +459,7 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, databa
             _manage_py(['createcachetable', cache_table])
         # if we are using South we need to do the migrations aswell
         for app in env['django_apps']:
-            if os.path.exists(os.path.join(env['django_dir'], app, 'migrations')):
+            if path.exists(path.join(env['django_dir'], app, 'migrations')):
                 use_migrations = True
         _manage_py(['syncdb', '--noinput'])
         if use_migrations:
@@ -545,8 +556,8 @@ def restore_db(dump_filename):
 
 def update_git_submodules():
     """If this is a git project then check for submodules and update"""
-    git_modules_file = os.path.join(env['vcs_root_dir'], '.gitmodules')
-    if os.path.exists(git_modules_file):
+    git_modules_file = path.join(env['vcs_root_dir'], '.gitmodules')
+    if path.exists(git_modules_file):
         if not env['quiet']:
             print "### updating git submodules"
             git_submodule_cmd = 'git submodule update --init'
@@ -557,15 +568,15 @@ def update_git_submodules():
 
 def setup_db_dumps(dump_dir):
     """ set up mysql database dumps in root crontab """
-    if not os.path.isabs(dump_dir):
+    if not path.isabs(dump_dir):
         sys.exit('dump_dir must be an absolute path, you gave %s' % dump_dir)
     project_name = env['django_dir'].split('/')[-1]
-    cron_file = os.path.join('/etc', 'cron.daily', 'dump_' + project_name)
+    cron_file = path.join('/etc', 'cron.daily', 'dump_' + project_name)
 
     db_engine, db_name, db_user, db_pw, db_port, db_host = _get_django_db_settings()
     if db_engine.endswith('mysql'):
         _create_dir_if_not_exists(dump_dir)
-        dump_file_stub = os.path.join(dump_dir, 'daily-dump-')
+        dump_file_stub = path.join(dump_dir, 'daily-dump-')
 
         # has it been set up already
         cron_set = True
@@ -576,7 +587,7 @@ def setup_db_dumps(dump_dir):
 
         if cron_set:
             return
-        if os.path.exists(cron_file):
+        if path.exists(cron_file):
             return
 
         # write something like:
@@ -644,7 +655,7 @@ def _install_django_jenkins():
     """ ensure that pip has installed the django-jenkins thing """
     if not env['quiet']:
         print "### Installing Jenkins packages"
-    pip_bin = os.path.join(env['ve_dir'], 'bin', 'pip')
+    pip_bin = path.join(env['ve_dir'], 'bin', 'pip')
     cmds = [
         [pip_bin, 'install', 'django-jenkins'],
         [pip_bin, 'install', 'pylint'],
@@ -657,9 +668,9 @@ def _install_django_jenkins():
 def _manage_py_jenkins():
     """ run the jenkins command """
     args = ['jenkins', ]
-    args += ['--pylint-rcfile', os.path.join(env['vcs_root_dir'], 'jenkins', 'pylint.rc')]
-    coveragerc_filepath = os.path.join(env['vcs_root_dir'], 'jenkins', 'coverage.rc')
-    if os.path.exists(coveragerc_filepath):
+    args += ['--pylint-rcfile', path.join(env['vcs_root_dir'], 'jenkins', 'pylint.rc')]
+    coveragerc_filepath = path.join(env['vcs_root_dir'], 'jenkins', 'coverage.rc')
+    if path.exists(coveragerc_filepath):
         args += ['--coverage-rcfile', coveragerc_filepath]
     args += env['django_apps']
     if not env['quiet']:
@@ -687,8 +698,8 @@ def run_jenkins():
 
 
 def _infer_environment():
-    local_settings = os.path.join(env['django_settings_dir'], 'local_settings.py')
-    if os.path.exists(local_settings):
+    local_settings = path.join(env['django_settings_dir'], 'local_settings.py')
+    if path.exists(local_settings):
         return os.readlink(local_settings).split('.')[-1]
     else:
         sys.exit('no environment set, or pre-existing')
@@ -722,10 +733,10 @@ def patch_south():
     python = 'python2.6'
     if '2.7' in env['python_bin']:
         python = 'python2.7'
-    south_db_init = os.path.join(env['ve_dir'],
+    south_db_init = path.join(env['ve_dir'],
                 'lib/%s/site-packages/south/db/__init__.py' % python)
-    patch_file = os.path.join(os.path.dirname(__file__), os.pardir, 'patch',
-                             'south.patch')
+    patch_file = path.join(
+        path.dirname(__file__), os.pardir, 'patch', 'south.patch')
     # check if patch already applied - patch will fail if it is
     patch_applied = _call_wrapper(['grep', '-q', 'pydev', south_db_init])
     if patch_applied != 0:

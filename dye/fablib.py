@@ -1,4 +1,5 @@
 import os
+from os import path
 import getpass
 import re
 import time
@@ -22,30 +23,35 @@ def _setup_paths(project_settings):
     env.setdefault('cvs_rsh', 'CVS_RSH="ssh"')
     env.setdefault('default_branch', {'production': 'master', 'staging': 'master'})
     env.setdefault('server_project_home',
-                   os.path.join(env.server_home, env.project_name))
-    env.setdefault('vcs_root', os.path.join(env.server_project_home, 'dev'))
-    env.setdefault('prev_root', os.path.join(env.server_project_home, 'previous'))
-    env.setdefault('dump_dir', os.path.join(env.server_project_home, 'dbdumps'))
-    env.setdefault('deploy_root', os.path.join(env.vcs_root, 'deploy'))
+                   path.join(env.server_home, env.project_name))
+    env.setdefault('vcs_root_dir', path.join(env.server_project_home, 'dev'))
+    env.setdefault('prev_root', path.join(env.server_project_home, 'previous'))
+    env.setdefault('dump_dir', path.join(env.server_project_home, 'dbdumps'))
+    env.setdefault('deploy_root', path.join(env.vcs_root_dir, 'deploy'))
     env.setdefault('settings', '%(project_name)s.settings' % env)
 
     if env.project_type == "django":
-        env.setdefault('django_relative_dir', env.project_name)
-        env.setdefault('django_root',
-                       os.path.join(env.vcs_root, env.django_relative_dir))
+        env.setdefault('relative_django_dir', env.project_name)
+        env.setdefault('relative_django_settings_dir', env['relative_django_dir'])
+        env.setdefault('relative_ve_dir', path.join(env['relative_django_dir'], '.ve'))
 
-    if env.use_virtualenv:
-        env.setdefault('virtualenv_root',
-                       os.path.join(env.django_root, '.ve'))
+        # now create the absolute paths of everything else
+        env.setdefault('django_dir',
+                    path.join(env['vcs_root_dir'], env['relative_django_dir']))
+        env.setdefault('django_settings_dir',
+                    path.join(env['vcs_root_dir'], env['relative_django_settings_dir']))
+        env.setdefault('ve_dir',
+                    path.join(env['vcs_root_dir'], env['relative_ve_dir']))
+        env.setdefault('manage_py', path.join(env['django_dir'], 'manage.py'))
 
     # local_tasks_bin is the local copy of tasks.py
     # this should be the copy from where ever fab.py is being run from ...
     if 'DEPLOYDIR' in os.environ:
         env.setdefault('local_tasks_bin',
-            os.path.join(os.environ['DEPLOYDIR'], 'tasks.py'))
+            path.join(os.environ['DEPLOYDIR'], 'tasks.py'))
     else:
         env.setdefault('local_tasks_bin',
-            os.path.join(os.path.dirname(__file__), 'tasks.py'))
+            path.join(path.dirname(__file__), 'tasks.py'))
 
     # valid environments - used for require statements in fablib
     env.valid_envs = env.host_list.keys()
@@ -67,17 +73,17 @@ def _linux_type():
 
 def _get_python():
     if 'python_bin' not in env:
-        python26 = os.path.join('/', 'usr', 'bin', 'python2.6')
+        python26 = path.join('/', 'usr', 'bin', 'python2.6')
         if files.exists(python26):
             env.python_bin = python26
         else:
-            env.python_bin = os.path.join('/', 'usr', 'bin', 'python')
+            env.python_bin = path.join('/', 'usr', 'bin', 'python')
     return env.python_bin
 
 
 def _get_tasks_bin():
     if 'tasks_bin' not in env:
-        env.tasks_bin = os.path.join(env.deploy_root, 'tasks.py')
+        env.tasks_bin = path.join(env.deploy_root, 'tasks.py')
     return env.tasks_bin
 
 
@@ -138,7 +144,7 @@ def deploy(revision=None, keep=None):
 
     _create_dir_if_not_exists(env.server_project_home)
 
-    if files.exists(env.vcs_root):
+    if files.exists(env.vcs_root_dir):
         create_copy_for_rollback(keep)
 
     # we only have to disable this site after creating the rollback copy
@@ -169,16 +175,16 @@ def deploy(revision=None, keep=None):
 
 
 def set_up_celery_daemon():
-    require('vcs_root', provided_by=env)
+    require('vcs_root_dir', provided_by=env)
     for command in ('celerybeat', 'celeryd'):
-        celery_run_script_location = os.path.join(env['vcs_root'],
-                                                  'celery', 'init', command)
-        celery_run_script_destination = os.path.join('/etc', 'init.d')
-        celery_run_script = os.path.join(celery_run_script_destination,
-                                         command)
-        celery_configuration_location = os.path.join(env['vcs_root'],
+        celery_run_script_location = path.join(env['vcs_root_dir'],
+                                               'celery', 'init', command)
+        celery_run_script_destination = path.join('/etc', 'init.d')
+        celery_run_script = path.join(celery_run_script_destination,
+                                      command)
+        celery_configuration_location = path.join(env['vcs_root_dir'],
                                                   'celery', 'config', command)
-        celery_configuration_destination = os.path.join('/etc', 'default')
+        celery_configuration_destination = path.join('/etc', 'default')
 
         sudo_or_run(" ".join(['cp', celery_run_script_location,
                     celery_run_script_destination]))
@@ -192,14 +198,14 @@ def set_up_celery_daemon():
 
 def create_copy_for_rollback(keep):
     """Copy the current version out of the way so we can rollback to it if required."""
-    require('prev_root', 'vcs_root', provided_by=env.valid_envs)
+    require('django_settings_dir', provided_by=env.valid_envs)
     # create directory for it
-    prev_dir = os.path.join(env.prev_root, time.strftime("%Y-%m-%d_%H-%M-%S"))
+    prev_dir = path.join(env.prev_root, time.strftime("%Y-%m-%d_%H-%M-%S"))
     _create_dir_if_not_exists(prev_dir)
     # cp -a
-    sudo_or_run('cp -a %s %s' % (env.vcs_root, prev_dir))
+    sudo_or_run('cp -a %s %s' % (env.vcs_root_dir, prev_dir))
     if (env.project_type == 'django' and
-            files.exists(os.path.join(env.django_root, 'local_settings.py'))):
+            files.exists(path.join(env.django_settings_dir, 'local_settings.py'))):
         # dump database (provided local_settings has been set up properly)
         with cd(prev_dir):
             # just in case there is some other reason why the dump fails
@@ -222,8 +228,8 @@ def delete_old_versions(keep=None):
     versions_to_keep = -1 * int(keep)
     prev_versions_to_delete = prev_versions[:versions_to_keep]
     for version_to_delete in prev_versions_to_delete:
-        sudo_or_run('rm -rf ' + os.path.join(env.prev_root,
-                                             version_to_delete.strip()))
+        sudo_or_run('rm -rf ' + path.join(
+            env.prev_root, version_to_delete.strip()))
 
 
 def list_previous():
@@ -248,7 +254,7 @@ def rollback(version='last', migrate=False, restore_db=False):
       The default is False
 
     Note that migrate and restore_db cannot both be True."""
-    require('prev_root', 'vcs_root', provided_by=env.valid_envs)
+    require('prev_root', 'vcs_root_dir', provided_by=env.valid_envs)
     if migrate and restore_db:
         utils.abort('rollback cannot do both migrate and restore_db')
     if migrate:
@@ -259,8 +265,8 @@ def rollback(version='last', migrate=False, restore_db=False):
         # list directories in env.prev_root, use last one
         version = run('ls ' + env.prev_root).split('\n')[-1]
     # check version specified exists
-    rollback_dir_base = os.path.join(env.prev_root, version)
-    rollback_dir = os.path.join(rollback_dir_base, 'dev')
+    rollback_dir_base = path.join(env.prev_root, version)
+    rollback_dir = path.join(rollback_dir_base, 'dev')
     if not files.exists(rollback_dir):
         utils.abort("Cannot rollback to version %s, it does not exist, use list_previous to see versions available" % version)
 
@@ -276,38 +282,38 @@ def rollback(version='last', migrate=False, restore_db=False):
         with cd(rollback_dir_base):
             _tasks('load_dbdump')
     # delete everything - don't want stray files left over
-    sudo_or_run('rm -rf %s' % env.vcs_root)
-    # cp -a from rollback_dir to vcs_root
-    sudo_or_run('cp -a %s %s' % (rollback_dir, env.vcs_root))
+    sudo_or_run('rm -rf %s' % env.vcs_root_dir)
+    # cp -a from rollback_dir to vcs_root_dir
+    sudo_or_run('cp -a %s %s' % (rollback_dir, env.vcs_root_dir))
     webserver_cmd("start")
 
 
 def local_test():
     """ run the django tests on the local machine """
     require('project_name')
-    with cd(os.path.join("..", env.project_name)):
+    with cd(path.join("..", env.project_name)):
         local("python " + env.test_cmd, capture=False)
 
 
 def remote_test():
     """ run the django tests remotely - staging only """
-    require('django_root', provided_by=env.valid_envs)
+    require('django_dir', provided_by=env.valid_envs)
     if env.environment == 'production':
         utils.abort('do not run tests on the production environment')
-    with cd(env.django_root):
+    with cd(env.django_dir):
         sudo_or_run(_get_python() + env.test_cmd)
 
 
 def version():
     """ return the deployed VCS revision and commit comments"""
-    require('server_project_home', 'repo_type', 'vcs_root', 'repository',
+    require('server_project_home', 'repo_type', 'vcs_root_dir', 'repository',
         provided_by=env.valid_envs)
     if env.repo_type == "git":
-        with cd(env.vcs_root):
+        with cd(env.vcs_root_dir):
             sudo_or_run('git log | head -5')
     elif env.repo_type == "svn":
         _get_svn_user_and_pass()
-        with cd(env.vcs_root):
+        with cd(env.vcs_root_dir):
             with hide('running'):
                 cmd = 'svn log --non-interactive --username %s --password %s | head -4' % (env.svnuser, env.svnpass)
                 sudo_or_run(cmd)
@@ -317,7 +323,7 @@ def version():
 
 def _check_git_branch():
     env.revision = None
-    with cd(env.vcs_root):
+    with cd(env.vcs_root_dir):
         with settings(warn_only=True):
             # get branch information
             server_branch = sudo_or_run('git rev-parse --abbrev-ref HEAD')
@@ -357,7 +363,7 @@ def _check_git_branch():
 
 def check_for_local_changes():
     """ check if there are local changes on the remote server """
-    require('repo_type', 'vcs_root', provided_by=env.valid_envs)
+    require('repo_type', 'vcs_root_dir', provided_by=env.valid_envs)
     status_cmd = {
         'svn': 'svn status --quiet',
         'git': 'git status --short',
@@ -366,8 +372,8 @@ def check_for_local_changes():
     if env.repo_type == 'cvs':
         print "TODO: write CVS status command"
         return
-    if files.exists(os.path.join(env.vcs_root, "." + env.repo_type)):
-        with cd(env.vcs_root):
+    if files.exists(path.join(env.vcs_root_dir, "." + env.repo_type)):
+        with cd(env.vcs_root_dir):
             status = sudo_or_run(status_cmd[env.repo_type])
             if status:
                 print 'Found local changes on %s server' % env.environment
@@ -386,7 +392,7 @@ def checkout_or_update(revision=None):
     This command works with svn, git and cvs repositories.
 
     You can also specify a revision to checkout, as an argument."""
-    require('server_project_home', 'repo_type', 'vcs_root', 'repository',
+    require('server_project_home', 'repo_type', 'vcs_root_dir', 'repository',
         provided_by=env.valid_envs)
     checkout_fn = {
         'cvs': _checkout_or_update_cvs,
@@ -405,16 +411,16 @@ def _checkout_or_update_svn(revision=None):
     # if the .svn directory exists, do an update, otherwise do
     # a checkout
     cmd = 'svn %s --non-interactive --no-auth-cache --username %s --password %s'
-    if files.exists(os.path.join(env.vcs_root, ".svn")):
+    if files.exists(path.join(env.vcs_root_dir, ".svn")):
         cmd = cmd % ('update', env.svnuser, env.svnpass)
         if revision:
             cmd += " --revision " + revision
-        with cd(env.vcs_root):
+        with cd(env.vcs_root_dir):
             with hide('running'):
                 sudo_or_run(cmd)
     else:
         cmd = cmd + " %s %s"
-        cmd = cmd % ('checkout', env.svnuser, env.svnpass, env.repository, env.vcs_root)
+        cmd = cmd % ('checkout', env.svnuser, env.svnpass, env.repository, env.vcs_root_dir)
         if revision:
             cmd += "@" + revision
         with cd(env.server_project_home):
@@ -425,8 +431,8 @@ def _checkout_or_update_svn(revision=None):
 def _checkout_or_update_git(revision=None):
     # if the .git directory exists, do an update, otherwise do
     # a clone
-    if files.exists(os.path.join(env.vcs_root, ".git")):
-        with cd(env.vcs_root):
+    if files.exists(path.join(env.vcs_root_dir, ".git")):
+        with cd(env.vcs_root_dir):
             sudo_or_run('git remote rm origin')
             sudo_or_run('git remote add origin %s' % env.repository)
             # fetch now, merge later (if on branch)
@@ -435,7 +441,7 @@ def _checkout_or_update_git(revision=None):
         if revision is None:
             revision = env.revision
 
-        with cd(env.vcs_root):
+        with cd(env.vcs_root_dir):
             stash_result = sudo_or_run('git stash')
             sudo_or_run('git checkout %s' % revision)
             # check if revision is a branch, and do a merge if it is
@@ -451,16 +457,16 @@ def _checkout_or_update_git(revision=None):
         with cd(env.server_project_home):
             default_branch = env.default_branch.get(env.environment, 'master')
             sudo_or_run('git clone -b %s %s %s' %
-                    (default_branch, env.repository, env.vcs_root))
+                    (default_branch, env.repository, env.vcs_root_dir))
 
-    if files.exists(os.path.join(env.vcs_root, ".gitmodules")):
-        with cd(env.vcs_root):
+    if files.exists(path.join(env.vcs_root_dir, ".gitmodules")):
+        with cd(env.vcs_root_dir):
             sudo_or_run('git submodule update --init')
 
 
 def _checkout_or_update_cvs(revision):
-    if files.exists(env.vcs_root):
-        with cd(env.vcs_root):
+    if files.exists(env.vcs_root_dir):
+        with cd(env.vcs_root_dir):
             sudo_or_run('CVS_RSH="ssh" cvs update -d -P')
     else:
         if 'cvs_user' in env:
@@ -473,7 +479,7 @@ def _checkout_or_update_cvs(revision):
                                              user_spec,
                                              env.repository,
                                              env.repo_path)
-            command_options = '-d %s' % env.vcs_root
+            command_options = '-d %s' % env.vcs_root_dir
 
             if revision is not None:
                 command_options += ' -r ' + revision
@@ -493,7 +499,7 @@ def sudo_or_run(command):
 def create_deploy_virtualenv():
     """ if using new style dye stuff, create the virtualenv to hold dye """
     require('deploy_root', provided_by=env.valid_envs)
-    bootstrap_path = os.path.join(env.deploy_root, 'bootstrap.py')
+    bootstrap_path = path.join(env.deploy_root, 'bootstrap.py')
     sudo_or_run('%s %s --quiet' % (_get_python(), bootstrap_path))
 
 
@@ -554,25 +560,25 @@ def setup_db_dumps():
 
 def touch_wsgi():
     """ touch wsgi file to trigger reload """
-    require('vcs_root', provided_by=env.valid_envs)
-    wsgi_dir = os.path.join(env.vcs_root, 'wsgi')
-    sudo_or_run('touch ' + os.path.join(wsgi_dir, 'wsgi_handler.py'))
+    require('vcs_root_dir', provided_by=env.valid_envs)
+    wsgi_dir = path.join(env.vcs_root_dir, 'wsgi')
+    sudo_or_run('touch ' + path.join(wsgi_dir, 'wsgi_handler.py'))
 
 
 def rm_pyc_files():
     """Remove all the old pyc files to prevent stale files being used"""
-    require('django_root', provided_by=env.valid_envs)
+    require('django_dir', provided_by=env.valid_envs)
     with settings(warn_only=True):
-        with cd(env.django_root):
+        with cd(env.django_dir):
             sudo_or_run('find . -name \*.pyc | xargs rm')
 
 
 def link_webserver_conf(unlink=False):
     """link the webserver conf file"""
-    require('vcs_root', provided_by=env.valid_envs)
+    require('vcs_root_dir', provided_by=env.valid_envs)
     if env.webserver is None:
         return
-    vcs_conf_file = os.path.join(env.vcs_root, env.webserver, env.environment + '.conf')
+    vcs_conf_file = path.join(env.vcs_root_dir, env.webserver, env.environment + '.conf')
     webserver_conf = _webserver_conf_path()
     if unlink:
         if files.exists(webserver_conf):
@@ -598,7 +604,7 @@ def _webserver_conf_path():
     }
     key = env.webserver + '_' + _linux_type()
     if key in webserver_conf_dir:
-        return os.path.join(webserver_conf_dir[key],
+        return path.join(webserver_conf_dir[key],
             '%s_%s.conf' % (env.project_name, env.environment))
     else:
         utils.abort('webserver %s is not supported (linux type %s)' %
