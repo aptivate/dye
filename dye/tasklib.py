@@ -689,31 +689,32 @@ def run_jenkins():
 def _infer_environment():
     local_settings = os.path.join(env['django_settings_dir'], 'local_settings.py')
     if os.path.exists(local_settings):
-        env['environment'] = os.readlink(local_settings).split('.')[-1]
-        return env['environment']
+        return os.readlink(local_settings).split('.')[-1]
     else:
         sys.exit('no environment set, or pre-existing')
 
 
 def deploy(environment=None):
     """Do all the required steps in order"""
-    if environment is None:
-        environment = _infer_environment()
+    if environment:
+        env['environment'] = environment
+    else:
+        env['environment'] = _infer_environment()
         if env['verbose']:
-            print "Inferred environment as %s" % environment
+            print "Inferred environment as %s" % env['environment']
 
     create_private_settings()
-    link_local_settings(environment)
+    link_local_settings(env['environment'])
     update_git_submodules()
     update_db()
 
     collect_static()
 
     if hasattr(env['localtasks'], 'post_deploy'):
-        env['localtasks'].post_deploy(environment)
+        env['localtasks'].post_deploy(env['environment'])
 
     print "\n*** Finished deploying %s for %s." % (
-            env['project_name'], environment)
+            env['project_name'], env['environment'])
 
 
 def patch_south():
