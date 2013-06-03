@@ -2,24 +2,57 @@
 
 ## fabric
 
-The big change is that you use a standard fabfile.py and put your settings in
-project_settings.py and your custom fabric functions in localfab.py (analagous
+The big change is that you use a standard `fabfile.py` and put your settings in
+`project_settings.py` and your custom fabric functions in `localfab.py` (analagous
 to localtasks.py)
 
 ## tasks.py
 
-You shouldn't have to alter your localtasks.py
+You shouldn't have to alter your `localtasks.py`
 
 # Notes on upgrading
+
+## 06/2013
+
+Lots of changes in a big refactor.
+
+### Dye must be installed in a virtualenv
+
+So add it to your `pip_packages.txt` and copy in the new scripts from
+`examples/deploy/` - `bootstrap.py`, `fab.py`, `tasks.py` and `ve_mgr.py`
+
+(Previously you could copy in the contents of the `dye/` directory directly,
+that is no longer supported.)
+
+### Names of env variables
+
+The names of the paths in `project_settings.py` have changed significantly:
+
+* CHANGE: `django_relative_dir` -> `relative_django_dir`
+* NEW: `relative_django_settings_dir`
+* NEW: `relative_ve_dir`
+
+TODO: add more here
+
+See `examples/deploy/project_settings.py` and make sure you have those variables
+present.
+
+You may well have to update code in `localfab.py` and `localtasks.py` to make them
+use the new names.
+
+### Play nice in pre-existing virtualenv
+
+When running `manage.py` - if you are already in a virtualenv then it won't try to
+do anything clever.
 
 ## 16/01/2013
 
 Git projects can now specify a default branch per server. See the example
-project_settings.py for how to specify it. This replaces env.branch
+`project_settings.py` for how to specify it. This replaces env.branch
 
 ## 03/12/2012
 
-`env.python_bin` and `env.tasks_bin` have gone. Remove any require() calls
+`env.python_bin` and `env.tasks_bin` have gone. Remove any `require()` calls
 that mention them and replace the use of the these variables with:
 
     fablib._get_python()
@@ -27,25 +60,25 @@ that mention them and replace the use of the these variables with:
 
 ## 24/11/2012
 
-In fablib, changed deploy() to use apache reload. If you have a deploy() in
+In fablib, changed `deploy()` to use apache reload. If you have a `deploy()` in
 localfab.py then update it with the changes from fablib. See the diff for this
 commit: 56579c6807191b1772bb89fa3e68cdf7965f1142
 
 ## 19/10/2012
 
 Made fablib be able to deal with different webservers. (For now we've only set
-up apache, but the infrastructure is there). So in project_settings.py you need
+up apache, but the infrastructure is there). So in `project_settings.py` you need
 to change:
 
-env.use_apache = True       becomes      env.webserver = 'apache'
-env.use_apache = False      becomes      env.webserver = None
+    env.use_apache = True       becomes      env.webserver = 'apache'
+    env.use_apache = False      becomes      env.webserver = None
 
-fablib.apache_cmd('xyz')    becomes      env.webserver_cmd('xyz')
+    fablib.apache_cmd('xyz')    becomes      env.webserver_cmd('xyz')
 
 commit: 91b66b43f66e45a2a42c9586469482dd1f39697e
 
 ## Older
 
-In project_settings.py we now use `django_relative_dir` rather than `django_dir`
+In `project_settings.py` we now use `django_relative_dir` rather than `django_dir`
 to remove ambiguity. You may need to update `wsgi/wsgi_handler.py` to use the new
 name.
