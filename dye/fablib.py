@@ -27,7 +27,7 @@ def _setup_paths(project_settings):
     env.setdefault('vcs_root_dir', path.join(env.server_project_home, 'dev'))
     env.setdefault('prev_root', path.join(env.server_project_home, 'previous'))
     env.setdefault('dump_dir', path.join(env.server_project_home, 'dbdumps'))
-    env.setdefault('deploy_root', path.join(env.vcs_root_dir, 'deploy'))
+    env.setdefault('deploy_dir', path.join(env.vcs_root_dir, 'deploy'))
     env.setdefault('settings', '%(project_name)s.settings' % env)
 
     if env.project_type == "django":
@@ -83,7 +83,7 @@ def _get_python():
 
 def _get_tasks_bin():
     if 'tasks_bin' not in env:
-        env.tasks_bin = path.join(env.deploy_root, 'tasks.py')
+        env.tasks_bin = path.join(env.deploy_dir, 'tasks.py')
     return env.tasks_bin
 
 
@@ -498,8 +498,8 @@ def sudo_or_run(command):
 
 def create_deploy_virtualenv():
     """ if using new style dye stuff, create the virtualenv to hold dye """
-    require('deploy_root', provided_by=env.valid_envs)
-    bootstrap_path = path.join(env.deploy_root, 'bootstrap.py')
+    require('deploy_dir', provided_by=env.valid_envs)
+    bootstrap_path = path.join(env.deploy_dir, 'bootstrap.py')
     sudo_or_run('%s %s --quiet' % (_get_python(), bootstrap_path))
 
 
