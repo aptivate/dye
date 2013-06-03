@@ -23,9 +23,10 @@ if '--ignore-ve' in sys.argv:
 
 if 'IGNORE_DOTVE' not in os.environ:
     try:
-        from project_settings import ve_dir
+        from project_settings import local_vcs_root, relative_ve_dir
+        ve_dir = path.join(local_vcs_root, relative_ve_dir)
     except ImportError:
-        print >> sys.stderr, "could not find ve_dir in project_settings.py"
+        print >> sys.stderr, "could not find local_vcs_root/relative_ve_dir in project_settings.py"
         sys.exit(1)
 
     def go_to_ve():
@@ -82,7 +83,6 @@ if 'IGNORE_DOTVE' not in os.environ:
 # run django - the usual manage.py stuff
 if __name__ == "__main__":
     sys.path.append(DEPLOY_DIR)
-    from project_settings import project_name
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "settings")
 
     try:
