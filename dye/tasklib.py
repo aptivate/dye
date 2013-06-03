@@ -118,6 +118,9 @@ def _setup_paths(project_settings, localtasks):
         env['vcs_root_dir'] = \
             os.path.abspath(os.path.join(env['deploy_dir'], os.pardir))
     env.setdefault('manage_py', os.path.join(env['django_dir'], 'manage.py'))
+    # the django settings will be in the django_dir for old school projects
+    # otherwise it should be defined in the project_settings
+    env.setdefault('django_settings_dir', env['django_dir'])
 
     python26 = os.path.join('/', 'usr', 'bin', 'python2.6')
     python27 = os.path.join('/', 'usr', 'bin', 'python2.7')
@@ -194,7 +197,7 @@ def _get_django_db_settings(database='default'):
     # import local_settings from the django dir. Here we are adding the django
     # project directory to the path. Note that env['django_dir'] may be more than
     # one directory (eg. 'django/project') which is why we use django_module
-    sys.path.append(env['django_dir'])
+    sys.path.append(env['django_settings_dir'])
     import local_settings
 
     db_user = 'nouser'
@@ -314,7 +317,7 @@ def clean_db(database='default'):
 def create_private_settings():
     """ create private settings file
     - contains generated DB password and secret key"""
-    private_settings_file = os.path.join(env['django_dir'],
+    private_settings_file = os.path.join(env['django_settings_dir'],
                                     'private_settings.py')
     if not os.path.exists(private_settings_file):
         if not env['quiet']:
@@ -340,7 +343,7 @@ def link_local_settings(environment):
     # check that settings imports local_settings, as it always should,
     # and if we forget to add that to our project, it could cause mysterious
     # failures
-    settings_file = os.path.join(env['django_dir'], 'settings.py')
+    settings_file = os.path.join(env['django_settings_dir'], 'settings.py')
     if not(os.path.isfile(settings_file)):
         sys.exit(1, "Fatal error: settings.py doesn't seem to exist")
     with open(settings_file) as settings_file:
@@ -353,20 +356,20 @@ def link_local_settings(environment):
     # die if the correct local settings does not exist
     if not env['quiet']:
         print "### creating link to local_settings.py"
-    local_settings_env_path = os.path.join(env['django_dir'],
+    local_settings_env_path = os.path.join(env['django_settings_dir'],
             'local_settings.py.' + environment)
     if not os.path.exists(local_settings_env_path):
         sys.exit("Could not find file to link to: %s" % local_settings_env_path)
 
     files_to_remove = ('local_settings.py', 'local_settings.pyc')
     for file in files_to_remove:
-        full_path = os.path.join(env['django_dir'], file)
+        full_path = os.path.join(env['django_settings_dir'], file)
         if os.path.exists(full_path):
             os.remove(full_path)
 
-    source = os.path.join(env['django_dir'], 'local_settings.py.%s' %
+    source = os.path.join(env['django_settings_dir'], 'local_settings.py.%s' %
         environment)
-    target = os.path.join(env['django_dir'], 'local_settings.py')
+    target = os.path.join(env['django_settings_dir'], 'local_settings.py')
 
     if os.name == 'posix':
         os.symlink('local_settings.py.%s' % environment, target)
@@ -394,7 +397,7 @@ def collect_static():
 
 def _get_cache_table():
     # import settings from the django dir
-    sys.path.append(env['django_dir'])
+    sys.path.append(env['django_settings_dir'])
     import settings
     if not hasattr(settings, 'CACHES'):
         return None
@@ -684,7 +687,7 @@ def run_jenkins():
 
 
 def _infer_environment():
-    local_settings = os.path.join(env['django_dir'], 'local_settings.py')
+    local_settings = os.path.join(env['django_settings_dir'], 'local_settings.py')
     if os.path.exists(local_settings):
         env['environment'] = os.readlink(local_settings).split('.')[-1]
         return env['environment']
