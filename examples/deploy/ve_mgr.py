@@ -122,6 +122,21 @@ class UpdateVE(object):
         else:
             return False
 
+    def update_git_submodule(self):
+        """ pip can include directories, and we sometimes add directories as
+        submodules.  And pip install will fail if those directories are empty.
+        So we need to set up the submodules first. """
+        try:
+            from project_settings import local_vcs_root, repo_type
+        except ImportError:
+            print >> sys.stderr, "could not find ve_dir in project_settings.py"
+            raise
+        if repo_type != 'git':
+            return
+        subprocess.call(
+                ['git', 'submodule', 'update', '--init'],
+                cwd=local_vcs_root)
+
     def update_ve(self, update_ve_quick=False, destroy_old_ve=False, force_update=False):
 
         if not path.exists(self.requirements):
@@ -137,8 +152,8 @@ class UpdateVE(object):
         # if we need to create the virtualenv, then we must do that from
         # outside the virtualenv. The code inside this if statement will only
         # be run outside the virtualenv.
-        if destroy_old_ve:
-            self.clean_ve()
+        if destroy_old_ve and path.exists(self.ve_root):
+            shutil.rmtree(self.ve_root)
         if not path.exists(self.ve_root):
             import virtualenv
             virtualenv.logger = virtualenv.Logger(consumers=[])
@@ -153,8 +168,3 @@ class UpdateVE(object):
         if pip_retcode == 0:
             self.update_ve_timestamp()
         sys.exit(pip_retcode)
-
-    def clean_ve(self):
-        """ delete the virtualenv """
-        if path.exists(self.ve_root):
-            shutil.rmtree(self.ve_root)
