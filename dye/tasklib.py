@@ -467,7 +467,7 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, databa
 
 
 def db_exists(db_user, db_pw, db_name, db_port, db_host):
-    db_exist_call = ['mysql', '-u', db_user, '-p%s ' % db_pw]
+    db_exist_call = ['mysql', '-u', db_user, '-p%s' % db_pw]
     db_exist_call += ['--host=%s' % db_host]
 
     if db_port is not None:
