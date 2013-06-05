@@ -75,7 +75,7 @@ def in_virtualenv():
 
 class UpdateVE(object):
 
-    def __init__(self, ve_root=None, requirements=None):
+    def __init__(self, ve_dir=None, requirements=None):
 
         if requirements:
             self.requirements = requirements
@@ -87,8 +87,8 @@ class UpdateVE(object):
                 raise
             self.requirements = local_requirements_file
 
-        if ve_root:
-            self.ve_root = ve_root
+        if ve_dir:
+            self.ve_dir = ve_dir
         else:
             try:
                 from project_settings import local_vcs_root, relative_ve_dir
@@ -96,17 +96,17 @@ class UpdateVE(object):
             except ImportError:
                 print >> sys.stderr, "could not find local_vcs_root/relative_ve_dir in project_settings.py"
                 raise
-            self.ve_root = ve_dir
+            self.ve_dir = ve_dir
 
-        self.ve_timestamp = path.join(self.ve_root, 'timestamp')
+        self.ve_timestamp = path.join(self.ve_dir, 'timestamp')
 
     def update_ve_timestamp(self):
-        os.utime(self.ve_root, None)
+        os.utime(self.ve_dir, None)
         file(self.ve_timestamp, 'w').close()
 
     def virtualenv_needs_update(self):
         # timestamp of last modification of .ve/ directory
-        ve_dir_mtime = path.exists(self.ve_root) and path.getmtime(self.ve_root) or 0
+        ve_dir_mtime = path.exists(self.ve_dir) and path.getmtime(self.ve_dir) or 0
         # timestamp of last modification of .ve/timestamp file (touched by this
         # script
         ve_timestamp_mtime = path.exists(self.ve_timestamp) and path.getmtime(self.ve_timestamp) or 0
@@ -153,15 +153,15 @@ class UpdateVE(object):
         # if we need to create the virtualenv, then we must do that from
         # outside the virtualenv. The code inside this if statement will only
         # be run outside the virtualenv.
-        if destroy_old_ve and path.exists(self.ve_root):
-            shutil.rmtree(self.ve_root)
-        if not path.exists(self.ve_root):
+        if destroy_old_ve and path.exists(self.ve_dir):
+            shutil.rmtree(self.ve_dir)
+        if not path.exists(self.ve_dir):
             import virtualenv
             virtualenv.logger = virtualenv.Logger(consumers=[])
-            virtualenv.create_environment(self.ve_root, site_packages=False)
+            virtualenv.create_environment(self.ve_dir, site_packages=False)
 
         # install the pip requirements and exit
-        pip_path = path.join(self.ve_root, 'bin', 'pip')
+        pip_path = path.join(self.ve_dir, 'bin', 'pip')
         # use cwd to allow relative path specs in requirements file, e.g. ../tika
         pip_retcode = subprocess.call(
                 [pip_path, 'install', '--requirement=%s' % self.requirements],
