@@ -45,6 +45,10 @@ use the new names.
 When running `manage.py` - if you are already in a virtualenv then it won't try to
 do anything clever.
 
+### Names of functions
+
+* in fablib: touch() -> touch_wsgi()
+
 ## 16/01/2013
 
 Git projects can now specify a default branch per server. See the example
