@@ -154,6 +154,9 @@ def deploy(revision=None, keep=None):
     with settings(warn_only=True):
         webserver_cmd('reload')
     checkout_or_update(revision)
+    # remove any old pyc files - essential if the .py file has been removed
+    if env.project_type == "django":
+        rm_pyc_files()
 
     # create the deploy virtualenv if we use it
     create_deploy_virtualenv()
@@ -162,10 +165,8 @@ def deploy(revision=None, keep=None):
     # env.use_virtualenv as tasks.py knows nothing about it.
     _tasks('deploy:' + env.environment)
 
-    if env.project_type == "django":
-        rm_pyc_files()
-        if env.environment == 'production':
-            setup_db_dumps()
+    if env.environment == 'production':
+        setup_db_dumps()
 
     # bring this vhost back in, reload the webserver and touch the WSGI
     # handler (which reloads the wsgi app)
