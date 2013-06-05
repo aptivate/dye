@@ -206,3 +206,27 @@ class UpdateVE(object):
         if pip_retcode == 0:
             self.update_ve_timestamp()
         return pip_retcode
+
+    def go_to_ve(self, file_path, args):
+        """
+        If running inside virtualenv already, then just return and carry on.
+
+        If not inside the virtualenv then call the virtualenv python, pass it
+        the original file and all the arguments to it, so this file will be run
+        inside the virtualenv.
+        """
+        if 'VIRTUAL_ENV' in os.environ:
+            # we are in the virtualenv - so carry on to the main code
+            return
+
+        if sys.platform == 'win32':
+            python = path.join(self.ve_dir, 'Scripts', 'python.exe')
+        else:
+            python = path.join(self.ve_dir, 'bin', 'python')
+
+        # add environment variable to say we are now in virtualenv
+        new_env = os.environ.copy()
+        new_env['VIRTUAL_ENV'] = self.ve_dir
+        retcode = subprocess.call([python, file_path] + args, env=new_env)
+        # call the original using the virtualenv and exit
+        sys.exit(retcode)
