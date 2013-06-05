@@ -99,6 +99,28 @@ class UpdateVE(object):
             self.ve_dir = ve_dir
 
         self.ve_timestamp = path.join(self.ve_dir, 'timestamp')
+        self.force_update = False
+        self.full_rebuild = False
+        self.fake_update = False
+        self.clean_ve = False
+
+    def process_flags(self, argv):
+        if '--force' in argv:
+            self.force_update = True
+        if '--full-rebuild' in argv:
+            self.full_rebuild = True
+        if '--fake' in argv:
+            self.fake_update = True
+        if '--clean' in argv:
+            self.clean_ve = True
+
+        # check for incompatible flags
+        if self.full_rebuild and self.fake_update:
+            print >> sys.stderr, "Cannot use both --full-rebuild and --fake"
+        if self.full_rebuild and self.clean_ve:
+            print >> sys.stderr, "Cannot use both --full-rebuild and --clean"
+        if self.clean_ve and self.fake_update:
+            print >> sys.stderr, "Cannot use both --clean and --fake"
 
     def update_ve_timestamp(self):
         os.utime(self.ve_dir, None)
@@ -138,22 +160,37 @@ class UpdateVE(object):
                 ['git', 'submodule', 'update', '--init'],
                 cwd=local_vcs_root)
 
-    def update_ve(self, update_ve_quick=False, destroy_old_ve=False, force_update=False):
+    def delete_virtualenv(self):
+        """ delete the virtualenv """
+        if path.exists(self.ve_dir):
+            shutil.rmtree(self.ve_dir)
+
+    def update_ve(self):
 
         if not path.exists(self.requirements):
             print >> sys.stderr, "Could not find requirements: file %s" % self.requirements
-            sys.exit(1)
+            return 1
+
+        if self.clean_ve:
+            self.delete_virtualenv()
+            return 0
+
+        if self.fake_update:
+            self.update_ve_timestamp()
+            return 0
 
         update_required = self.virtualenv_needs_update()
 
-        if not update_required and not force_update:
+        if not update_required and not self.force_update:
             # Nothing to be done
-            return False
+            print "VirtualEnv does not need to be updated"
+            print "use --force to force an update"
+            return 0
 
         # if we need to create the virtualenv, then we must do that from
         # outside the virtualenv. The code inside this if statement will only
         # be run outside the virtualenv.
-        if destroy_old_ve and path.exists(self.ve_dir):
+        if self.full_rebuild and path.exists(self.ve_dir):
             shutil.rmtree(self.ve_dir)
         if not path.exists(self.ve_dir):
             import virtualenv
@@ -168,4 +205,4 @@ class UpdateVE(object):
                 cwd=os.path.dirname(self.requirements))
         if pip_retcode == 0:
             self.update_ve_timestamp()
-        sys.exit(pip_retcode)
+        return pip_retcode

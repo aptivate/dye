@@ -37,7 +37,7 @@ if 'IGNORE_DOTVE' not in os.environ:
         this file and all the arguments to it, so this file will be run inside
         the virtualenv.
         """
-        if 'IN_VIRTUALENV' not in os.environ:
+        if 'VIRTUAL_ENV' not in os.environ:
             if sys.platform == 'win32':
                 python = path.join(ve_dir, 'Scripts', 'python.exe')
             else:
@@ -45,35 +45,16 @@ if 'IGNORE_DOTVE' not in os.environ:
 
             # add environment variable to say we are now in virtualenv
             new_env = os.environ.copy()
-            new_env['IN_VIRTUALENV'] = 'true'
+            new_env['VIRTUAL_ENV'] = ve_dir
             retcode = subprocess.call([python, __file__] + sys.argv[1:],
                     env=new_env)
             sys.exit(retcode)
 
+    # if it appears that the virtualenv is out of date then stop here
     updater = ve_mgr.UpdateVE()
-    # manually update virtualenv?
-    update_ve = 'update_ve' in sys.argv or 'update_ve_quick' in sys.argv
-    # destroy the old virtualenv so we have a clean virtualenv?
-    destroy_old_ve = 'update_ve' in sys.argv
-    # check if virtualenv needs updating and only proceed if it is required
-    update_required = updater.virtualenv_needs_update()
-    # or just do the update anyway
-    force_update = '--force' in sys.argv
-
-    # we've been told to update the virtualenv AND
-    # EITHER it needs an update OR the update is forced
-    if update_ve:
-        if not update_required and not force_update:
-            print "VirtualEnv does not need to be updated"
-            print "use --force to force an update"
-            sys.exit(0)
-        updater.update_git_submodule()
-        updater.update_ve()
-
-    # else if it appears that the virtualenv is out of date:
-    elif update_required:
+    if updater.virtualenv_needs_update():
         print "VirtualEnv need to be updated"
-        print 'Run "./manage.py update_ve" (or "./manage.py update_ve_quick")'
+        print 'Run "deploy/bootstrap.py'
         sys.exit(1)
 
     # now we should enter the virtualenv. We will only get
