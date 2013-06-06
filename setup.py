@@ -12,6 +12,7 @@ setup(
     description='A set of functions to improve deploy scripts',
     #long_description=open('README.md').read(),
     install_requires=[
-        "fabric >= 0.9",
+        "fabric >= 1.4",
+        "docopt >= 0.6.1",
     ],
 )
