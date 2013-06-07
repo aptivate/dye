@@ -1,13 +1,51 @@
+================
 Similar Projects
+================
 
-Stuff built on fabric:
+Projects built on fabric
+========================
 
-Cuisine: https://github.com/sebastien/cuisine - this is more like puppet/chef, but is built on fabric.
+Cuisine
+-------
 
-Fabmagic: https://github.com/Lispython/fabmagic - recipes - should investigate more
+https://github.com/sebastien/cuisine
 
-Fabtools: https://github.com/ronnix/fabtools/ - interesting, they do functional testing using vagrant
+This is more like puppet/chef, but is built on fabric.
 
-Deployer: https://github.com/jonathanslenders/python-deployer - bit nearer, need to get head around it.
+Fabmagic
+--------
 
-Neckbeard: https://github.com/winhamwr/neckbeard - AWS based deploy, including using local chef scripts to set up the server in the first place.
+https://github.com/Lispython/fabmagic
+
+Recipes - should investigate more
+
+Fabtools
+--------
+
+https://github.com/ronnix/fabtools/
+
+Interesting, they do functional testing using vagrant
+
+Deployer
+--------
+
+https://github.com/jonathanslenders/python-deployer
+
+Bit nearer, need to get head around it.
+
+Neckbeard
+---------
+
+https://github.com/winhamwr/neckbeard
+
+AWS based deploy, including using local chef scripts to set up the server in the first place.
+
+Other deployment frameworks
+===========================
+
+Capistrano
+----------
+
+URL
+
+Originally built for ruby on rails, but it can be used more generally.

@@ -71,11 +71,11 @@ running easily. Once the project is set up, getting going should only require:
     cd ../django/django_project
     ./manage.py runserver
 
-bootstrap.py will create the virtualenv and install the python packages required
+`bootstrap.py` will create the virtualenv and install the python packages required
 
-tasks.py deploy:dev will:
+`tasks.py deploy:dev` will:
 
-* generate a private_settings.py (random database password and Django secret key)
+* generate a .private_settings.py. (random database password and Django secret key)
 * link to one of your local_settings files (selects database etc)
 * init and update git submodules (if any)
 * create the database (if using MySQL at least) and run syncdb and migrations
