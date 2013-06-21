@@ -97,8 +97,8 @@ You can override the main `deploy()` function, but you might lose out if the
 deploy function starts to do more.  Generally a better strategy is to define a
 `post_deploy()` function - this will be called by dye if it exists.
 
-manage.py
----------
+manage.py and bootstrap.py
+--------------------------
 
 We use a modified version of manage.py that knows about the virtualenv in the
 `.ve/` directory. So when you run manage.py it will automatically relaunch itself
@@ -109,14 +109,12 @@ updated without the virtualenv being updated (or if the virtualenv doesn't
 exist) then `manage.py` will complain. You can then create/update the virtualenv
 with:
 
-    ./manage.py update_ve
+    ../../deploy/bootstrap.py
 
-Note that update_ve will only update the virtualenv when required. Though you
-can use --force to do it anyway. Also note that update_ve will completely delete
-the old virtualenv and recreate it from scratch. To just add a new package, you
-can run:
-
-   ./manage.py update_ve_quick
+Note that this will only update the virtualenv if it's required, though you can 
+use `--force` do it anyway. Also note that by default it will only update the 
+packages that need updating - use `--full-rebuild` to force it to delete the 
+virtual env and then rebuild. To see all options use `--help`.
 
 Fabric and DYE
 ==============
