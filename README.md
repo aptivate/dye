@@ -112,7 +112,7 @@ with:
     ../../deploy/bootstrap.py
 
 Note that this will only update the virtualenv if it's required, though you can 
-use `--force` do it anyway. Also note that by default it will only update the 
+use `--force` to do it anyway. Also note that by default it will only update the 
 packages that need updating - use `--full-rebuild` to force it to delete the 
 virtual env and then rebuild. To see all options use `--help`.
 
