@@ -618,6 +618,9 @@ def run_tests(*extra_args):
     ./tasks.py run_tests:myapp
     ./tasks.py run_tests:myapp.ModelTests,myapp.ViewTests.my_view_test
     """
+    if not env['quiet']:
+        print "### Running tests"
+
     args = ['test', '-v0']
 
     if extra_args:
