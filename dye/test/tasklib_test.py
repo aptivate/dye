@@ -1,13 +1,14 @@
 import os
+from os import path
 import sys
 import shutil
 import unittest
 
-dye_dir = os.path.join(os.path.dirname(__file__), '..')
+dye_dir = path.join(path.dirname(__file__), os.pardir)
 sys.path.append(dye_dir)
 import tasklib
 
-example_dir = os.path.join(dye_dir, '..', 'examples', 'deploy')
+example_dir = path.join(dye_dir, os.pardir, 'examples', 'deploy')
 sys.path.append(dye_dir)
 import project_settings
 
@@ -17,45 +18,64 @@ tasklib.env['quiet'] = False
 
 class TestTaskLib(unittest.TestCase):
     def setUp(self):
-        self.testdir = os.path.join(os.path.dirname(__file__), 'testdir')
+        self.testdir = path.join(path.dirname(__file__), 'testdir')
         project_settings.project_name = 'testproj'
         project_settings.django_apps = ['testapp']
-        project_settings.django_relative_dir = ("django/" +
-                project_settings.project_name)
+        project_settings.project_type = 'django'
+        project_settings.use_virtualenv = False
+        project_settings.relative_django_dir = path.join(
+            "django", project_settings.project_name)
+        project_settings.local_deploy_dir = path.dirname(__file__)
+        project_settings.local_vcs_root = self.testdir
+        project_settings.django_dir = path.join(project_settings.local_vcs_root,
+            project_settings.relative_django_dir)
+        project_settings.relative_django_settings_dir = path.join(
+            project_settings.relative_django_dir, project_settings.project_name)
+        project_settings.relative_ve_dir = path.join(
+            project_settings.relative_django_dir, '.ve')
+
         tasklib._setup_paths(project_settings, None)
-        tasklib.env['deploy_dir'] = os.path.dirname(__file__)
-        tasklib.env['vcs_root_dir'] = self.testdir
-        tasklib.env['django_dir'] = os.path.join(tasklib.env['vcs_root_dir'],
-                project_settings.django_relative_dir)
-        tasklib.env['ve_dir'] = os.path.join(tasklib.env['django_dir'], '.ve')
-        tasklib.env['python_bin'] = os.path.join(tasklib.env['ve_dir'], 'bin', 'python2.6')
-        tasklib.env['manage_py'] = os.path.join(tasklib.env['django_dir'], 'manage.py')
+
+        tasklib.env['python_bin'] = path.join(tasklib.env['ve_dir'], 'bin', 'python')
+        tasklib.env['manage_py'] = path.join(tasklib.env['django_dir'], 'manage.py')
         # set up directories
-        if not os.path.exists(tasklib.env['django_dir']):
+        if not path.exists(tasklib.env['django_dir']):
             os.makedirs(tasklib.env['django_dir'])
+            os.makedirs(tasklib.env['django_settings_dir'])
 
     def tearDown(self):
         shutil.rmtree(self.testdir)
 
     def create_settings_py(self):
-        settings_path = os.path.join(tasklib.env['django_dir'], 'settings.py')
+        settings_path = path.join(tasklib.env['django_settings_dir'], 'settings.py')
         with open(settings_path, 'w') as f:
             f.write('import local_settings')
 
-    def test_link_local_settings_exits_if_settings_py_not_present(self):
-        """ We don't create settings.py, just call link_local_settings()
-        and see if it dies with the correct error """
-        self.assertRaises(tasklib.link_local_settings('dev'), SystemExit)
-
-    def test_link_local_settings(self):
-        self.create_settings_py()
-        local_settings_path = os.path.join(tasklib.env['django_dir'], 'local_settings.py')
+    def create_local_settings_py_dev(self, local_settings_path):
         local_settings_dev_path = local_settings_path + '.dev'
         # create local_settings.py.dev, run link_local_settings, confirm it exists
         with open(local_settings_dev_path, 'w') as lsdev:
             lsdev.write('# python file')
-        tasklib.link_local_settings('dev')
-        self.assertTrue(os.path.islink(local_settings_path))
+        return local_settings_dev_path
+
+    def test_link_local_settings_exits_if_settings_py_not_present(self):
+        # We don't create settings.py, just call link_local_settings()
+        # and see if it dies with the correct error
+        with self.assertRaises(SystemExit):
+            tasklib.link_local_settings('dev')
+
+    def test_link_local_settings(self):
+        self.create_settings_py()
+        local_settings_path = path.join(tasklib.env['django_settings_dir'], 'local_settings.py')
+        self.create_local_settings_py_dev(local_settings_path)
+
+        try:
+            tasklib.link_local_settings('dev')
+        except SystemExit as sys_exit:
+            print dir(sys_exit)
+            self.fail('Unexpected exception: ' + sys_exit.message)
+
+        self.assertTrue(path.islink(local_settings_path))
         # assert the link goes to the correct file
         linkto = os.readlink(local_settings_path)
         self.assertEqual(linkto, 'local_settings.py.dev')
