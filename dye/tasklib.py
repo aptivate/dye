@@ -356,7 +356,7 @@ def link_local_settings(environment):
     # failures
     settings_file = path.join(env['django_settings_dir'], 'settings.py')
     if not(path.isfile(settings_file)):
-        sys.exit(1, "Fatal error: settings.py doesn't seem to exist")
+        sys.exit("Fatal error: settings.py doesn't seem to exist")
     with open(settings_file) as settings_file:
         matching_lines = [line for line in settings_file
             if line.find('local_settings')]
