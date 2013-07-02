@@ -13,7 +13,7 @@ sys.path.append(dye_dir)
 import project_settings
 
 tasklib.env['verbose'] = False
-tasklib.env['quiet'] = False
+tasklib.env['quiet'] = True
 
 
 class TestTaskLib(unittest.TestCase):
@@ -46,6 +46,10 @@ class TestTaskLib(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.testdir)
 
+    def create_empty_settings_py(self):
+        settings_path = path.join(tasklib.env['django_settings_dir'], 'settings.py')
+        open(settings_path, 'a').close()
+
     def create_settings_py(self):
         settings_path = path.join(tasklib.env['django_settings_dir'], 'settings.py')
         with open(settings_path, 'w') as f:
@@ -58,26 +62,66 @@ class TestTaskLib(unittest.TestCase):
             lsdev.write('# python file')
         return local_settings_dev_path
 
-    def test_link_local_settings_exits_if_settings_py_not_present(self):
+    def test_link_local_settings_raises_error_if_settings_py_not_present(self):
         # We don't create settings.py, just call link_local_settings()
         # and see if it dies with the correct error
+        local_settings_path = path.join(tasklib.env['django_settings_dir'], 'local_settings.py')
+        self.create_local_settings_py_dev(local_settings_path)
         with self.assertRaises(tasklib.InvalidProjectError):
             tasklib.link_local_settings('dev')
 
-    def test_link_local_settings(self):
+    def test_link_local_settings_raises_error_if_settings_py_does_not_import_local_settings(self):
+        # We don't create settings.py, just call link_local_settings()
+        # and see if it dies with the correct error
+        local_settings_path = path.join(tasklib.env['django_settings_dir'], 'local_settings.py')
+        self.create_local_settings_py_dev(local_settings_path)
+        self.create_empty_settings_py()
+        with self.assertRaises(tasklib.InvalidProjectError):
+            tasklib.link_local_settings('dev')
+
+    def test_link_local_settings_raises_error_if_local_settings_py_dev_not_present(self):
+        # We don't create settings.py, just call link_local_settings()
+        # and see if it dies with the correct error
+        self.create_settings_py()
+        with self.assertRaises(tasklib.InvalidProjectError):
+            tasklib.link_local_settings('dev')
+
+    def test_link_local_settings_creates_correct_link(self):
         self.create_settings_py()
         local_settings_path = path.join(tasklib.env['django_settings_dir'], 'local_settings.py')
         self.create_local_settings_py_dev(local_settings_path)
 
-        try:
-            tasklib.link_local_settings('dev')
-        except tasklib.TasksError as error:
-            self.fail('Unexpected exception: ' + error.msg)
+        tasklib.link_local_settings('dev')
 
         self.assertTrue(path.islink(local_settings_path))
         # assert the link goes to the correct file
         linkto = os.readlink(local_settings_path)
         self.assertEqual(linkto, 'local_settings.py.dev')
+
+    def test_link_local_settings_replaces_old_local_settings(self):
+        self.create_settings_py()
+        local_settings_path = path.join(tasklib.env['django_settings_dir'], 'local_settings.py')
+        self.create_local_settings_py_dev(local_settings_path)
+        open(local_settings_path, 'a').close()
+        self.assertFalse(path.islink(local_settings_path))
+
+        tasklib.link_local_settings('dev')
+
+        self.assertTrue(path.islink(local_settings_path))
+        # assert the link goes to the correct file
+        linkto = os.readlink(local_settings_path)
+        self.assertEqual(linkto, 'local_settings.py.dev')
+
+    def test_link_local_settings_removes_local_settings_pyc(self):
+        self.create_settings_py()
+        local_settings_path = path.join(tasklib.env['django_settings_dir'], 'local_settings.py')
+        local_settings_pyc_path = local_settings_path + 'c'
+        self.create_local_settings_py_dev(local_settings_path)
+        open(local_settings_pyc_path, 'a').close()
+
+        tasklib.link_local_settings('dev')
+
+        self.assertFalse(path.exists(local_settings_pyc_path))
 
     # database tests?!? as root and as user
 
