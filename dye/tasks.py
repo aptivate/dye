@@ -74,7 +74,6 @@ def invalid_command(cmd):
     print "%s is not a valid command" % cmd
     print
     print "For help use --help"
-    sys.exit(2)
 
 
 def get_public_callables(mod):
@@ -109,7 +108,6 @@ def print_help_text():
     for task in tasks:
         print task
     print
-    sys.exit(0)
 
 
 def print_description(task_name, task_function):
@@ -149,7 +147,6 @@ def describe_task(args):
         else:
             print "%s: no such task found" % task
             print
-        sys.exit(0)
 
 
 def convert_args(value):
@@ -175,22 +172,24 @@ def main(argv):
     except getopt.error, msg:
         print msg
         print "for help use --help"
-        sys.exit(2)
+        return 2
     # process options
     for opt, arg in opts:
         if opt in ("-h", "--help"):
             print_help_text()
+            return 0
         if opt in ("-v", "--verbose"):
             verbose = True
         if opt in ("-q", "--quiet"):
             quiet = True
         if opt in ("-t", "--task-description"):
             describe_task(args)
+            return 0
         if opt in ("-d", "--deploydir"):
             deploy_dir = arg
     if verbose and quiet:
         print "Cannot set both verbose and quiet"
-        sys.exit(2)
+        return 2
     tasklib.env['verbose'] = verbose
     tasklib.env['quiet'] = quiet
     tasklib.env['deploy_dir'] = deploy_dir
@@ -209,6 +208,7 @@ def main(argv):
     tasklib._setup_paths(project_settings, localtasks)
     if len(args) == 0:
         print_help_text()
+        return 0
     # process arguments - just call the function with that name
     for arg in args:
         task_bits = arg.split(':', 1)
@@ -221,6 +221,7 @@ def main(argv):
             f = getattr(tasklib, fname)
         else:
             invalid_command(fname)
+            return 2
 
         # call the function
         if len(task_bits) == 1:
