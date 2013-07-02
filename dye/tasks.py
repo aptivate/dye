@@ -218,17 +218,21 @@ def main(argv):
             return 2
 
         # call the function
-        if len(task_bits) == 1:
-            f()
-        else:
-            f_args = task_bits[1].split(',')
-            pos_args = [convert_args(arg) for arg in f_args if arg.find('=') == -1]
-            kwargs = [arg for arg in f_args if arg.find('=') >= 0]
-            kwargs_dict = {}
-            for kwarg in kwargs:
-                kw, value = kwarg.split('=', 1)
-                kwargs_dict[kw] = convert_args(value)
-            f(*pos_args, **kwargs_dict)
+        try:
+            if len(task_bits) == 1:
+                f()
+            else:
+                f_args = task_bits[1].split(',')
+                pos_args = [convert_args(arg) for arg in f_args if arg.find('=') == -1]
+                kwargs = [arg for arg in f_args if arg.find('=') >= 0]
+                kwargs_dict = {}
+                for kwarg in kwargs:
+                    kw, value = kwarg.split('=', 1)
+                    kwargs_dict[kw] = convert_args(value)
+                f(*pos_args, **kwargs_dict)
+        except tasklib.TasksError as e:
+            print >>sys.stderr, e.msg
+            return e.exit_code
 
 
 if __name__ == '__main__':

@@ -61,7 +61,7 @@ class TestTaskLib(unittest.TestCase):
     def test_link_local_settings_exits_if_settings_py_not_present(self):
         # We don't create settings.py, just call link_local_settings()
         # and see if it dies with the correct error
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(tasklib.InvalidProjectError):
             tasklib.link_local_settings('dev')
 
     def test_link_local_settings(self):
@@ -71,9 +71,8 @@ class TestTaskLib(unittest.TestCase):
 
         try:
             tasklib.link_local_settings('dev')
-        except SystemExit as sys_exit:
-            print dir(sys_exit)
-            self.fail('Unexpected exception: ' + sys_exit.message)
+        except tasklib.TasksError as error:
+            self.fail('Unexpected exception: ' + error.msg)
 
         self.assertTrue(path.islink(local_settings_path))
         # assert the link goes to the correct file
