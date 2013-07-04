@@ -143,7 +143,7 @@ def describe_task(args):
             print
 
 
-def convert_args(value):
+def convert_argument(value):
     if value.lower() == 'true':
         return True
     elif value.lower() == 'false':
@@ -152,6 +152,34 @@ def convert_args(value):
         return int(value)
     else:
         return value
+
+
+def convert_task_bits(task_bits):
+    """
+    Take something like:
+
+        my_task:val1,true,arg1=hello,arg2=3
+
+    and convert it into the name, args and kwargs, so:
+
+        (my_task, ('val1', True), {'arg1': 'hello', 'arg2': 3})
+
+    Note that the 3 is converted into a number and 'true' is converted to boolean True
+    """
+    if ':' not in task_bits:
+        return task_bits, (), {}
+    task, args = task_bits.split(':', 1)
+    args_list = args.split(',')
+
+    pos_args = [convert_argument(arg) for arg in args_list if arg.find('=') == -1]
+
+    kwargs = [arg for arg in args_list if arg.find('=') >= 0]
+    kwargs_dict = {}
+    for kwarg in kwargs:
+        kw, value = kwarg.split('=', 1)
+        kwargs_dict[kw] = convert_argument(value)
+
+    return task, pos_args, kwargs_dict
 
 
 def main(argv):
@@ -205,8 +233,7 @@ def main(argv):
         return 0
     # process arguments - just call the function with that name
     for arg in args:
-        task_bits = arg.split(':', 1)
-        fname = task_bits[0]
+        fname, pos_args, kwargs = convert_task_bits(arg)
         # work out which function to call - localtasks have priority
         f = None
         if fname in localtasks_list():
@@ -219,17 +246,7 @@ def main(argv):
 
         # call the function
         try:
-            if len(task_bits) == 1:
-                f()
-            else:
-                f_args = task_bits[1].split(',')
-                pos_args = [convert_args(arg) for arg in f_args if arg.find('=') == -1]
-                kwargs = [arg for arg in f_args if arg.find('=') >= 0]
-                kwargs_dict = {}
-                for kwarg in kwargs:
-                    kw, value = kwarg.split('=', 1)
-                    kwargs_dict[kw] = convert_args(value)
-                f(*pos_args, **kwargs_dict)
+            f(*pos_args, **kwargs)
         except tasklib.TasksError as e:
             print >>sys.stderr, e.msg
             return e.exit_code
