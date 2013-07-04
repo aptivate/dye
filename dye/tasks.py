@@ -73,10 +73,10 @@ def invalid_command(cmd):
 def get_public_callables(mod):
     callables = []
     if mod:
-        for task in dir(mod):
-            if callable(getattr(mod, task)):
-                if not task.startswith('_') and not task.endswith('Error'):
-                    callables.append(task)
+        # getmembers returns a list of tuples of from ('name', <function>)
+        all_functions = inspect.getmembers(mod, inspect.isfunction)
+        callables = [func[0] for func in all_functions
+                if not func[0].startswith('_')]
     return callables
 
 
