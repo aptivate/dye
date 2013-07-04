@@ -182,8 +182,15 @@ def main(argv):
     else:
         tasklib.env['deploy_dir'] = os.path.dirname(__file__)
 
+    # first we need to find and load the project settings
     sys.path.append(tasklib.env['deploy_dir'])
-    import project_settings
+    try:
+        import project_settings
+    except ImportError:
+        print >>sys.stderr, \
+            "Could not import project_settings - check your --deploydir argument"
+        return 1
+
     # now see if we can find localtasks
     # We deliberately don't surround the import by try/except. If there
     # is an error in localfab, you want it to blow up immediately, rather
