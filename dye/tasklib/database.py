@@ -1,7 +1,10 @@
+import os
+from os import path
 import getpass
 
+from .exceptions import InvalidArgumentError, InvalidProjectError
 from .util import (_check_call_wrapper, _call_wrapper, _capture_command,
-        CalledProcessError)
+        _call_command, _create_dir_if_not_exists, CalledProcessError)
 
 # this is a global dictionary
 from .environment import env
@@ -11,11 +14,33 @@ import __builtin__
 if not hasattr(__builtin__, 'WindowsError'):
     from .util import WindowsError
 
+# a global dictionary for database details
+db_details = {
+    'engine': None,
+    'name': None,
+    'user': None,
+    'password': None,
+    'port': None,
+    'host': None,
+    'root_password': None,
+    'grant_enabled': True,   # might want to disable the below sometimes
+}
+
+
+def _get_db_details():
+    """This could be overridden (by monkey patching).
+    Alternatively you could set db_details values before calling any functions
+    in this file."""
+    if db_details['engine'] is None:
+        raise Exception("Don't know how to find database details")
+    return db_details
+
 
 def _get_mysql_root_password():
+    """This can be overridden if required."""
     # first try to read the root password from a file
     # otherwise ask the user
-    if 'root_pw' not in env:
+    if db_details['root_password'] is None:
         root_pw = None
         # first try and get password from file
         root_pw_file = '/root/mysql_root_password'
@@ -29,7 +54,7 @@ def _get_mysql_root_password():
             root_pw = root_pw.rstrip()
             # maybe it is wrong (on developer machine) - check it
             if not _test_mysql_root_password(root_pw):
-                if not env['verbose']:
+                if env['verbose']:
                     print "mysql root password in %s doesn't work" % root_pw_file
                 root_pw = None
 
@@ -43,24 +68,53 @@ def _get_mysql_root_password():
                 root_pw = None
 
         # now we have root password that works
-        env['root_pw'] = root_pw
+        db_details['root_password'] = root_pw
 
-    return env['root_pw']
+    return db_details['root_password']
+
+
+def _create_mysql_args(as_root=False, root_password=None):
+    db_details = _get_db_details()
+    # the password is pass
+    if as_root:
+        user = 'root'
+        # do this so that _test_mysql_root_password() can run without
+        # getting stuck in a loop.  It is called by _get_mysql_root_password()
+        # so we don't want to call it again ...
+        if root_password:
+            password = root_password
+        else:
+            password = _get_mysql_root_password()
+    else:
+        user = db_details['user']
+        password = db_details['password']
+
+    mysql_args = [
+        '-u', user,
+        '-p%s' % password,
+        '--host=%s' % db_details['host'],
+    ]
+    if db_details['port'] is not None:
+        mysql_args.append('--port=%s' % db_details['port'])
+    return mysql_args
+
+
+def _mysql_exec(mysql_cmd, use_db_name=False, capture_output=False, as_root=False, root_password=None):
+    """ execute a SQL statement using MySQL"""
+    mysql_call = ['mysql'] + _create_mysql_args(as_root, root_password)
+    if use_db_name:
+        mysql_call.append(db_details['name'])
+    mysql_call += ['-e', mysql_cmd]
+
+    if capture_output:
+        return _capture_command(mysql_call)
+    else:
+        _check_call_wrapper(mysql_call)
 
 
 def _mysql_exec_as_root(mysql_cmd, root_password=None):
     """ execute a SQL statement using MySQL as the root MySQL user"""
-    # do this so that _test_mysql_root_password() can run without
-    # getting stuck in a loop
-    if not root_password:
-        root_password = _get_mysql_root_password()
-    mysql_call = ['mysql', '-u', 'root', '-p%s' % root_password]
-    mysql_call += ['--host=%s' % env['db_host']]
-
-    if env['db_port'] is not None:
-        mysql_call += ['--port=%s' % env['db_port']]
-    mysql_call += ['-e']
-    _check_call_wrapper(mysql_call + [mysql_cmd])
+    _mysql_exec(mysql_cmd, as_root=True, root_password=root_password)
 
 
 def _test_mysql_root_password(password):
@@ -72,29 +126,111 @@ def _test_mysql_root_password(password):
     return True
 
 
-def db_exists(db_user, db_pw, db_name, db_port, db_host):
-    db_exist_call = ['mysql', '-u', db_user, '-p%s' % db_pw]
-    db_exist_call += ['--host=%s' % db_host]
-
-    if db_port is not None:
-        db_exist_call += ['--port=%s' % db_port]
-
-    db_exist_call += [db_name, '-e', 'quit']
+def db_exists(db_name):
     try:
-        _check_call_wrapper(db_exist_call)
+        _mysql_exec('quit')
         return True
     except CalledProcessError:
         return False
 
 
-def db_table_exists(table_name, db_user, db_pw, db_name, db_port, db_host):
-    table_list_call = ['mysql', '-u', db_user, '-p%s' % db_pw]
-    table_list_call += ['--host=%s' % db_host]
-
-    if db_port is not None:
-        table_list_call += ['--port=%s' % db_port]
-
-    table_list_call += [db_name, '-e', 'show tables']
-    tables = _capture_command(table_list_call)
+def db_table_exists(table_name):
+    tables = _mysql_exec('show tables', capture_output=True)
     table_list = tables.split()
     return table_name in table_list
+
+
+def create_db_if_not_exists(db_name=None, drop_after_create=False):
+    db_details = _get_db_details()
+    if db_name is None:
+        db_name = db_details['name']
+
+    if not db_exists(db_name):
+        _mysql_exec_as_root('CREATE DATABASE %s CHARACTER SET utf8' % db_name)
+        if db_details['grant_enabled']:
+            _mysql_exec_as_root('GRANT ALL PRIVILEGES ON %s.* TO \'%s\'@\'localhost\' IDENTIFIED BY \'%s\'' %
+                (db_name, db_details['user'], db_details['password']))
+        if drop_after_create:
+            _mysql_exec_as_root(('DROP DATABASE %s' % db_name))
+
+
+def drop_db(db_name=None):
+    db_details = _get_db_details()
+    if db_name is None:
+        db_name = db_details['name']
+    _mysql_exec_as_root('DROP DATABASE IF EXISTS %s' % db_name)
+
+
+def dump_db(dump_filename='db_dump.sql', for_rsync=False):
+    """Dump the database in the current working directory"""
+    db_details = _get_db_details()
+    if not db_details['engine'].endswith('mysql'):
+        raise InvalidArgumentError('dump_db only knows how to dump mysql so far')
+    dump_cmd = ['mysqldump'] + _create_mysql_args()
+    # this option will mean that there will be one line per insert
+    # thus making the dump file better for rsync, but slightly bigger
+    if for_rsync:
+        dump_cmd.append('--skip-extended-insert')
+    dump_cmd.append(db_details['name'])
+
+    dump_file = open(dump_filename, 'w')
+    if env['verbose']:
+        print 'Executing dump command: %s\nSending stdout to %s' % (' '.join(dump_cmd), dump_filename)
+    _call_command(dump_cmd, stdout=dump_file)
+    dump_file.close()
+
+
+def restore_db(dump_filename):
+    """Restore a database dump file by name"""
+    db_details = _get_db_details()
+    if not db_details['engine'].endswith('mysql'):
+        raise InvalidProjectError('restore_db only knows how to restore mysql so far')
+
+    restore_cmd = ['mysql'] + _create_mysql_args() + [db_details['name']]
+
+    dump_file = open(dump_filename, 'r')
+    if env['verbose']:
+        print 'Executing dump command: %s\nSending stdin to %s' % (' '.join(restore_cmd), dump_filename)
+    _call_command(restore_cmd, stdin=dump_file)
+    dump_file.close()
+
+
+def setup_db_dumps(dump_dir):
+    """ set up mysql database dumps in root crontab """
+    if not path.isabs(dump_dir):
+        raise InvalidArgumentError('dump_dir must be an absolute path, you gave %s' % dump_dir)
+    project_name = env['django_dir'].split('/')[-1]
+    cron_file = path.join('/etc', 'cron.daily', 'dump_' + project_name)
+
+    db_details = _get_db_details()
+    if db_details['engine'].endswith('mysql'):
+        _create_dir_if_not_exists(dump_dir)
+        dump_file_stub = path.join(dump_dir, 'daily-dump-')
+
+        # has it been set up already
+        cron_set = True
+        try:
+            _check_call_wrapper('sudo crontab -l | grep mysqldump', shell=True)
+        except CalledProcessError:
+            cron_set = False
+
+        if cron_set:
+            return
+        if path.exists(cron_file):
+            return
+
+        # write something like:
+        # 30 1 * * * mysqldump --user=osiaccounting --password=aptivate --host=127.0.0.1 osiaccounting >  /var/osiaccounting/dumps/daily-dump-`/bin/date +\%d`.sql
+
+        # don't use "with" for compatibility with python 2.3 on whov2hinari
+        f = open(cron_file, 'w')
+        try:
+            f.write('#!/bin/sh\n')
+            f.write('/usr/bin/mysqldump ' + ' '.join(_create_mysql_args()))
+            f.write('%s > %s' % (db_details['name'], dump_file_stub))
+            f.write(r'`/bin/date +\%d`.sql')
+            f.write('\n')
+        finally:
+            f.close()
+
+        os.chmod(cron_file, 0755)
