@@ -21,92 +21,17 @@
 import os
 from os import path
 import sys
-import getpass
-import random
 
 from .exceptions import (InvalidArgumentError, InvalidProjectError,
-                         ShellCommandError, TasksError)
-from .django import link_local_settings
+                         TasksError)
+from .database import _mysql_exec_as_root, db_exists, db_table_exists
+from .django import (collect_static, create_private_settings,
+        _install_django_jenkins, link_local_settings, _manage_py,
+        _manage_py_jenkins)
+from .util import (_check_call_wrapper, _call_wrapper, _rm_all_pyc,
+        _call_command, CalledProcessError, _create_dir_if_not_exists)
 # this is a global dictionary
 from .environment import env
-
-# make sure WindowsError is available
-import __builtin__
-if not hasattr(__builtin__, 'WindowsError'):
-    class WindowsError(OSError):
-        pass
-
-
-try:
-    # For testing replacement routines for older python compatibility
-    # raise ImportError()
-    import subprocess
-    from subprocess import call as _call_command
-
-    def _capture_command(argv):
-        return subprocess.Popen(argv, stdout=subprocess.PIPE).communicate()[0]
-
-except ImportError:
-    # this section is for python older than 2.4 - basically for CentOS 4
-    # when we have to use it
-    def _capture_command(argv):
-        command = ' '.join(argv)
-        # print "(_capture_command) Executing: %s" % command
-        fd = os.popen(command)
-        output = fd.read()
-        fd.close()
-        return output
-
-    # older python - shell arg is ignored, but is legal
-    def _call_command(argv, stdin=None, stdout=None, shell=True):
-        argv = [i.replace('"', '\"') for i in argv]
-        argv = ['"%s"' % i for i in argv]
-        command = " ".join(argv)
-
-        if stdin is not None:
-            command += " < " + stdin.name
-
-        if stdout is not None:
-            command += " > " + stdout.name
-
-        # sys.stderr.write("(_call_command) Executing: %s\n" % command)
-
-        return os.system(command)
-
-try:
-    from subprocess import CalledProcessError
-except ImportError:
-    # the Error does not exist in python 2.4
-    class CalledProcessError(Exception):
-        """This exception is raised when a process run by check_call() returns
-        a non-zero exit status.  The exit status will be stored in the
-        returncode attribute."""
-        def __init__(self, returncode, cmd):
-            self.returncode = returncode
-            self.cmd = cmd
-
-        def __str__(self):
-            return "Command '%s' returned non-zero exit status %d" % (self.cmd, self.returncode)
-
-
-def _call_wrapper(argv, **kwargs):
-    if env['verbose']:
-        if hasattr(argv, '__iter__'):
-            command = ' '.join(argv)
-        else:
-            command = argv
-        print "Executing command: %s" % command
-    return _call_command(argv, **kwargs)
-
-
-def _check_call_wrapper(argv, accepted_returncode_list=[0], **kwargs):
-    try:
-        returncode = _call_wrapper(argv, **kwargs)
-
-        if returncode not in accepted_returncode_list:
-            raise CalledProcessError(returncode, argv)
-    except WindowsError:
-        raise CalledProcessError("Unknown", argv)
 
 
 def _setup_paths(project_settings, localtasks):
@@ -152,55 +77,6 @@ def _setup_paths(project_settings, localtasks):
     if env['verbose']:
         print "Using Python from %s" % chosen_python
     env.setdefault('python_bin', chosen_python)
-
-
-def _manage_py(args, cwd=None):
-    # for manage.py, always use the system python
-    # otherwise the update_ve will fail badly, as it deletes
-    # the virtualenv part way through the process ...
-    manage_cmd = [env['python_bin'], env['manage_py']]
-    if env['quiet']:
-        manage_cmd.append('--verbosity=0')
-    if isinstance(args, str):
-        manage_cmd.append(args)
-    else:
-        manage_cmd.extend(args)
-
-    # Allow manual specification of settings file
-    if 'manage_py_settings' in env:
-        manage_cmd.append('--settings=%s' % env['manage_py_settings'])
-
-    if cwd is None:
-        cwd = env['django_dir']
-
-    if env['verbose']:
-        print 'Executing manage command: %s' % ' '.join(manage_cmd)
-    output_lines = []
-    try:
-        popen = subprocess.Popen(manage_cmd, cwd=cwd, stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT)
-    except OSError, e:
-        print "Failed to execute command: %s: %s" % (manage_cmd, e)
-        raise e
-    for line in iter(popen.stdout.readline, ""):
-        if env['verbose']:
-            print line,
-        output_lines.append(line)
-    returncode = popen.wait()
-    if returncode != 0:
-        error_msg = "Failed to execute command: %s: returned %s\n%s" % \
-            (manage_cmd, returncode, "\n".join(output_lines))
-        raise ShellCommandError(error_msg, popen.returncode)
-    return output_lines
-
-
-def _create_dir_if_not_exists(dir_path, world_writeable=False, owner=None):
-    if not path.exists(dir_path):
-        _check_call_wrapper(['mkdir', '-p', dir_path])
-    if world_writeable:
-        _check_call_wrapper(['chmod', '-R', '777', dir_path])
-    if owner:
-        _check_call_wrapper(['chown', '-R', owner, dir_path])
 
 
 def _get_django_db_settings(database='default'):
@@ -250,66 +126,6 @@ def _get_django_db_settings(database='default'):
     return (db_engine, db_name, db_user, db_pw, db_port, db_host)
 
 
-def _mysql_exec_as_root(mysql_cmd, root_password=None):
-    """ execute a SQL statement using MySQL as the root MySQL user"""
-    # do this so that _test_mysql_root_password() can run without
-    # getting stuck in a loop
-    if not root_password:
-        root_password = _get_mysql_root_password()
-    mysql_call = ['mysql', '-u', 'root', '-p%s' % root_password]
-    mysql_call += ['--host=%s' % env['db_host']]
-
-    if env['db_port'] is not None:
-        mysql_call += ['--port=%s' % env['db_port']]
-    mysql_call += ['-e']
-    _check_call_wrapper(mysql_call + [mysql_cmd])
-
-
-def _test_mysql_root_password(password):
-    """Try a no-op with the root password"""
-    try:
-        _mysql_exec_as_root('select 1', password)
-    except CalledProcessError:
-        return False
-    return True
-
-
-def _get_mysql_root_password():
-    # first try to read the root password from a file
-    # otherwise ask the user
-    if 'root_pw' not in env:
-        root_pw = None
-        # first try and get password from file
-        root_pw_file = '/root/mysql_root_password'
-        try:
-            file_exists = _call_wrapper(['sudo', 'test', '-f', root_pw_file])
-        except (WindowsError, CalledProcessError):
-            file_exists = 1
-        if file_exists == 0:
-            # note this requires sudoers to work with this - jenkins particularly ...
-            root_pw = _capture_command(["sudo", "cat", root_pw_file])
-            root_pw = root_pw.rstrip()
-            # maybe it is wrong (on developer machine) - check it
-            if not _test_mysql_root_password(root_pw):
-                if not env['verbose']:
-                    print "mysql root password in %s doesn't work" % root_pw_file
-                root_pw = None
-
-        # still haven't got it, ask the user
-        while not root_pw:
-            print "about to ask user for password"
-            root_pw = getpass.getpass('Enter MySQL root password:')
-            if not _test_mysql_root_password(root_pw):
-                if not env['quiet']:
-                    print "Sorry, invalid password"
-                root_pw = None
-
-        # now we have root password that works
-        env['root_pw'] = root_pw
-
-    return env['root_pw']
-
-
 def clean_db(database='default'):
     """Delete the database for a clean start"""
     # first work out the database username and password
@@ -328,33 +144,6 @@ def clean_db(database='default'):
 
         test_db_name = 'test_' + db_name
         _mysql_exec_as_root('DROP DATABASE IF EXISTS %s' % test_db_name)
-
-
-def create_private_settings():
-    """ create private settings file
-    - contains generated DB password and secret key"""
-    private_settings_file = path.join(env['django_settings_dir'],
-                                    'private_settings.py')
-    if not path.exists(private_settings_file):
-        if not env['quiet']:
-            print "### creating private_settings.py"
-        # don't use "with" for compatibility with python 2.3 on whov2hinari
-        f = open(private_settings_file, 'w')
-        try:
-            secret_key = "".join([random.choice("abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)") for i in range(50)])
-            db_password = "".join([random.choice("abcdefghijklmnopqrstuvwxyz0123456789") for i in range(12)])
-
-            f.write("SECRET_KEY = '%s'\n" % secret_key)
-            f.write("DB_PASSWORD = '%s'\n" % db_password)
-        finally:
-            f.close()
-        # need to think about how to ensure this is owned by apache
-        # despite having been created by root
-        #os.chmod(private_settings_file, 0400)
-
-
-def collect_static():
-    return _manage_py(["collectstatic", "--noinput"])
 
 
 def _get_cache_table():
@@ -415,34 +204,6 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, databa
         _manage_py(['syncdb', '--noinput'])
         if use_migrations:
             _manage_py(['migrate', '--noinput'])
-
-
-def db_exists(db_user, db_pw, db_name, db_port, db_host):
-    db_exist_call = ['mysql', '-u', db_user, '-p%s' % db_pw]
-    db_exist_call += ['--host=%s' % db_host]
-
-    if db_port is not None:
-        db_exist_call += ['--port=%s' % db_port]
-
-    db_exist_call += [db_name, '-e', 'quit']
-    try:
-        _check_call_wrapper(db_exist_call)
-        return True
-    except CalledProcessError:
-        return False
-
-
-def db_table_exists(table_name, db_user, db_pw, db_name, db_port, db_host):
-    table_list_call = ['mysql', '-u', db_user, '-p%s' % db_pw]
-    table_list_call += ['--host=%s' % db_host]
-
-    if db_port is not None:
-        table_list_call += ['--port=%s' % db_port]
-
-    table_list_call += [db_name, '-e', 'show tables']
-    tables = _capture_command(table_list_call)
-    table_list = tables.split()
-    return table_name in table_list
 
 
 def create_test_db(drop_after_create=True, database='default'):
@@ -605,39 +366,6 @@ def quick_test(*extra_args):
         run_tests(*extra_args)
     finally:
         link_local_settings(original_environment)
-
-
-def _install_django_jenkins():
-    """ ensure that pip has installed the django-jenkins thing """
-    if not env['quiet']:
-        print "### Installing Jenkins packages"
-    pip_bin = path.join(env['ve_dir'], 'bin', 'pip')
-    cmds = [
-        [pip_bin, 'install', 'django-jenkins'],
-        [pip_bin, 'install', 'pylint'],
-        [pip_bin, 'install', 'coverage']]
-
-    for cmd in cmds:
-        _check_call_wrapper(cmd)
-
-
-def _manage_py_jenkins():
-    """ run the jenkins command """
-    args = ['jenkins', ]
-    args += ['--pylint-rcfile', path.join(env['vcs_root_dir'], 'jenkins', 'pylint.rc')]
-    coveragerc_filepath = path.join(env['vcs_root_dir'], 'jenkins', 'coverage.rc')
-    if path.exists(coveragerc_filepath):
-        args += ['--coverage-rcfile', coveragerc_filepath]
-    args += env['django_apps']
-    if not env['quiet']:
-        print "### Running django-jenkins, with args; %s" % args
-    _manage_py(args, cwd=env['vcs_root_dir'])
-
-
-def _rm_all_pyc():
-    """Remove all pyc files, to be sure"""
-    _call_wrapper('find . -name \*.pyc -print0 | xargs -0 rm', shell=True,
-        cwd=env['vcs_root_dir'])
 
 
 def run_jenkins():

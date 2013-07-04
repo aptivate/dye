@@ -1,5 +1,5 @@
 # import all functions that don't start with _
-from .django import link_local_settings
+from .django import *
 from .tasklib import *
 
 # the global dictionary

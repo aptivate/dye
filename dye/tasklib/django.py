@@ -1,8 +1,53 @@
 import os
 from os import path
+import random
+import subprocess
 
-from .exceptions import InvalidProjectError
+from .exceptions import InvalidProjectError, ShellCommandError
+from .util import _check_call_wrapper
+# global dictionary for state
 from .environment import env
+
+
+def _manage_py(args, cwd=None):
+    # for manage.py, always use the system python
+    # otherwise the update_ve will fail badly, as it deletes
+    # the virtualenv part way through the process ...
+    manage_cmd = [env['python_bin'], env['manage_py']]
+    if env['quiet']:
+        manage_cmd.append('--verbosity=0')
+    if isinstance(args, str):
+        manage_cmd.append(args)
+    else:
+        manage_cmd.extend(args)
+
+    # Allow manual specification of settings file
+    if 'manage_py_settings' in env:
+        manage_cmd.append('--settings=%s' % env['manage_py_settings'])
+
+    if cwd is None:
+        cwd = env['django_dir']
+
+    if env['verbose']:
+        print 'Executing manage command: %s' % ' '.join(manage_cmd)
+    output_lines = []
+    try:
+        # TODO: make compatible with python 2.3
+        popen = subprocess.Popen(manage_cmd, cwd=cwd, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
+    except OSError, e:
+        print "Failed to execute command: %s: %s" % (manage_cmd, e)
+        raise e
+    for line in iter(popen.stdout.readline, ""):
+        if env['verbose']:
+            print line,
+        output_lines.append(line)
+    returncode = popen.wait()
+    if returncode != 0:
+        error_msg = "Failed to execute command: %s: returned %s\n%s" % \
+            (manage_cmd, returncode, "\n".join(output_lines))
+        raise ShellCommandError(error_msg, popen.returncode)
+    return output_lines
 
 
 def link_local_settings(environment):
@@ -51,3 +96,57 @@ def link_local_settings(environment):
         import shutil
         shutil.copy2(source, target)
     env['environment'] = environment
+
+
+def create_private_settings():
+    """ create private settings file
+    - contains generated DB password and secret key"""
+    private_settings_file = path.join(env['django_settings_dir'],
+                                    'private_settings.py')
+    if not path.exists(private_settings_file):
+        if not env['quiet']:
+            print "### creating private_settings.py"
+        # don't use "with" for compatibility with python 2.3 on whov2hinari
+        f = open(private_settings_file, 'w')
+        try:
+            secret_key = "".join([random.choice("abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)") for i in range(50)])
+            db_password = "".join([random.choice("abcdefghijklmnopqrstuvwxyz0123456789") for i in range(12)])
+
+            f.write("SECRET_KEY = '%s'\n" % secret_key)
+            f.write("DB_PASSWORD = '%s'\n" % db_password)
+        finally:
+            f.close()
+        # need to think about how to ensure this is owned by apache
+        # despite having been created by root
+        #os.chmod(private_settings_file, 0400)
+
+
+def collect_static():
+    return _manage_py(["collectstatic", "--noinput"])
+
+
+def _install_django_jenkins():
+    """ ensure that pip has installed the django-jenkins thing """
+    if not env['quiet']:
+        print "### Installing Jenkins packages"
+    pip_bin = path.join(env['ve_dir'], 'bin', 'pip')
+    cmds = [
+        [pip_bin, 'install', 'django-jenkins'],
+        [pip_bin, 'install', 'pylint'],
+        [pip_bin, 'install', 'coverage']]
+
+    for cmd in cmds:
+        _check_call_wrapper(cmd)
+
+
+def _manage_py_jenkins():
+    """ run the jenkins command """
+    args = ['jenkins', ]
+    args += ['--pylint-rcfile', path.join(env['vcs_root_dir'], 'jenkins', 'pylint.rc')]
+    coveragerc_filepath = path.join(env['vcs_root_dir'], 'jenkins', 'coverage.rc')
+    if path.exists(coveragerc_filepath):
+        args += ['--coverage-rcfile', coveragerc_filepath]
+    args += env['django_apps']
+    if not env['quiet']:
+        print "### Running django-jenkins, with args; %s" % args
+    _manage_py(args, cwd=env['vcs_root_dir'])
