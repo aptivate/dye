@@ -58,6 +58,7 @@ import getopt
 import inspect
 
 from dye import tasklib
+from dye.tasklib.exceptions import TasksError
 
 localtasks = None
 
@@ -247,7 +248,7 @@ def main(argv):
         # call the function
         try:
             f(*pos_args, **kwargs)
-        except tasklib.TasksError as e:
+        except TasksError as e:
             print >>sys.stderr, e.msg
             return e.exit_code
 
