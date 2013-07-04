@@ -16,7 +16,7 @@ tasklib.env['verbose'] = False
 tasklib.env['quiet'] = True
 
 
-class TestTaskLib(unittest.TestCase):
+class TestLinkLocalSettings(unittest.TestCase):
     def setUp(self):
         self.testdir = path.join(path.dirname(__file__), 'testdir')
         project_settings.project_name = 'testproj'
