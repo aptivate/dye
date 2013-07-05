@@ -37,7 +37,7 @@ def _get_db_details():
 
 
 def _get_mysql_root_password():
-    """This can be overridden if required."""
+    """This can be overridden (by monkeypatching) if required."""
     # first try to read the root password from a file
     # otherwise ask the user
     if db_details['root_password'] is None:
@@ -45,6 +45,8 @@ def _get_mysql_root_password():
         # first try and get password from file
         root_pw_file = '/root/mysql_root_password'
         try:
+            # we use this rather than file exists so that the script doesn't
+            # have to be run as root
             file_exists = _call_wrapper(['sudo', 'test', '-f', root_pw_file])
         except (WindowsError, CalledProcessError):
             file_exists = 1
@@ -73,7 +75,7 @@ def _get_mysql_root_password():
     return db_details['root_password']
 
 
-def _create_mysql_args(as_root=False, root_password=None):
+def _create_mysql_args(db_name=None, as_root=False, root_password=None):
     db_details = _get_db_details()
     # the password is pass
     if as_root:
@@ -88,6 +90,8 @@ def _create_mysql_args(as_root=False, root_password=None):
     else:
         user = db_details['user']
         password = db_details['password']
+    if db_name is None:
+        db_name = db_details['name']
 
     mysql_args = [
         '-u', user,
@@ -96,14 +100,17 @@ def _create_mysql_args(as_root=False, root_password=None):
     ]
     if db_details['port'] is not None:
         mysql_args.append('--port=%s' % db_details['port'])
+    if not as_root:
+        mysql_args.append(db_name)
     return mysql_args
 
 
-def _mysql_exec(mysql_cmd, use_db_name=False, capture_output=False, as_root=False, root_password=None):
-    """ execute a SQL statement using MySQL"""
-    mysql_call = ['mysql'] + _create_mysql_args(as_root, root_password)
-    if use_db_name:
-        mysql_call.append(db_details['name'])
+def _mysql_exec(mysql_cmd, db_name=None, capture_output=False, as_root=False, root_password=None):
+    """execute a SQL statement using the mysql command line client.
+    We do this rather than using the python libraries so this script can be
+    run without the python libraries being installed.  (Also this was orginally
+    written for fabric, so the code was already proven there)."""
+    mysql_call = ['mysql'] + _create_mysql_args(db_name, as_root, root_password)
     mysql_call += ['-e', mysql_cmd]
 
     if capture_output:
@@ -128,7 +135,7 @@ def _test_mysql_root_password(password):
 
 def db_exists(db_name):
     try:
-        _mysql_exec('quit')
+        _mysql_exec('quit', db_name)
         return True
     except CalledProcessError:
         return False
@@ -186,7 +193,7 @@ def restore_db(dump_filename):
     if not db_details['engine'].endswith('mysql'):
         raise InvalidProjectError('restore_db only knows how to restore mysql so far')
 
-    restore_cmd = ['mysql'] + _create_mysql_args() + [db_details['name']]
+    restore_cmd = ['mysql'] + _create_mysql_args()
 
     dump_file = open(dump_filename, 'r')
     if env['verbose']:
@@ -227,7 +234,7 @@ def setup_db_dumps(dump_dir):
         try:
             f.write('#!/bin/sh\n')
             f.write('/usr/bin/mysqldump ' + ' '.join(_create_mysql_args()))
-            f.write('%s > %s' % (db_details['name'], dump_file_stub))
+            f.write(' > %s' % (db_details['name'], dump_file_stub))
             f.write(r'`/bin/date +\%d`.sql')
             f.write('\n')
         finally:
