@@ -125,7 +125,7 @@ def _get_cache_table():
     return settings.CACHES['default']['LOCATION']
 
 
-def update_django_db(syncdb=True, drop_test_db=True, force_use_migrations=False, database='default'):
+def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, database='default'):
     """ create the database, and do syncdb and migrations
     Note that if syncdb is true, then migrations will always be done if one of
     the Django apps has a directory called 'migrations/'

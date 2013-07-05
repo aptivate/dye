@@ -23,7 +23,7 @@ db_details = {
     'port': None,
     'host': None,
     'root_password': None,
-    'grant_enabled': True,   # might want to disable the below sometimes
+    'grant_enabled': True,   # want to disable this when running in RAM
 }
 
 
@@ -96,9 +96,10 @@ def _create_mysql_args(db_name=None, as_root=False, root_password=None):
     mysql_args = [
         '-u', user,
         '-p%s' % password,
-        '--host=%s' % db_details['host'],
     ]
-    if db_details['port'] is not None:
+    if db_details['host']:
+        mysql_args.append('--host=%s' % db_details['host'])
+    if db_details['port']:
         mysql_args.append('--port=%s' % db_details['port'])
     if not as_root:
         mysql_args.append(db_name)

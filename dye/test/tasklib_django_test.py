@@ -125,8 +125,6 @@ class TestLinkLocalSettings(unittest.TestCase):
 
         self.assertFalse(path.exists(local_settings_pyc_path))
 
-    # database tests?!? as root and as user
-
     # find migrations
 
     # create rollback version
@@ -146,16 +144,6 @@ class TestLinkLocalSettings(unittest.TestCase):
     # get cache table
 
     # update db
-
-    # db exists
-
-    # db table exists
-
-    # create test db
-
-    # dump db
-
-    # restore db
 
     # update git submodules
 
