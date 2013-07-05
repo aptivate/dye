@@ -1,6 +1,7 @@
 import os
 from os import path
 import getpass
+import MySQLdb
 
 from .exceptions import InvalidArgumentError, InvalidProjectError
 from .util import (_check_call_wrapper, _call_wrapper, _capture_command,
@@ -25,6 +26,25 @@ db_details = {
     'root_password': None,
     'grant_enabled': True,   # want to disable this when running in RAM
 }
+
+# connections to the MySQL database for the normal user and the root user
+user_db_conn = None
+root_db_conn = None
+
+
+def _reset_db_details():
+    """Reset the db_details global to the default, empty state."""
+    global db_details
+    db_details = {
+        'engine': None,
+        'name': None,
+        'user': None,
+        'password': None,
+        'port': None,
+        'host': None,
+        'root_password': None,
+        'grant_enabled': True,   # want to disable this when running in RAM
+    }
 
 
 def _get_db_details():
@@ -75,21 +95,50 @@ def _get_mysql_root_password():
     return db_details['root_password']
 
 
-def _create_mysql_args(db_name=None, as_root=False, root_password=None):
-    db_details = _get_db_details()
-    # the password is pass
-    if as_root:
-        user = 'root'
-        # do this so that _test_mysql_root_password() can run without
-        # getting stuck in a loop.  It is called by _get_mysql_root_password()
-        # so we don't want to call it again ...
-        if root_password:
-            password = root_password
-        else:
-            password = _get_mysql_root_password()
-    else:
-        user = db_details['user']
-        password = db_details['password']
+def _create_db_connection(**kwargs):
+    if db_details['host']:
+        kwargs.set_default('host', db_details['host'])
+    if db_details['port']:
+        kwargs.set_default('port', db_details['port'])
+    return MySQLdb.connect(**kwargs)
+
+
+def _get_user_db_cursor(**cursor_kwargs):
+    global user_db_conn
+    if user_db_conn is None:
+        user_db_conn = _create_db_connection(
+            user=db_details['user'],
+            passwd=db_details['password'],
+            db=db_details['name']
+        )
+    return user_db_conn.cursor(**cursor_kwargs)
+
+
+def _close_user_db_connection():
+    global user_db_conn
+    if user_db_conn is not None:
+        user_db_conn.close()
+        user_db_conn = None
+
+
+def _get_root_db_cursor(**cursor_kwargs):
+    global root_db_conn
+    if root_db_conn is None:
+        root_db_conn = _create_db_connection(
+            user='root', password=_get_mysql_root_password())
+    return root_db_conn.cursor(**cursor_kwargs)
+
+
+def _close_root_db_connection():
+    global root_db_conn
+    if root_db_conn is not None:
+        root_db_conn.close()
+        root_db_conn = None
+
+
+def _create_mysql_args(db_name=None):
+    user = db_details['user']
+    password = db_details['password']
     if db_name is None:
         db_name = db_details['name']
 
@@ -101,17 +150,16 @@ def _create_mysql_args(db_name=None, as_root=False, root_password=None):
         mysql_args.append('--host=%s' % db_details['host'])
     if db_details['port']:
         mysql_args.append('--port=%s' % db_details['port'])
-    if not as_root:
-        mysql_args.append(db_name)
+    mysql_args.append(db_name)
     return mysql_args
 
 
-def _mysql_exec(mysql_cmd, db_name=None, capture_output=False, as_root=False, root_password=None):
+def _mysql_exec(mysql_cmd, db_name=None, capture_output=False):
     """execute a SQL statement using the mysql command line client.
     We do this rather than using the python libraries so this script can be
     run without the python libraries being installed.  (Also this was orginally
     written for fabric, so the code was already proven there)."""
-    mysql_call = ['mysql'] + _create_mysql_args(db_name, as_root, root_password)
+    mysql_call = ['mysql'] + _create_mysql_args(db_name)
     mysql_call += ['-e', mysql_cmd]
 
     if capture_output:
@@ -120,50 +168,145 @@ def _mysql_exec(mysql_cmd, db_name=None, capture_output=False, as_root=False, ro
         _check_call_wrapper(mysql_call)
 
 
-def _mysql_exec_as_root(mysql_cmd, root_password=None):
+def _mysql_exec_as_root(mysql_cmd_list, root_password=None):
     """ execute a SQL statement using MySQL as the root MySQL user"""
-    _mysql_exec(mysql_cmd, as_root=True, root_password=root_password)
+    cursor = _get_root_db_cursor()
+    try:
+        for cmd in mysql_cmd_list:
+            cursor.execute(cmd)
+    finally:
+        cursor.close()
+
+
+def _test_mysql_user_exists(user=None):
+    # check user in mysql table
+    if not user:
+        user = db_details['user']
+    cursor = _get_root_db_cursor()
+    try:
+        rows = cursor.execute("SELECT 1 FROM mysql.user WHERE user = '%s'" % user)
+    finally:
+        cursor.close()
+    return rows != 0
+
+
+def _test_mysql_user_password_works(user=None, password=None):
+    # try to connect
+    if not user:
+        user = db_details['user']
+    if not password:
+        password = db_details['password']
+    kwargs = {
+        'user': user,
+        'passwd': password,
+    }
+    try:
+        db_conn = _create_db_connection(**kwargs)
+    except MySQLdb.OperationalError as e:
+        if e.args[0] == 1045:  # access denied for user/password
+            return False
+        else:
+            raise e
+    db_conn.close()
+    return True
 
 
 def _test_mysql_root_password(password):
     """Try a no-op with the root password"""
+    return _test_mysql_user_password_works(user='root', password=password)
+
+
+def _db_exists(db_name):
+    cursor = _get_root_db_cursor()
     try:
-        _mysql_exec_as_root('select 1', password)
-    except CalledProcessError:
-        return False
-    return True
+        cursor.execute("SHOW DATABASES")
+        db_list = [row[0] for row in cursor.fetchall()]
+    finally:
+        cursor.close()
+    return db_name in db_list
 
 
-def db_exists(db_name):
+def _db_table_exists(table_name):
+    cursor = _get_user_db_cursor()
     try:
-        _mysql_exec('quit', db_name)
-        return True
-    except CalledProcessError:
-        return False
+        rows = cursor.execute("SHOW TABLES WHERE LIKE %s" % table_name)
+    finally:
+        cursor.close()
+    return rows != 0
 
 
-def db_table_exists(table_name):
-    tables = _mysql_exec('show tables', capture_output=True)
-    table_list = tables.split()
-    return table_name in table_list
+def _create_user_if_not_exists(user=None, password=None):
+    if user is None:
+        user = db_details['user']
+    if password is None:
+        password = db_details['password']
+    host = db_details.get('host', 'localhost')
+    if not _test_mysql_user_exists(user):
+        _mysql_exec_as_root(
+            [
+                "CREATE USER '%s'@'%s' IDENTIFIED BY '%s'" %
+                           (user, host, password),
+            ]
+        )
 
 
-def create_db_if_not_exists(db_name=None, drop_after_create=False):
-    db_details = _get_db_details()
+def _set_user_password(user=None, password=None):
+    if user is None:
+        user = db_details['user']
+    if password is None:
+        password = db_details['password']
+    host = db_details.get('host', 'localhost')
+    _mysql_exec_as_root(
+        [
+            "SET PASSWORD FOR USER '%s'@'%s' = PASSWORD('%s')" %
+                        (user, host, password),
+        ]
+    )
+
+
+def grant_all_privileges_for_database(db_name=None, user=None):
+    if not db_details['grant_enabled']:
+        return
+    if db_name is None:
+        db_name = db_details['name']
+    if user is None:
+        user = db_details['user']
+    host = db_details.get('host', 'localhost')
+
+    _mysql_exec_as_root(
+        [
+            "GRANT ALL PRIVILEGES ON %s.* TO '%s'@'%s'" %
+                    (db_name, user, host),
+            "FLUSH PRIVILEGES",
+        ]
+    )
+
+
+def create_db_if_not_exists(db_name=None):
     if db_name is None:
         db_name = db_details['name']
 
-    if not db_exists(db_name):
+    if not _db_exists(db_name):
         _mysql_exec_as_root('CREATE DATABASE %s CHARACTER SET utf8' % db_name)
-        if db_details['grant_enabled']:
-            _mysql_exec_as_root('GRANT ALL PRIVILEGES ON %s.* TO \'%s\'@\'localhost\' IDENTIFIED BY \'%s\'' %
-                (db_name, db_details['user'], db_details['password']))
-        if drop_after_create:
-            _mysql_exec_as_root(('DROP DATABASE %s' % db_name))
+
+
+def ensure_user_and_db_exist(user=None, password=None, db_name=None):
+    if user is None:
+        user = db_details['user']
+    if password is None:
+        password = db_details['password']
+    if db_name is None:
+        db_name = db_details['name']
+    # the below just make sure things line up at the end of the process
+    # TODO: should we do more fine grained checks and ask the user what
+    # they would like to do.
+    _create_user_if_not_exists(user, password)
+    _set_user_password(user, password)
+    create_db_if_not_exists(db_name)
+    grant_all_privileges_for_database(db_name, user)
 
 
 def drop_db(db_name=None):
-    db_details = _get_db_details()
     if db_name is None:
         db_name = db_details['name']
     _mysql_exec_as_root('DROP DATABASE IF EXISTS %s' % db_name)
@@ -171,7 +314,6 @@ def drop_db(db_name=None):
 
 def dump_db(dump_filename='db_dump.sql', for_rsync=False):
     """Dump the database in the current working directory"""
-    db_details = _get_db_details()
     if not db_details['engine'].endswith('mysql'):
         raise InvalidArgumentError('dump_db only knows how to dump mysql so far')
     dump_cmd = ['mysqldump'] + _create_mysql_args()
@@ -190,7 +332,6 @@ def dump_db(dump_filename='db_dump.sql', for_rsync=False):
 
 def restore_db(dump_filename):
     """Restore a database dump file by name"""
-    db_details = _get_db_details()
     if not db_details['engine'].endswith('mysql'):
         raise InvalidProjectError('restore_db only knows how to restore mysql so far')
 
@@ -210,7 +351,6 @@ def setup_db_dumps(dump_dir):
     project_name = env['django_dir'].split('/')[-1]
     cron_file = path.join('/etc', 'cron.daily', 'dump_' + project_name)
 
-    db_details = _get_db_details()
     if db_details['engine'].endswith('mysql'):
         _create_dir_if_not_exists(dump_dir)
         dump_file_stub = path.join(dump_dir, 'daily-dump-')

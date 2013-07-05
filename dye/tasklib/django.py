@@ -4,7 +4,8 @@ import sys
 import random
 import subprocess
 
-from .database import create_db_if_not_exists, db_table_exists, drop_db
+from .database import (ensure_user_and_db_exist, create_db_if_not_exists,
+    grant_all_privileges_for_database, _db_table_exists, drop_db)
 from .exceptions import InvalidProjectError, ShellCommandError
 from .util import _check_call_wrapper
 # global dictionary for state
@@ -146,8 +147,11 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, databa
 
     # then see if the database exists
     if db_details['engine'].endswith('mysql'):
-        create_db_if_not_exists()
-        create_db_if_not_exists('test_' + db_details['name'], drop_after_create=drop_test_db)
+        ensure_user_and_db_exist()
+        test_db = 'test_' + db_details['name']
+        if not drop_test_db:
+            create_db_if_not_exists(test_db)
+        grant_all_privileges_for_database(test_db)
 
     #print 'syncdb: %s' % type(syncdb)
     use_migrations = force_use_migrations
@@ -155,7 +159,7 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, databa
         # if we are using the database cache we need to create the table
         # and we need to do it before syncdb
         cache_table = _get_cache_table()
-        if cache_table and not db_table_exists(cache_table):
+        if cache_table and not _db_table_exists(cache_table):
             _manage_py(['createcachetable', cache_table])
         # if we are using South we need to do the migrations aswell
         for app in env['django_apps']:
