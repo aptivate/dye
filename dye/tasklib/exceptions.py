@@ -16,6 +16,12 @@ class InvalidProjectError(TasksError):
     pass
 
 
+class InvalidPasswordError(TasksError):
+    """Exception raised when we failed to find something we require where we
+    expected to."""
+    pass
+
+
 class InvalidArgumentError(TasksError):
     """Exception raised when an argument is not valid."""
     def __init__(self, msg):

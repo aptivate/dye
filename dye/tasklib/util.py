@@ -1,7 +1,9 @@
 import os
 from os import path
+from getpass import getpass
 
 from .environment import env
+from .exceptions import InvalidPasswordError
 
 # make sure WindowsError is available
 import __builtin__
@@ -58,7 +60,8 @@ except ImportError:
             self.cmd = cmd
 
         def __str__(self):
-            return "Command '%s' returned non-zero exit status %d" % (self.cmd, self.returncode)
+            return "Command '%s' returned non-zero exit status %d" % \
+                (self.cmd, self.returncode)
 
 
 def _call_wrapper(argv, **kwargs):
@@ -93,4 +96,44 @@ def _create_dir_if_not_exists(dir_path, world_writeable=False, owner=None):
 def _rm_all_pyc():
     """Remove all pyc files, to be sure"""
     _call_wrapper('find . -name \*.pyc -print0 | xargs -0 rm', shell=True,
-        cwd=env['vcs_root_dir'])
+                  cwd=env['vcs_root_dir'])
+
+
+def _ask_for_password(prompt, test_fn=None, max_attempts=3):
+    """Get password from user.
+
+    prompt is the text for the password prompt
+    test_fn is a function to test the password.  It should return True if
+            the password works, or False otherwise.
+    """
+    password = None
+    attempts = 0
+    while password is None:
+        if attempts < max_attempts:
+            attempts += 1
+            password = getpass(prompt)
+            if test_fn and not test_fn(password):
+                print "Sorry, invalid password"
+                password = None
+        else:
+            raise InvalidPasswordError("None of your passwords worked")
+    return password
+
+
+def _get_file_contents(file_path, sudo=False):
+    if sudo:
+        try:
+            # we use this rather than file exists so that the script doesn't
+            # have to be run as root
+            file_exists = _call_wrapper(['sudo', 'test', '-f', file_path])
+        except (WindowsError, CalledProcessError):
+            return None
+        if file_exists != 0:
+            return None
+        # note this requires sudoers to work with this - jenkins particularly
+        contents = _capture_command(["sudo", "cat", file_path])
+    else:
+        if not path.isfile(file_path):
+            return None
+        contents = open(file_path).read()
+    return contents.rstrip()

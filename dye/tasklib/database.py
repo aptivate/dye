@@ -1,19 +1,17 @@
 import os
 from os import path
-import getpass
 import MySQLdb
 
 from .exceptions import InvalidArgumentError, InvalidProjectError
-from .util import (_check_call_wrapper, _call_wrapper, _capture_command,
-        _call_command, _create_dir_if_not_exists, CalledProcessError)
+from .util import (_check_call_wrapper, _capture_command,
+                   _call_command, _create_dir_if_not_exists, CalledProcessError,
+                   _ask_for_password, _get_file_contents)
 
 # this is a global dictionary
 from .environment import env
 
-# make sure WindowsError is available
-import __builtin__
-if not hasattr(__builtin__, 'WindowsError'):
-    from .util import WindowsError
+root_pw_file = '/root/mysql_root_password'
+root_pw_file_needs_sudo = True
 
 # a global dictionary for database details
 db_details = {
@@ -61,33 +59,16 @@ def _get_mysql_root_password():
     # first try to read the root password from a file
     # otherwise ask the user
     if db_details['root_password'] is None:
-        root_pw = None
-        # first try and get password from file
-        root_pw_file = '/root/mysql_root_password'
-        try:
-            # we use this rather than file exists so that the script doesn't
-            # have to be run as root
-            file_exists = _call_wrapper(['sudo', 'test', '-f', root_pw_file])
-        except (WindowsError, CalledProcessError):
-            file_exists = 1
-        if file_exists == 0:
-            # note this requires sudoers to work with this - jenkins particularly ...
-            root_pw = _capture_command(["sudo", "cat", root_pw_file])
-            root_pw = root_pw.rstrip()
-            # maybe it is wrong (on developer machine) - check it
-            if not _test_mysql_root_password(root_pw):
-                if env['verbose']:
-                    print "mysql root password in %s doesn't work" % root_pw_file
-                root_pw = None
+        root_pw = _get_file_contents(root_pw_file, sudo=root_pw_file_needs_sudo)
+        # maybe it is wrong (on developer machine) - check it
+        if root_pw is not None and not _test_mysql_root_password(root_pw):
+            if env['verbose']:
+                print "mysql root password in %s doesn't work" % root_pw_file
+            root_pw = None
 
         # still haven't got it, ask the user
-        while not root_pw:
-            print "about to ask user for password"
-            root_pw = getpass.getpass('Enter MySQL root password:')
-            if not _test_mysql_root_password(root_pw):
-                if not env['quiet']:
-                    print "Sorry, invalid password"
-                root_pw = None
+        if root_pw is None and not env['quiet']:
+            root_pw = _ask_for_password("", test_fn=_test_mysql_root_password)
 
         # now we have root password that works
         db_details['root_password'] = root_pw
@@ -259,7 +240,7 @@ def _set_user_password(user=None, password=None):
     _mysql_exec_as_root(
         [
             "SET PASSWORD FOR USER '%s'@'%s' = PASSWORD('%s')" %
-                        (user, host, password),
+                (user, host, password),
         ]
     )
 
@@ -276,7 +257,7 @@ def grant_all_privileges_for_database(db_name=None, user=None):
     _mysql_exec_as_root(
         [
             "GRANT ALL PRIVILEGES ON %s.* TO '%s'@'%s'" %
-                    (db_name, user, host),
+                (db_name, user, host),
             "FLUSH PRIVILEGES",
         ]
     )
