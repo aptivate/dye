@@ -100,16 +100,6 @@ class TestCreateMysqlArgs(MysqlMixin, unittest.TestCase):
         expected_args = ['-u', 'dye_user', '-pdye_password', 'mydb']
         self.assertSequenceEqual(expected_args, mysql_args)
 
-    def test_create_mysql_args_with_root_user(self):
-        mysql_args = database._create_mysql_args(as_root=True)
-        expected_args = ['-u', 'root', '-proot_pw']
-        self.assertSequenceEqual(expected_args, mysql_args)
-
-    def test_create_mysql_args_with_root_user_and_setting_root_password(self):
-        mysql_args = database._create_mysql_args(as_root=True, root_password='s3cr3t')
-        expected_args = ['-u', 'root', '-ps3cr3t']
-        self.assertSequenceEqual(expected_args, mysql_args)
-
     # database tests?!? as root and as user
 
     # db exists
