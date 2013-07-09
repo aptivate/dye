@@ -2,6 +2,7 @@ import os
 from os import path
 import sys
 import unittest
+import MySQLdb
 
 dye_dir = path.join(path.dirname(__file__), os.pardir)
 sys.path.append(dye_dir)
@@ -158,6 +159,8 @@ class TestDatabaseTestFunctions(MysqlMixin, unittest.TestCase):
         finally:
             self.drop_database()
 
+    # TODO: db table exists
+
 
 class TestDatabaseCreateFunctions(MysqlMixin, unittest.TestCase):
 
@@ -185,11 +188,29 @@ class TestDatabaseCreateFunctions(MysqlMixin, unittest.TestCase):
         finally:
             self.drop_database_user()
 
+    def test_grant_all_privileges_for_database_gives_access_to_db(self):
+        self.create_database_user()
+        self.create_database()
+        try:
+            database.grant_all_privileges_for_database(
+                db_name=self.TEST_DB, user=self.TEST_USER)
+            try:
+                db_conn = database._create_db_connection(
+                    user=self.TEST_USER,
+                    passwd=self.TEST_PASSWORD,
+                    db=self.TEST_DB,
+                )
+            except MySQLdb.OperationalError as e:
+                self.fail("Failed to connect to database after privileges"
+                          "should be granted.\n%s" % e)
+            db_conn.close()
+        finally:
+            self.drop_database()
+            self.drop_database_user()
+
     # database tests?!? as root and as user
 
     # db exists
-
-    # db table exists
 
     # create test db
 
