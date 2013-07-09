@@ -208,11 +208,23 @@ class TestDatabaseCreateFunctions(MysqlMixin, unittest.TestCase):
             self.drop_database()
             self.drop_database_user()
 
-    # database tests?!? as root and as user
+    def test_create_db_if_not_exists_creates_db_when_db_does_not_exist(self):
+        database.create_db_if_not_exists(db_name=self.TEST_DB)
+        try:
+            self.assertTrue(database._db_exists(db_name=self.TEST_DB))
+        finally:
+            self.drop_database()
 
-    # db exists
+    def test_create_db_if_not_exists_creates_db_does_not_cause_error_when_db_does_exist(self):
+        self.create_database()
+        try:
+            database.create_db_if_not_exists(db_name=self.TEST_DB)
+        except Exception as e:
+            self.fail('create_db_if_not_exists() raised exception: %s' % e)
+        finally:
+            self.drop_database()
 
-    # create test db
+    # db table exists
 
     # dump db
 
