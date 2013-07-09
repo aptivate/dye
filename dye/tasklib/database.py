@@ -54,6 +54,12 @@ def _get_db_details():
     return db_details
 
 
+def _get_host_or_localhost():
+    if 'host' in db_details and db_details['host']:
+        return db_details['host']
+    return 'localhost'
+
+
 def _get_mysql_root_password():
     """This can be overridden (by monkeypatching) if required."""
     # first try to read the root password from a file
@@ -106,7 +112,9 @@ def _get_root_db_cursor(**cursor_kwargs):
     global root_db_conn
     if root_db_conn is None:
         root_db_conn = _create_db_connection(
-            user='root', password=_get_mysql_root_password())
+            user='root',
+            passwd=_get_mysql_root_password()
+        )
     return root_db_conn.cursor(**cursor_kwargs)
 
 
@@ -149,7 +157,7 @@ def _mysql_exec(mysql_cmd, db_name=None, capture_output=False):
         _check_call_wrapper(mysql_call)
 
 
-def _mysql_exec_as_root(mysql_cmd_list, root_password=None):
+def _mysql_exec_as_root(*mysql_cmd_list):
     """ execute a SQL statement using MySQL as the root MySQL user"""
     cursor = _get_root_db_cursor()
     try:
@@ -221,14 +229,10 @@ def _create_user_if_not_exists(user=None, password=None):
         user = db_details['user']
     if password is None:
         password = db_details['password']
-    host = db_details.get('host', 'localhost')
+    host = _get_host_or_localhost()
     if not _test_mysql_user_exists(user):
-        _mysql_exec_as_root(
-            [
-                "CREATE USER '%s'@'%s' IDENTIFIED BY '%s'" %
-                           (user, host, password),
-            ]
-        )
+        _mysql_exec_as_root("CREATE USER '%s'@'%s' IDENTIFIED BY '%s'" %
+                            (user, host, password))
 
 
 def _set_user_password(user=None, password=None):
@@ -236,13 +240,9 @@ def _set_user_password(user=None, password=None):
         user = db_details['user']
     if password is None:
         password = db_details['password']
-    host = db_details.get('host', 'localhost')
-    _mysql_exec_as_root(
-        [
-            "SET PASSWORD FOR USER '%s'@'%s' = PASSWORD('%s')" %
-                (user, host, password),
-        ]
-    )
+    host = _get_host_or_localhost()
+    _mysql_exec_as_root("SET PASSWORD FOR USER '%s'@'%s' = PASSWORD('%s')" %
+                        (user, host, password))
 
 
 def grant_all_privileges_for_database(db_name=None, user=None):
@@ -252,14 +252,11 @@ def grant_all_privileges_for_database(db_name=None, user=None):
         db_name = db_details['name']
     if user is None:
         user = db_details['user']
-    host = db_details.get('host', 'localhost')
+    host = _get_host_or_localhost()
 
     _mysql_exec_as_root(
-        [
-            "GRANT ALL PRIVILEGES ON %s.* TO '%s'@'%s'" %
-                (db_name, user, host),
-            "FLUSH PRIVILEGES",
-        ]
+        "GRANT ALL PRIVILEGES ON %s.* TO '%s'@'%s'" % (db_name, user, host),
+        "FLUSH PRIVILEGES",
     )
 
 

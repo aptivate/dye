@@ -18,6 +18,10 @@ mysql_root_password = None
 
 class MysqlMixin(object):
 
+    TEST_USER = 'dye_user'
+    TEST_PASSWORD = 'dye_password'
+    TEST_DB = 'dyedb'
+
     def set_default_db_details(self):
         database.db_details = {
             'engine': 'mysql',
@@ -50,24 +54,28 @@ class MysqlMixin(object):
 
     def create_database_user(self):
         self.get_mysql_root_password()
-        database._mysql_exec_as_root("CREATE USER 'dye_user'@'localhost' IDENTIFIED BY 'dye_password'")
+        database._mysql_exec_as_root(
+            "CREATE USER '%s'@'localhost' IDENTIFIED BY '%s'" %
+            (self.TEST_USER, self.TEST_PASSWORD))
 
     def drop_database_user(self):
         self.get_mysql_root_password()
-        database._mysql_exec_as_root("DROP USER 'dye_user'@'localhost'")
+        database._mysql_exec_as_root("DROP USER '%s'@'localhost'" % self.TEST_USER)
 
     def create_database(self):
         self.get_mysql_root_password()
-        database._mysql_exec_as_root("CREATE DATABASE dyedb CHARACTER SET utf8")
+        database._mysql_exec_as_root("CREATE DATABASE %s CHARACTER SET utf8" % self.TEST_DB)
 
     def grant_privileges(self):
         self.get_mysql_root_password()
-        database._mysql_exec_as_root("GRANT ALL PRIVILEGES ON dyedb.* TO 'dye_user'@'localhost'")
+        database._mysql_exec_as_root(
+            "GRANT ALL PRIVILEGES ON %s.* TO '%s'@'localhost'" %
+            (self.TEST_DB, self.TEST_USER))
         database._mysql_exec_as_root("FLUSH PRIVILEGES")
 
     def drop_database(self):
         self.get_mysql_root_password()
-        database._mysql_exec_as_root("DROP DATABASE dyedb")
+        database._mysql_exec_as_root("DROP DATABASE %s" % self.TEST_DB)
 
 
 class TestCreateMysqlArgs(MysqlMixin, unittest.TestCase):
@@ -99,6 +107,66 @@ class TestCreateMysqlArgs(MysqlMixin, unittest.TestCase):
         mysql_args = database._create_mysql_args(db_name='mydb')
         expected_args = ['-u', 'dye_user', '-pdye_password', 'mydb']
         self.assertSequenceEqual(expected_args, mysql_args)
+
+
+class TestDatabaseTestFunctions(MysqlMixin, unittest.TestCase):
+
+    def test_test_mysql_user_exists_return_false_when_user_doesnt_exist(self):
+        self.assertFalse(database._test_mysql_user_exists(user=self.TEST_USER))
+
+    def test_test_mysql_user_exists_return_true_when_user_does_exist(self):
+        self.create_database_user()
+        try:
+            self.assertTrue(database._test_mysql_user_exists(user=self.TEST_USER))
+        finally:
+            self.drop_database_user()
+
+    def test_test_mysql_user_password_works_returns_false_when_user_doesnt_exist(self):
+        self.assertFalse(database._test_mysql_user_password_works(
+            user=self.TEST_USER, password=self.TEST_PASSWORD))
+
+    def test_test_mysql_user_password_works_returns_false_when_user_exists_but_password_wrong(self):
+        self.create_database_user()
+        try:
+            self.assertFalse(database._test_mysql_user_password_works(
+                user=self.TEST_USER, password='wrong_password'))
+        finally:
+            self.drop_database_user()
+
+    def test_test_mysql_user_password_works_returns_true_when_user_exists(self):
+        self.create_database_user()
+        try:
+            self.assertTrue(database._test_mysql_user_password_works(
+                user=self.TEST_USER, password=self.TEST_PASSWORD))
+        finally:
+            self.drop_database_user()
+
+    def test_test_mysql_root_password_returns_true_when_password_works(self):
+        password = self.get_mysql_root_password()
+        self.assertTrue(database._test_mysql_root_password(password))
+
+    def test_test_mysql_root_password_returns_false_when_password_is_wrong(self):
+        self.assertFalse(database._test_mysql_root_password('wrong_password'))
+
+    def test_db_exists_returns_false_when_database_doesnt_exist(self):
+        self.assertFalse(database._db_exists(self.TEST_DB))
+
+    def test_db_exists_returns_true_when_database_exists(self):
+        self.create_database()
+        try:
+            self.assertTrue(database._db_exists(self.TEST_DB))
+        finally:
+            self.drop_database()
+
+
+class TestDatabaseCreateFunctions(MysqlMixin, unittest.TestCase):
+
+    def test_create_user_if_not_exists_creates_user_if_user_doesnt_exist(self):
+        try:
+            database._create_user_if_not_exists(user=self.TEST_USER, password=self.TEST_PASSWORD)
+            self.assertTrue(database._test_mysql_user_exists(user=self.TEST_USER))
+        finally:
+            self.drop_database_user()
 
     # database tests?!? as root and as user
 
