@@ -22,6 +22,7 @@ class MysqlMixin(object):
     TEST_USER = 'dye_user'
     TEST_PASSWORD = 'dye_password'
     TEST_DB = 'dyedb'
+    TEST_TABLE = 'dyetable'
 
     def set_default_db_details(self):
         database.db_details = {
@@ -53,19 +54,32 @@ class MysqlMixin(object):
             database.db_details['root_password'] = mysql_root_password
         return mysql_root_password
 
+    def drop_database_user(self):
+        self.get_mysql_root_password()
+        if database._test_mysql_user_exists(self.TEST_USER):
+            database._mysql_exec_as_root("DROP USER '%s'@'localhost'" % self.TEST_USER)
+
     def create_database_user(self):
         self.get_mysql_root_password()
+        self.drop_database_user()
         database._mysql_exec_as_root(
             "CREATE USER '%s'@'localhost' IDENTIFIED BY '%s'" %
             (self.TEST_USER, self.TEST_PASSWORD))
 
-    def drop_database_user(self):
+    def drop_database(self):
         self.get_mysql_root_password()
-        database._mysql_exec_as_root("DROP USER '%s'@'localhost'" % self.TEST_USER)
+        if database._db_exists(self.TEST_DB):
+            database._mysql_exec_as_root("DROP DATABASE %s" % self.TEST_DB)
 
     def create_database(self):
         self.get_mysql_root_password()
+        self.drop_database()
         database._mysql_exec_as_root("CREATE DATABASE %s CHARACTER SET utf8" % self.TEST_DB)
+
+    def create_table(self):
+        self.get_mysql_root_password()
+        database._mysql_exec_as_root("CREATE TABLE %s.%s(mycolumn CHAR(30))" %
+                                     (self.TEST_DB, self.TEST_TABLE))
 
     def grant_privileges(self):
         self.get_mysql_root_password()
@@ -73,10 +87,6 @@ class MysqlMixin(object):
             "GRANT ALL PRIVILEGES ON %s.* TO '%s'@'localhost'" %
             (self.TEST_DB, self.TEST_USER))
         database._mysql_exec_as_root("FLUSH PRIVILEGES")
-
-    def drop_database(self):
-        self.get_mysql_root_password()
-        database._mysql_exec_as_root("DROP DATABASE %s" % self.TEST_DB)
 
     def assert_user_has_access_to_database(self):
         try:
@@ -171,7 +181,30 @@ class TestDatabaseTestFunctions(MysqlMixin, unittest.TestCase):
         finally:
             self.drop_database()
 
-    # TODO: db table exists
+    def test_db_table_exists_returns_true_when_table_exists(self):
+        self.create_database_user()
+        self.create_database()
+        self.grant_privileges()
+        self.create_table()
+        self.set_default_db_details()
+        try:
+            self.assertTrue(database._db_table_exists(self.TEST_TABLE))
+        finally:
+            self.reset_db_details()
+            self.drop_database()
+            self.drop_database_user()
+
+    def test_db_table_exists_returns_false_when_table_doesnt_exist(self):
+        self.create_database_user()
+        self.create_database()
+        self.grant_privileges()
+        self.set_default_db_details()
+        try:
+            self.assertFalse(database._db_table_exists(self.TEST_TABLE))
+        finally:
+            self.reset_db_details()
+            self.drop_database()
+            self.drop_database_user()
 
 
 class TestDatabaseCreateFunctions(MysqlMixin, unittest.TestCase):
@@ -261,8 +294,6 @@ class TestDatabaseCreateFunctions(MysqlMixin, unittest.TestCase):
             database.drop_db(db_name=self.TEST_DB)
         except Exception as e:
             self.fail('drop_db() raised exception: %s' % e)
-
-    # db table exists
 
     # dump db
 

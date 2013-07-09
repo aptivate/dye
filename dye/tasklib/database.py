@@ -218,7 +218,7 @@ def _db_exists(db_name):
 def _db_table_exists(table_name):
     cursor = _get_user_db_cursor()
     try:
-        rows = cursor.execute("SHOW TABLES WHERE LIKE %s" % table_name)
+        rows = cursor.execute("SHOW TABLES LIKE '%s'" % table_name)
     finally:
         cursor.close()
     return rows != 0
