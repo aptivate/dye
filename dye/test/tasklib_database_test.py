@@ -78,6 +78,18 @@ class MysqlMixin(object):
         self.get_mysql_root_password()
         database._mysql_exec_as_root("DROP DATABASE %s" % self.TEST_DB)
 
+    def assert_user_has_access_to_database(self):
+        try:
+            db_conn = database._create_db_connection(
+                user=self.TEST_USER,
+                passwd=self.TEST_PASSWORD,
+                db=self.TEST_DB,
+            )
+        except MySQLdb.OperationalError as e:
+            self.fail("Failed to connect to database after privileges"
+                      "should be granted.\n%s" % e)
+        db_conn.close()
+
 
 class TestCreateMysqlArgs(MysqlMixin, unittest.TestCase):
 
@@ -194,16 +206,7 @@ class TestDatabaseCreateFunctions(MysqlMixin, unittest.TestCase):
         try:
             database.grant_all_privileges_for_database(
                 db_name=self.TEST_DB, user=self.TEST_USER)
-            try:
-                db_conn = database._create_db_connection(
-                    user=self.TEST_USER,
-                    passwd=self.TEST_PASSWORD,
-                    db=self.TEST_DB,
-                )
-            except MySQLdb.OperationalError as e:
-                self.fail("Failed to connect to database after privileges"
-                          "should be granted.\n%s" % e)
-            db_conn.close()
+            self.assert_user_has_access_to_database()
         finally:
             self.drop_database()
             self.drop_database_user()
@@ -222,6 +225,30 @@ class TestDatabaseCreateFunctions(MysqlMixin, unittest.TestCase):
         except Exception as e:
             self.fail('create_db_if_not_exists() raised exception: %s' % e)
         finally:
+            self.drop_database()
+
+    def test_ensure_user_and_db_exist_creates_user_and_db_when_they_dont_exist(self):
+        try:
+            database.ensure_user_and_db_exist(
+                user=self.TEST_USER, password=self.TEST_PASSWORD,
+                db_name=self.TEST_DB)
+            self.assert_user_has_access_to_database()
+        finally:
+            self.drop_database_user()
+            self.drop_database()
+
+    def test_ensure_user_and_db_exist_doesnt_cause_error_when_user_and_db_exist(self):
+        self.create_database_user()
+        self.create_database()
+        self.grant_privileges()
+        try:
+            database.ensure_user_and_db_exist(
+                user=self.TEST_USER, password=self.TEST_PASSWORD,
+                db_name=self.TEST_DB)
+        except Exception as e:
+            self.fail('ensure_user_and_db_exist() raised exception: %s' % e)
+        finally:
+            self.drop_database_user()
             self.drop_database()
 
     # db table exists
