@@ -241,7 +241,7 @@ def _set_user_password(user=None, password=None):
     if password is None:
         password = db_details['password']
     host = _get_host_or_localhost()
-    _mysql_exec_as_root("SET PASSWORD FOR USER '%s'@'%s' = PASSWORD('%s')" %
+    _mysql_exec_as_root("SET PASSWORD FOR '%s'@'%s' = PASSWORD('%s')" %
                         (user, host, password))
 
 

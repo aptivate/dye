@@ -168,6 +168,23 @@ class TestDatabaseCreateFunctions(MysqlMixin, unittest.TestCase):
         finally:
             self.drop_database_user()
 
+    def test_create_user_if_not_exists_doesnt_raise_exception_if_user_exists(self):
+        self.create_database_user()
+        try:
+            database._create_user_if_not_exists(user=self.TEST_USER, password=self.TEST_PASSWORD)
+            self.assertTrue(database._test_mysql_user_exists(user=self.TEST_USER))
+        finally:
+            self.drop_database_user()
+
+    def test_set_user_password_changes_user_password(self):
+        self.create_database_user()
+        try:
+            database._set_user_password(user=self.TEST_USER, password='new_password')
+            self.assertTrue(database._test_mysql_user_password_works(
+                user=self.TEST_USER, password='new_password'))
+        finally:
+            self.drop_database_user()
+
     # database tests?!? as root and as user
 
     # db exists
