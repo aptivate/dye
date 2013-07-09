@@ -251,6 +251,17 @@ class TestDatabaseCreateFunctions(MysqlMixin, unittest.TestCase):
             self.drop_database_user()
             self.drop_database()
 
+    def test_drop_db_does_drop_database(self):
+        self.create_database()
+        database.drop_db(db_name=self.TEST_DB)
+        self.assertFalse(database._db_exists(db_name=self.TEST_DB))
+
+    def test_drop_db_doesnt_cause_error_when_db_doesnt_exist(self):
+        try:
+            database.drop_db(db_name=self.TEST_DB)
+        except Exception as e:
+            self.fail('drop_db() raised exception: %s' % e)
+
     # db table exists
 
     # dump db
