@@ -1,6 +1,7 @@
 import os
 from os import path
 import sys
+import StringIO
 import unittest
 import MySQLdb
 
@@ -298,6 +299,25 @@ class TestDatabaseCreateFunctions(MysqlMixin, unittest.TestCase):
     # dump db
 
     # restore db
+
+
+class TestMysqlDumpCron(MysqlMixin, unittest.TestCase):
+
+    def setUp(self):
+        self.set_default_db_details()
+
+    def tearDown(self):
+        self.reset_db_details()
+
+    def test_create_mysqldump_cron_file_writes_correct_output(self):
+        dump_file_stub = '/var/dumps/dye-'
+        output_file = StringIO.StringIO()
+        database._create_mysqldump_cron_file(output_file, dump_file_stub)
+        actual_output = output_file.getvalue()
+        expected_output = \
+            "#!/bin/sh\n" \
+            "/usr/bin/mysqldump -u dye_user -pdye_password dyedb > /var/dumps/dye-`/bin/date +\%d`.sql\n"
+        self.assertEqual(expected_output, actual_output)
 
 
 if __name__ == '__main__':

@@ -303,7 +303,8 @@ def dump_db(dump_filename='db_dump.sql', for_rsync=False):
 
     dump_file = open(dump_filename, 'w')
     if env['verbose']:
-        print 'Executing dump command: %s\nSending stdout to %s' % (' '.join(dump_cmd), dump_filename)
+        print 'Executing dump command: %s\nSending stdout to %s' % \
+            (' '.join(dump_cmd), dump_filename)
     _call_command(dump_cmd, stdout=dump_file)
     dump_file.close()
 
@@ -317,17 +318,33 @@ def restore_db(dump_filename):
 
     dump_file = open(dump_filename, 'r')
     if env['verbose']:
-        print 'Executing dump command: %s\nSending stdin to %s' % (' '.join(restore_cmd), dump_filename)
+        print 'Executing dump command: %s\nSending stdin to %s' % \
+            (' '.join(restore_cmd), dump_filename)
     _call_command(restore_cmd, stdin=dump_file)
     dump_file.close()
+
+
+def _create_mysqldump_cron_file(cron_file, dump_file_stub):
+    # write something like:
+    # #!/bin/sh
+    # /usr/bin/mysqldump --user=osiaccounting --password=aptivate --host=127.0.0.1 osiaccounting >  /var/osiaccounting/dumps/daily-dump-`/bin/date +\%d`.sql
+    #
+    # cron file should be an open file like object
+
+    # don't use "with" for compatibility with python 2.3 on whov2hinari
+    cron_file.write('#!/bin/sh\n')
+    cron_file.write('/usr/bin/mysqldump ' + ' '.join(_create_mysql_args()))
+    cron_file.write(' > %s' % dump_file_stub)
+    cron_file.write(r'`/bin/date +\%d`.sql')
+    cron_file.write('\n')
 
 
 def setup_db_dumps(dump_dir):
     """ set up mysql database dumps in root crontab """
     if not path.isabs(dump_dir):
-        raise InvalidArgumentError('dump_dir must be an absolute path, you gave %s' % dump_dir)
-    project_name = env['django_dir'].split('/')[-1]
-    cron_file = path.join('/etc', 'cron.daily', 'dump_' + project_name)
+        raise InvalidArgumentError(
+            'dump_dir must be an absolute path, you gave %s' % dump_dir)
+    cron_file = path.join('/etc', 'cron.daily', 'dump_' + env['project_name'])
 
     if db_details['engine'].endswith('mysql'):
         _create_dir_if_not_exists(dump_dir)
@@ -345,17 +362,10 @@ def setup_db_dumps(dump_dir):
         if path.exists(cron_file):
             return
 
-        # write something like:
-        # 30 1 * * * mysqldump --user=osiaccounting --password=aptivate --host=127.0.0.1 osiaccounting >  /var/osiaccounting/dumps/daily-dump-`/bin/date +\%d`.sql
-
         # don't use "with" for compatibility with python 2.3 on whov2hinari
         f = open(cron_file, 'w')
         try:
-            f.write('#!/bin/sh\n')
-            f.write('/usr/bin/mysqldump ' + ' '.join(_create_mysql_args()))
-            f.write(' > %s' % (db_details['name'], dump_file_stub))
-            f.write(r'`/bin/date +\%d`.sql')
-            f.write('\n')
+            _create_mysqldump_cron_file(f, dump_file_stub)
         finally:
             f.close()
 
