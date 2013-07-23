@@ -168,7 +168,10 @@ def convert_task_bits(task_bits):
 def main(argv):
     global localtasks
 
-    options = docopt.docopt(__doc__, argv)
+    options = docopt.docopt(__doc__, argv, help=False)
+    if options['--help']:
+        print_help_text()
+        return 0
     if options['--task-description']:
         describe_task(options['<tasks>'])
         return 0
