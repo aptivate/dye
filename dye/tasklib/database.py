@@ -303,7 +303,7 @@ def dump_db(dump_filename='db_dump.sql', for_rsync=False):
 
     dump_file = open(dump_filename, 'w')
     if env['verbose']:
-        print 'Executing dump command: %s\nSending stdout to %s' % \
+        print 'Executing mysqldump command: %s\nSending stdout to %s' % \
             (' '.join(dump_cmd), dump_filename)
     _call_command(dump_cmd, stdout=dump_file)
     dump_file.close()
@@ -318,7 +318,7 @@ def restore_db(dump_filename):
 
     dump_file = open(dump_filename, 'r')
     if env['verbose']:
-        print 'Executing dump command: %s\nSending stdin to %s' % \
+        print 'Executing mysql restore command: %s\nSending stdin to %s' % \
             (' '.join(restore_cmd), dump_filename)
     _call_command(restore_cmd, stdin=dump_file)
     dump_file.close()
@@ -327,7 +327,7 @@ def restore_db(dump_filename):
 def _create_mysqldump_cron_file(cron_file, dump_file_stub):
     # write something like:
     # #!/bin/sh
-    # /usr/bin/mysqldump --user=osiaccounting --password=aptivate --host=127.0.0.1 osiaccounting >  /var/osiaccounting/dumps/daily-dump-`/bin/date +\%d`.sql
+    # /usr/bin/mysqldump --user=projectname --password=aptivate --host=127.0.0.1 projectname >  /var/projectname/dumps/daily-dump-`/bin/date +\%d`.sql
     #
     # cron file should be an open file like object
 
