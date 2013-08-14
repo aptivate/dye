@@ -1,5 +1,6 @@
 import os
 from os import path
+from datetime import datetime
 import getpass
 import re
 import time
@@ -150,6 +151,7 @@ def deploy(revision=None, keep=None):
     # we only have to disable this site after creating the rollback copy
     # (do this so that apache carries on serving other sites on this server
     # and the maintenance page for this vhost)
+    downtime_start = datetime.now()
     link_webserver_conf(maintenance=True)
     with settings(warn_only=True):
         webserver_cmd('reload')
@@ -172,7 +174,16 @@ def deploy(revision=None, keep=None):
     # handler (which reloads the wsgi app)
     link_webserver_conf()
     webserver_cmd('reload')
+    downtime_end = datetime.now()
     touch_wsgi()
+    _report_downtime(downtime_start, downtime_end)
+
+
+def _report_downtime(downtime_start, downtime_end):
+    downtime = downtime_end - downtime_start
+    utils.puts("Downtime lasted for %.1f seconds" % downtime.total_seconds())
+    utils.puts("(Downtime started at %s and finished at %s)" %
+               (downtime_start, downtime_end))
 
 
 def set_up_celery_daemon():
