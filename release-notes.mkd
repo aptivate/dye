@@ -12,6 +12,11 @@ You shouldn't have to alter your `localtasks.py`
 
 # Notes on upgrading
 
+## 14/08/2013
+
+Update link_webserver_conf() to take `maintenance` as the optional argument
+rather than `unlink` - you might need to update localfab to use this.
+
 ## 06/2013
 
 Lots of changes in a big refactor.

@@ -150,7 +150,7 @@ def deploy(revision=None, keep=None):
     # we only have to disable this site after creating the rollback copy
     # (do this so that apache carries on serving other sites on this server
     # and the maintenance page for this vhost)
-    link_webserver_conf(unlink=True)
+    link_webserver_conf(maintenance=True)
     with settings(warn_only=True):
         webserver_cmd('reload')
     checkout_or_update(revision)
@@ -574,28 +574,43 @@ def rm_pyc_files():
             sudo_or_run('find . -name \*.pyc | xargs rm')
 
 
-def link_webserver_conf(unlink=False):
+def _delete_file(path):
+    if files.exists(path):
+        sudo_or_run('rm %s' % path)
+
+
+def _link_files(source_file, target_path):
+    if not files.exists(target_path):
+        sudo_or_run('ln -s %s %s' % (source_file, target_path))
+
+
+def link_webserver_conf(maintenance=False):
     """link the webserver conf file"""
     require('vcs_root_dir', provided_by=env.valid_envs)
     if env.webserver is None:
         return
-    vcs_conf_file = path.join(env.vcs_root_dir, env.webserver, env.environment + '.conf')
+    vcs_config_stub = path.join(env.vcs_root_dir, env.webserver, env.environment)
+    vcs_config_live = vcs_config_stub + '.conf'
+    vcs_config_maintenance = vcs_config_stub + '-maintenance.conf'
     webserver_conf = _webserver_conf_path()
-    if unlink:
-        if files.exists(webserver_conf):
-            sudo_or_run('rm %s' % webserver_conf)
-    else:
-        if not files.exists(vcs_conf_file):
-            utils.abort('No %s conf file found - expected %s' %
-                    (env.webserver, vcs_conf_file))
-        if not files.exists(webserver_conf):
-            sudo_or_run('ln -s %s %s' % (vcs_conf_file, webserver_conf))
 
-        # debian has sites-available/sites-enabled split with links
-        if _linux_type() == 'debian':
-            webserver_conf_enabled = webserver_conf.replace('available', 'enabled')
-            sudo_or_run('ln -s %s %s' % (webserver_conf, webserver_conf_enabled))
-        webserver_configtest()
+    if maintenance:
+        _delete_file(webserver_conf)
+        if not files.exists(vcs_config_maintenance):
+            return
+        _link_files(vcs_config_maintenance, webserver_conf)
+    else:
+        if not files.exists(vcs_config_live):
+            utils.abort('No %s conf file found - expected %s' %
+                    (env.webserver, vcs_config_live))
+        _delete_file(webserver_conf)
+        _link_files(vcs_config_live, webserver_conf)
+
+    # debian has sites-available/sites-enabled split with links
+    if _linux_type() == 'debian':
+        webserver_conf_enabled = webserver_conf.replace('available', 'enabled')
+        sudo_or_run('ln -s %s %s' % (webserver_conf, webserver_conf_enabled))
+    webserver_configtest()
 
 
 def _webserver_conf_path():
