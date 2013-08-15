@@ -353,7 +353,9 @@ def setup_db_dumps(dump_dir):
         # has it been set up already
         cron_set = True
         try:
-            _check_call_wrapper('sudo crontab -l | grep mysqldump', shell=True)
+            _check_call_wrapper(
+                'sudo crontab -l | grep mysqldump | grep %s' % env['project_name'],
+                shell=True)
         except CalledProcessError:
             cron_set = False
 
