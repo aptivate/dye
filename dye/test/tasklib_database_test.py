@@ -297,8 +297,15 @@ class TestDatabaseCreateFunctions(MysqlMixin, unittest.TestCase):
             self.fail('drop_db() raised exception: %s' % e)
 
     # dump db
+    # do a restore from a saved test dump file
+    # do the dump
+    # check the generated dump file matches test dump (but think about time
+    # stamps ...)
 
     # restore db
+    # ensure db does not exist
+    # do restore
+    # check db and table exist
 
 
 class TestMysqlDumpCron(MysqlMixin, unittest.TestCase):
