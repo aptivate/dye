@@ -142,7 +142,7 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, databa
 
     set_django_db_settings(database=database)
     from .database import db_details
-    if env['environment'] != 'dev_fasttests':
+    if env['environment'] == 'dev_fasttests':
         db_details['grant_enabled'] = False
 
     # then see if the database exists
