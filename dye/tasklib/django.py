@@ -79,7 +79,7 @@ def set_django_db_settings(database='default'):
         db_details['name'] = db['NAME']
         if not db_details['engine'].endswith('sqlite'):
             db_details['user'] = db['USER']
-            db_details['pw'] = db['PASSWORD']
+            db_details['password'] = db['PASSWORD']
             db_details['port'] = db.get('PORT', None)
             db_details['host'] = db.get('HOST', default_host)
 
@@ -89,7 +89,7 @@ def set_django_db_settings(database='default'):
             db_details['name'] = local_settings.DATABASE_NAME
             if not db_details['engine'].endswith('sqlite'):
                 db_details['user'] = local_settings.DATABASE_USER
-                db_details['pw'] = local_settings.DATABASE_PASSWORD
+                db_details['password'] = local_settings.DATABASE_PASSWORD
                 db_details['port'] = getattr(local_settings, 'DATABASE_PORT', None)
                 db_details['host'] = getattr(local_settings, 'DATABASE_HOST', default_host)
         except AttributeError:
