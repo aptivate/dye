@@ -168,6 +168,12 @@ def convert_task_bits(task_bits):
 def main(argv):
     global localtasks
 
+    # if this is being passed through by deploy/tasks.py the --deploydir
+    # argument will have been added, so check for help and show full help
+    # text.
+    if '-h' in argv or '--help' in argv:
+        print_help_text()
+        return 0
     options = docopt.docopt(__doc__, argv, help=False)
     if options['--help']:
         print_help_text()
