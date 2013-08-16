@@ -6,8 +6,8 @@
 * fabric - it will call a copy on the remote server when deploying
 
 Usage:
-    tasks.py [options] <tasks>...
-    tasks.py -h | --help
+    tasks.py [-d DEPLOYDIR] [options] <tasks>...
+    tasks.py [-d DEPLOYDIR] -h | --help
 
 Options:
     -t, --task-description     Describe the tasks instead of running them.  This
@@ -168,13 +168,22 @@ def convert_task_bits(task_bits):
 def main(argv):
     global localtasks
 
-    # if this is being passed through by deploy/tasks.py the --deploydir
-    # argument will have been added, so check for help and show full help
-    # text.
-    if '-h' in argv or '--help' in argv:
-        print_help_text()
-        return 0
     options = docopt.docopt(__doc__, argv, help=False)
+
+    # need to set this before doing task-description or help
+    if options['--deploydir']:
+        tasklib.env['deploy_dir'] = options['--deploydir']
+    else:
+        tasklib.env['deploy_dir'] = os.path.dirname(__file__)
+    # first we need to find and load the project settings
+    sys.path.append(tasklib.env['deploy_dir'])
+    # now see if we can find localtasks
+    # We deliberately don't surround the import by try/except. If there
+    # is an error in localfab, you want it to blow up immediately, rather
+    # than silently fail.
+    if os.path.isfile(os.path.join(tasklib.env['deploy_dir'], 'localtasks.py')):
+        import localtasks
+
     if options['--help']:
         print_help_text()
         return 0
@@ -186,13 +195,7 @@ def main(argv):
         return 2
     tasklib.env['verbose'] = options['--verbose']
     tasklib.env['quiet'] = options['--quiet']
-    if options['--deploydir']:
-        tasklib.env['deploy_dir'] = options['--deploydir']
-    else:
-        tasklib.env['deploy_dir'] = os.path.dirname(__file__)
 
-    # first we need to find and load the project settings
-    sys.path.append(tasklib.env['deploy_dir'])
     try:
         import project_settings
     except ImportError:
@@ -200,12 +203,7 @@ def main(argv):
             "Could not import project_settings - check your --deploydir argument"
         return 1
 
-    # now see if we can find localtasks
-    # We deliberately don't surround the import by try/except. If there
-    # is an error in localfab, you want it to blow up immediately, rather
-    # than silently fail.
-    if os.path.isfile(os.path.join(tasklib.env['deploy_dir'], 'localtasks.py')):
-        import localtasks
+    if localtasks is not None:
         if (hasattr(localtasks, '_setup_paths')):
             localtasks._setup_paths()
     # now set up the various paths required
