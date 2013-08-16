@@ -16,9 +16,8 @@ import tasks
 class TasksMainTests(unittest.TestCase):
 
     def test_main_h_exits_with_0(self):
-        with self.assertRaises(SystemExit) as cm:
-            tasks.main(['-h'])
-            self.assertEqual(0, cm.exception.code)
+        exit_code = tasks.main(['-h'])
+        self.assertEqual(0, exit_code)
 
 
 class TasksArgumentConversionTests(unittest.TestCase):
