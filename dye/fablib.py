@@ -197,25 +197,39 @@ def _report_downtime(downtime_start, downtime_end):
 
 
 def set_up_celery_daemon():
-    require('vcs_root_dir', provided_by=env)
+    require('vcs_root_dir', 'project_name', provided_by=env)
     for command in ('celerybeat', 'celeryd'):
+        command_project = command + '_' + env.project_name
         celery_run_script_location = path.join(env['vcs_root_dir'],
                                                'celery', 'init', command)
-        celery_run_script_destination = path.join('/etc', 'init.d')
-        celery_run_script = path.join(celery_run_script_destination,
-                                      command)
+        celery_run_script = path.join('/etc', 'init.d', command_project)
         celery_configuration_location = path.join(env['vcs_root_dir'],
                                                   'celery', 'config', command)
-        celery_configuration_destination = path.join('/etc', 'default')
+        celery_configuration_destination = path.join('/etc', 'default',
+                                                     command_project)
 
         sudo_or_run(" ".join(['cp', celery_run_script_location,
-                    celery_run_script_destination]))
-
+                    celery_run_script]))
         sudo_or_run(" ".join(['chmod', '+x', celery_run_script]))
 
         sudo_or_run(" ".join(['cp', celery_configuration_location,
                     celery_configuration_destination]))
-        sudo_or_run('/etc/init.d/%s restart' % command)
+        sudo_or_run('/etc/init.d/%s restart' % command_project)
+
+
+def clean_old_celery():
+    """As the scripts have moved location you might need to get rid of old
+    versions of celery."""
+    require('vcs_root_dir', provided_by=env)
+    for command in ('celerybeat', 'celeryd'):
+        celery_run_script = path.join('/etc', 'init.d', command)
+        if files.exists(celery_run_script):
+            sudo_or_run('/etc/init.d/%s stop' % command)
+            sudo_or_run('rm %s' % celery_run_script)
+
+        celery_configuration_destination = path.join('/etc', 'default', command)
+        if files.exists(celery_configuration_destination):
+            sudo_or_run('rm %s' % celery_configuration_destination)
 
 
 def create_copy_for_next():

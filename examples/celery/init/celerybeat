@@ -21,8 +21,10 @@
 # abnormally in the absence of a valid process ID.
 #set -e
 
-DEFAULT_PID_FILE="/var/run/celerybeat.pid"
-DEFAULT_LOG_FILE="/var/log/celerybeat.log"
+PROJECT_NAME="insert_project_name_here"
+
+DEFAULT_PID_FILE="/var/run/celerybeat_${PROJECT_NAME}.pid"
+DEFAULT_LOG_FILE="/var/log/celerybeat_${PROJECT_NAME}.log"
 DEFAULT_LOG_LEVEL="INFO"
 DEFAULT_CELERYBEAT="celerybeat"
 
@@ -32,8 +34,8 @@ DEFAULT_CELERYBEAT="celerybeat"
 #    . /etc/default/celeryd
 #fi
 
-if test -f /etc/default/celerybeat; then
-    . /etc/default/celerybeat
+if test -f /etc/default/celerybeat_${PROJECT_NAME}; then
+    . /etc/default/celerybeat_${PROJECT_NAME}
 fi
 
 CELERYBEAT=${CELERYBEAT:-$DEFAULT_CELERYBEAT}

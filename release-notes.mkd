@@ -12,6 +12,16 @@ You shouldn't have to alter your `localtasks.py`
 
 # Notes on upgrading
 
+## 19/08/2013
+
+Update celery scripts to be copied to `/etc/init.d/celerybeat_<project_name>`
+(and for celeryd and `/etc/default/`) - you will need to delete the old
+versions and stop the old processes running.  The fab command
+`clean_old_celery` *should* do this for you, but it would be worth confirming.
+
+You'll also need to update the paths in `celery/init/*` to point to the new
+filenames in `/etc/default`.
+
 ## 14/08/2013
 
 Update link_webserver_conf() to take `maintenance` as the optional argument

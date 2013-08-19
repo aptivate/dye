@@ -20,19 +20,21 @@
 
 #set -e
 
-DEFAULT_PID_FILE="/var/run/celeryd@%n.pid"
-DEFAULT_LOG_FILE="/var/log/celeryd@%n.log"
+PROJECT_NAME="insert_project_name_here"
+
+DEFAULT_PID_FILE="/var/run/celeryd_${PROJECT_NAME}@%n.pid"
+DEFAULT_LOG_FILE="/var/log/celeryd_${PROJECT_NAME}@%n.log"
 DEFAULT_LOG_LEVEL="INFO"
 DEFAULT_NODES="celery"
 DEFAULT_CELERYD="-m celery.bin.celeryd_detach"
 
 # /etc/init.d/celeryd: start and stop the celery task worker daemon.
 
-CELERY_DEFAULTS=${CELERY_DEFAULTS:-"/etc/default/celeryd"}
+CELERY_DEFAULTS=${CELERY_DEFAULTS:-"/etc/default/celeryd_${PROJECT_NAME}"}
 
 test -f "$CELERY_DEFAULTS" && . "$CELERY_DEFAULTS"
-if [ -f "/etc/default/celeryd" ]; then
-    . /etc/default/celeryd
+if [ -f "/etc/default/celeryd_${PROJECT_NAME}" ]; then
+    . /etc/default/celeryd_${PROJECT_NAME}
 fi
 
 CELERYD_PID_FILE=${CELERYD_PID_FILE:-${CELERYD_PIDFILE:-$DEFAULT_PID_FILE}}
