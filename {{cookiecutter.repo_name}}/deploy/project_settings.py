@@ -8,7 +8,7 @@ from os import path
 
 # This is the directory inside the project dev dir that contains the django
 # application
-project_name = "insert_project_name_here"
+project_name = "{{ cookiecutter.project_name }}"
 
 # The django apps that are part of this project - used for running tests
 # and migrations

@@ -21,7 +21,7 @@
 # abnormally in the absence of a valid process ID.
 #set -e
 
-PROJECT_NAME="insert_project_name_here"
+PROJECT_NAME="{{ cookiecutter.project_name }}"
 
 DEFAULT_PID_FILE="/var/run/celerybeat_${PROJECT_NAME}.pid"
 DEFAULT_LOG_FILE="/var/log/celerybeat_${PROJECT_NAME}.log"
