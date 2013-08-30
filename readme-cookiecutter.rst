@@ -1,7 +1,7 @@
-cookiecutter-django
-=======================
+dye
+===
 
-A cookiecutter_ template for Django.
+A cookiecutter_ template for Aptivate Django projects.
 
 .. _cookiecutter: https://github.com/audreyr/cookiecutter
 
@@ -31,7 +31,7 @@ First, get cookiecutter. Trust me, it's awesome::
 
 Now run it against this repo::
 
-    $ cookiecutter git://github.com/aptivate/cookiecutter-django-dye.git
+    $ cookiecutter git://github.com/aptivate/dye.git
 
 You'll be prompted for some questions, answer them, then it will create a Django project for you.
 
@@ -70,7 +70,7 @@ Create a GitHub repo and push it there::
 Now take a look at your repo. Awesome, right?
 
 It's time to write the code!!!
-    
+
 
 "Your Stuff"
 -------------
@@ -97,9 +97,3 @@ If you do rename your fork, I encourage you to submit it to the following places
 
 .. _cookiecutter: https://github.com/audreyr/cookiecutter
 .. _grid: https://www.djangopackages.com/grids/g/cookiecutter/
-
-Or Submit a Pull Request
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-I also accept pull requests on this, if they're small, atomic, and if they make my own project development
-experience better. 
