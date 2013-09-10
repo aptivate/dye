@@ -5,6 +5,8 @@ import sys
 from os import path
 
 PROJECT_ROOT = path.abspath(path.dirname(__file__))
+sys.path.append(PROJECT_ROOT)
+
 DEPLOY_DIR = path.abspath(path.join(PROJECT_ROOT, os.pardir, os.pardir, 'deploy'))
 sys.path.append(DEPLOY_DIR)
 import ve_mgr
@@ -38,6 +40,7 @@ if 'IGNORE_DOTVE' not in os.environ and 'VIRTUAL_ENV' not in os.environ:
 if __name__ == "__main__":
     sys.path.append(DEPLOY_DIR)
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "settings")
+    # import pdb; pdb.set_trace()
 
     try:
         import settings  # pylint: disable=W402

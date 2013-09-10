@@ -1,3 +1,4 @@
 Django==1.5
 MySQL-python>=1.2.3
 -e git+git://github.com/aptivate/dye.git#egg=dye
+-e git+git://github.com/aptivate/django-mail-templated.git#egg=django-mail-templated

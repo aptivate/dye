@@ -7,7 +7,7 @@ from django.conf.urls import patterns, include, url
 urlpatterns = patterns('',
     # Examples:
     # url(r'^$', 'mailer2.views.home', name='home'),
-    # url(r'^mailer2/', include('mailer2.foo.urls')),
+    url(r'^unsubscribe/(?P<address>[^/]+)/$', 'mailer.views.unsubscribe', name='unsubscribe'),
 
     # Uncomment the admin/doc line below to enable admin documentation:
     # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
