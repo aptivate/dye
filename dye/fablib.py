@@ -251,10 +251,8 @@ def create_copy_for_next():
     # if this is the initial deploy, the vcs_root_dir won't exist yet. In that
     # case, don't create it (otherwise the checkout code will get confused).
     if files.exists(env.vcs_root_dir):
-        # create directory for the next version
-        _create_dir_if_not_exists(env.next_dir)
         # cp -a
-        sudo_or_run('cp -a %s/* %s' % (env.vcs_root_dir, env.next_dir))
+        sudo_or_run('cp -a %s %s' % (env.vcs_root_dir, env.next_dir))
 
 
 def next_to_current_to_rollback():
