@@ -7,9 +7,10 @@ import unittest
 dye_dir = path.join(path.dirname(__file__), os.pardir)
 sys.path.append(dye_dir)
 import tasklib
+from tasklib.exceptions import InvalidProjectError
 
 example_dir = path.join(dye_dir, os.pardir, '{{cookiecutter.repo_name}}', 'deploy')
-sys.path.append(dye_dir)
+sys.path.append(example_dir)
 import project_settings
 
 tasklib.env['verbose'] = False
@@ -67,7 +68,7 @@ class TestLinkLocalSettings(unittest.TestCase):
         # and see if it dies with the correct error
         local_settings_path = path.join(tasklib.env['django_settings_dir'], 'local_settings.py')
         self.create_local_settings_py_dev(local_settings_path)
-        with self.assertRaises(tasklib.InvalidProjectError):
+        with self.assertRaises(InvalidProjectError):
             tasklib.link_local_settings('dev')
 
     def test_link_local_settings_raises_error_if_settings_py_does_not_import_local_settings(self):
@@ -76,14 +77,14 @@ class TestLinkLocalSettings(unittest.TestCase):
         local_settings_path = path.join(tasklib.env['django_settings_dir'], 'local_settings.py')
         self.create_local_settings_py_dev(local_settings_path)
         self.create_empty_settings_py()
-        with self.assertRaises(tasklib.InvalidProjectError):
+        with self.assertRaises(InvalidProjectError):
             tasklib.link_local_settings('dev')
 
     def test_link_local_settings_raises_error_if_local_settings_py_dev_not_present(self):
         # We don't create settings.py, just call link_local_settings()
         # and see if it dies with the correct error
         self.create_settings_py()
-        with self.assertRaises(tasklib.InvalidProjectError):
+        with self.assertRaises(InvalidProjectError):
             tasklib.link_local_settings('dev')
 
     def test_link_local_settings_creates_correct_link(self):
@@ -123,8 +124,6 @@ class TestLinkLocalSettings(unittest.TestCase):
 
         self.assertFalse(path.exists(local_settings_pyc_path))
 
-    # database tests?!? as root and as user
-
     # find migrations
 
     # create rollback version
@@ -144,16 +143,6 @@ class TestLinkLocalSettings(unittest.TestCase):
     # get cache table
 
     # update db
-
-    # db exists
-
-    # db table exists
-
-    # create test db
-
-    # dump db
-
-    # restore db
 
     # update git submodules
 

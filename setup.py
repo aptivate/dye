@@ -14,5 +14,6 @@ setup(
     install_requires=[
         "fabric >= 1.4",
         "docopt >= 0.6.1",
+        "MySQL-python >= 1.2.3",
     ],
 )

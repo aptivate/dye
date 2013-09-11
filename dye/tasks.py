@@ -1,33 +1,24 @@
 #!/usr/bin/env python
-#
-# This script is to set up various things for our projects. It can be used by:
-#
-# * developers - setting up their own environment
-# * jenkins - setting up the environment and running tests
-# * fabric - it will call a copy on the remote server when deploying
-#
-# The tasks it will do (eventually) include:
-#
-# * creating, updating and deleting the virtualenv
-# * creating, updating and deleting the database (sqlite or mysql)
-# * setting up the local_settings stuff
-# * running tests
 """This script is to set up various things for our projects. It can be used by:
 
 * developers - setting up their own environment
 * jenkins - setting up the environment and running tests
 * fabric - it will call a copy on the remote server when deploying
 
-General arguments are:
+Usage:
+    tasks.py [-d DEPLOYDIR] [options] <tasks>...
+    tasks.py [-d DEPLOYDIR] -h | --help
 
-    -h, --help       Print this help text
-    -d, --deploydir  Set the deploy dir (where to find project_settings.py
-                     and, optionally, localtasks.py) Defaults to the directory
-                     that contains tasks.py
-    -t, --task-description <task_name>
-                     Print a description of a task and exit
-    -q, --quiet      Print less output while executing (note: not none)
-    -v, --verbose    Print extra output while executing
+Options:
+    -t, --task-description     Describe the tasks instead of running them.  This
+                               will show the task docstring and a basic
+                               description of the arguments it takes.
+    -d, --deploydir DEPLOYDIR  Set the deploy dir (where to find project_settings.py
+                               and, optionally, localtasks.py)  Defaults to the
+                               directory that contains tasks.py
+    -q, --quiet                Print less output while executing (note: not none)
+    -v, --verbose              Print extra output while executing
+    -h, --help                 Print this help text
 
 You can pass arguments to the tasks listed below, by adding the argument after a
 colon. So to call deploy and set the environment to staging you could do:
@@ -41,23 +32,15 @@ $ ./tasks.py deploy:environment=staging
 Multiple arguments are separated by commas:
 
 $ ./tasks.py deploy:environment=staging,arg2=somevalue
-
-You can get a description of a function (the docstring, and a basic
-description of the arguments it takes) by using -t thus:
-
-    -t <function_name>
-
-If you need to know more, then you'll have to look at the code of the
-function in tasklib.py (or localtasks.py) to see what arguments the
-function accepts.
 """
 
 import os
 import sys
-import getopt
+import docopt
 import inspect
 
 from dye import tasklib
+from dye.tasklib.exceptions import TasksError
 
 localtasks = None
 
@@ -184,55 +167,49 @@ def convert_task_bits(task_bits):
 
 def main(argv):
     global localtasks
-    verbose = False
-    quiet = False
-    deploy_dir = os.path.dirname(__file__)
-    # parse command line options
-    try:
-        opts, args = getopt.getopt(argv[1:], "thd:qv",
-                ["task-description", "help", "deploydir=", "quiet", "verbose"])
-    except getopt.error, msg:
-        print msg
-        print "for help use --help"
-        return 2
-    # process options
-    for opt, arg in opts:
-        if opt in ("-h", "--help"):
-            print_help_text()
-            return 0
-        if opt in ("-v", "--verbose"):
-            verbose = True
-        if opt in ("-q", "--quiet"):
-            quiet = True
-        if opt in ("-t", "--task-description"):
-            describe_task(args)
-            return 0
-        if opt in ("-d", "--deploydir"):
-            deploy_dir = arg
-    if verbose and quiet:
-        print "Cannot set both verbose and quiet"
-        return 2
-    tasklib.env['verbose'] = verbose
-    tasklib.env['quiet'] = quiet
-    tasklib.env['deploy_dir'] = deploy_dir
 
-    sys.path.append(deploy_dir)
-    import project_settings
+    options = docopt.docopt(__doc__, argv, help=False)
+
+    # need to set this before doing task-description or help
+    if options['--deploydir']:
+        tasklib.env['deploy_dir'] = options['--deploydir']
+    else:
+        tasklib.env['deploy_dir'] = os.path.dirname(__file__)
+    # first we need to find and load the project settings
+    sys.path.append(tasklib.env['deploy_dir'])
     # now see if we can find localtasks
     # We deliberately don't surround the import by try/except. If there
     # is an error in localfab, you want it to blow up immediately, rather
     # than silently fail.
-    if os.path.isfile(os.path.join(deploy_dir, 'localtasks.py')):
+    if os.path.isfile(os.path.join(tasklib.env['deploy_dir'], 'localtasks.py')):
         import localtasks
+
+    if options['--help']:
+        print_help_text()
+        return 0
+    if options['--task-description']:
+        describe_task(options['<tasks>'])
+        return 0
+    if options['--verbose'] and options['--quiet']:
+        print "Cannot set both verbose and quiet"
+        return 2
+    tasklib.env['verbose'] = options['--verbose']
+    tasklib.env['quiet'] = options['--quiet']
+
+    try:
+        import project_settings
+    except ImportError:
+        print >>sys.stderr, \
+            "Could not import project_settings - check your --deploydir argument"
+        return 1
+
+    if localtasks is not None:
         if (hasattr(localtasks, '_setup_paths')):
             localtasks._setup_paths()
     # now set up the various paths required
     tasklib._setup_paths(project_settings, localtasks)
-    if len(args) == 0:
-        print_help_text()
-        return 0
     # process arguments - just call the function with that name
-    for arg in args:
+    for arg in options['<tasks>']:
         fname, pos_args, kwargs = convert_task_bits(arg)
         # work out which function to call - localtasks have priority
         f = None
@@ -247,10 +224,10 @@ def main(argv):
         # call the function
         try:
             f(*pos_args, **kwargs)
-        except tasklib.TasksError as e:
+        except TasksError as e:
             print >>sys.stderr, e.msg
             return e.exit_code
 
 
 if __name__ == '__main__':
-    sys.exit(main(sys.argv))
+    sys.exit(main(sys.argv[1:]))
