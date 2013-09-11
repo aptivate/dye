@@ -4,8 +4,9 @@ import sys
 import random
 import subprocess
 
-from .database import (ensure_user_and_db_exist, create_db_if_not_exists,
-    grant_all_privileges_for_database, _db_table_exists, drop_db)
+#from .database import (ensure_user_and_db_exist, create_db_if_not_exists,
+#    grant_all_privileges_for_database, _db_table_exists, drop_db)
+from .database import get_db_manager
 from .exceptions import InvalidProjectError, ShellCommandError
 from .util import _check_call_wrapper
 # global dictionary for state
@@ -60,8 +61,7 @@ def set_django_db_settings(database='default'):
                 configuration. Override from the default to use a different
                 database.
     """
-    from .database import db_details
-    if db_details['engine'] is not None:
+    if 'db' in env:
         return
     # import local_settings from the django dir. Here we are adding the django
     # project directory to the path. Note that env['django_dir'] may be more than
@@ -70,6 +70,7 @@ def set_django_db_settings(database='default'):
     import local_settings
 
     default_host = '127.0.0.1'
+    db_details = {}
     # there are two ways of having the settings:
     # either as DATABASE_NAME = 'x', DATABASE_USER ...
     # or as DATABASES = { 'default': { 'NAME': 'xyz' ... } }
@@ -95,24 +96,32 @@ def set_django_db_settings(database='default'):
         except AttributeError:
             # we've failed to find the details we need - give up
             raise InvalidProjectError("Failed to find database settings")
+    # sort out the engine part - discard everything before the last .
+    db_details['engine'] = db_details['engine'].split('.')[-1]
+    # and create the objects that hold the db details
+    env['db'] = get_db_manager(**db_details)
+    # and the test db object
+    db_details['name'] = 'test_' + db_details['name']
+    env['test_db'] = get_db_manager(**db_details)
 
 
 def clean_db(database='default'):
     """Delete the database for a clean start"""
+    # TODO: fix for new database objects
     set_django_db_settings(database=database)
-    from .database import db_details
     # then see if the database exists
-    if db_details['engine'].endswith('sqlite'):
+    if env['db'].engine.lower() == 'sqlite':
+        # TODO: do sqlite drop_db() and merge this code
         # delete sqlite file
-        if path.isabs(db_details['name']):
-            db_path = db_details['name']
+        if path.isabs(env['db'].name):
+            db_path = env['db'].name
         else:
-            db_path = path.abspath(path.join(env['django_dir'], db_details['name']))
+            db_path = path.abspath(path.join(env['django_dir'], env['db'].name))
         os.remove(db_path)
-    elif db_details['engine'].endswith('mysql'):
+    elif env['db'].engine.lower() == 'mysql':
         # DROP DATABASE
-        drop_db(db_details['name'])
-        drop_db('test_' + db_details['name'])
+        env['db'].drop_db()
+        env['test_db'].drop_db()
 
 
 def _get_cache_table():
@@ -141,17 +150,14 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, databa
         print "### Creating and updating the databases"
 
     set_django_db_settings(database=database)
-    from .database import db_details
     if env['environment'] == 'dev_fasttests':
-        db_details['grant_enabled'] = False
+        env['db'].grant_enabled = False
 
     # then see if the database exists
-    if db_details['engine'].endswith('mysql'):
-        ensure_user_and_db_exist()
-        test_db = 'test_' + db_details['name']
-        if not drop_test_db:
-            create_db_if_not_exists(test_db)
-        grant_all_privileges_for_database(test_db)
+    env['db'].ensure_user_and_db_exist()
+    if not drop_test_db:
+        env['test_db'].create_db_if_not_exists()
+    env['test_db'].grant_all_privileges_for_database()
 
     #print 'syncdb: %s' % type(syncdb)
     use_migrations = force_use_migrations
@@ -159,7 +165,7 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, databa
         # if we are using the database cache we need to create the table
         # and we need to do it before syncdb
         cache_table = _get_cache_table()
-        if cache_table and not _db_table_exists(cache_table):
+        if cache_table and not env['db'].db_table_exists(cache_table):
             _manage_py(['createcachetable', cache_table])
         # if we are using South we need to do the migrations aswell
         for app in env['django_apps']:
@@ -172,8 +178,7 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, databa
 
 def create_test_db(drop_after_create=True, database='default'):
     set_django_db_settings(database=database)
-    from .database import db_details
-    create_db_if_not_exists('test_' + db_details['name'], drop_after_create=drop_after_create)
+    env['test_db'].create_db_if_not_exists(drop_after_create=drop_after_create)
 
 
 def link_local_settings(environment):
