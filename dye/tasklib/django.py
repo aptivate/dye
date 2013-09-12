@@ -182,9 +182,9 @@ def restore_db(dump_filename='db_dump.sql', database='default'):
     env['db'].restore_db(dump_filename)
 
 
-def create_mysqldump_cron_file(cron_file, dump_file_stub, database='default'):
+def create_dbdump_cron_file(cron_file, dump_file_stub, database='default'):
     _create_db_objects(database=database)
-    env['db'].create_mysqldump_cron_file(cron_file, dump_file_stub)
+    env['db'].create_dbdump_cron_file(cron_file, dump_file_stub)
 
 
 def setup_db_dumps(dump_dir, database='default'):

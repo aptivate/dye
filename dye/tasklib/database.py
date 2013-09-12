@@ -277,7 +277,7 @@ class MySQLManager(DBManager):
         _call_command(restore_cmd, stdin=dump_file)
         dump_file.close()
 
-    def create_mysqldump_cron_file(self, cron_file, dump_file_stub):
+    def create_dbdump_cron_file(self, cron_file, dump_file_stub):
         # write something like:
         # #!/bin/sh
         # /usr/bin/mysqldump --user=projectname --password=aptivate --host=127.0.0.1 projectname >  /var/projectname/dumps/daily-dump-`/bin/date +\%d`.sql
