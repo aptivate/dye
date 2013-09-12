@@ -15,6 +15,7 @@ from .environment import env
 # the methods in this class are those used externally
 class DBManager(object):
 
+    # the first three are required for tasks.py deploy
     def drop_db(self):
         raise NotImplementedError()
 
@@ -22,6 +23,20 @@ class DBManager(object):
         raise NotImplementedError()
 
     def test_db_table_exists(self, table):
+        raise NotImplementedError()
+
+    # these four are only required for fablib deploy, which is why I
+    # haven't implemented them for sqlite
+    def dump_db(self, dump_filename='db_dump.sql', for_rsync=False):
+        raise NotImplementedError()
+
+    def restore_db(self, dump_filename):
+        raise NotImplementedError()
+
+    def create_dbdump_cron_file(self, cron_file, dump_file_stub):
+        raise NotImplementedError()
+
+    def setup_db_dumps(self, dump_dir):
         raise NotImplementedError()
 
 
