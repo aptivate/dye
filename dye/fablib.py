@@ -589,7 +589,8 @@ def create_deploy_virtualenv(in_next=False):
         bootstrap_path = path.join(env.next_dir, 'deploy', 'bootstrap.py')
     else:
         bootstrap_path = path.join(env.deploy_dir, 'bootstrap.py')
-    sudo_or_run('%s %s --quiet' % (_get_python(), bootstrap_path))
+    sudo_or_run('%s %s --full-rebuild --quiet' %
+                (_get_python(), bootstrap_path))
 
 
 def update_requirements():
