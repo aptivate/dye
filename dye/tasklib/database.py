@@ -120,7 +120,7 @@ class MySQLManager(DBManager):
             self.root_db_conn.close()
             self.root_db_conn = None
 
-    def create_mysql_args(self, db_name=None):
+    def create_mysql_args(self):
         mysql_args = [
             '-u', self.user,
             '-p%s' % self.password,
@@ -165,14 +165,14 @@ class MySQLManager(DBManager):
             cursor.close()
         return rows != 0
 
-    def db_exists(self, db_name):
+    def db_exists(self):
         cursor = self.get_root_db_cursor()
         try:
             cursor.execute("SHOW DATABASES")
             db_list = [row[0] for row in cursor.fetchall()]
         finally:
             cursor.close()
-        return db_name in db_list
+        return self.name in db_list
 
     def db_table_exists(self, table_name):
         cursor = self.get_user_db_cursor()
@@ -200,7 +200,7 @@ class MySQLManager(DBManager):
         )
 
     def create_db_if_not_exists(self):
-        if not self.db_exists(self.name):
+        if not self.db_exists():
             self.mysql_exec_as_root('CREATE DATABASE %s CHARACTER SET utf8' % self.name)
 
     def ensure_user_and_db_exist(self):

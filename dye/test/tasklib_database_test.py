@@ -82,7 +82,7 @@ class MysqlMixin(object):
 
     def grant_privileges(self):
         self.get_mysql_root_password()
-        self.db._mysql_exec_as_root(
+        self.db.mysql_exec_as_root(
             "GRANT ALL PRIVILEGES ON %s.* TO '%s'@'localhost'" %
             (self.TEST_DB, self.TEST_USER))
         self.db.mysql_exec_as_root("FLUSH PRIVILEGES")
@@ -100,7 +100,7 @@ class TestCreateMysqlArgs(MysqlMixin, unittest.TestCase):
 
     def test_create_mysql_args_simple_case(self):
         mysql_args = self.db.create_mysql_args()
-        expected_args = ['-u', 'dye_user', '-pdye_password', 'dyedb']
+        expected_args = ['-u', 'dye_user', '-pdye_password', '--host=localhost', 'dyedb']
         self.assertSequenceEqual(expected_args, mysql_args)
 
     def test_create_mysql_args_with_host(self):
@@ -112,12 +112,13 @@ class TestCreateMysqlArgs(MysqlMixin, unittest.TestCase):
     def test_create_mysql_args_with_port(self):
         self.db.port = 3333
         mysql_args = self.db.create_mysql_args()
-        expected_args = ['-u', 'dye_user', '-pdye_password', '--port=3333', 'dyedb']
+        expected_args = ['-u', 'dye_user', '-pdye_password', '--host=localhost', '--port=3333', 'dyedb']
         self.assertSequenceEqual(expected_args, mysql_args)
 
     def test_create_mysql_args_with_setting_database_name(self):
-        mysql_args = self.db.create_mysql_args(db_name='mydb')
-        expected_args = ['-u', 'dye_user', '-pdye_password', 'mydb']
+        self.db.name = 'mydb'
+        mysql_args = self.db.create_mysql_args()
+        expected_args = ['-u', 'dye_user', '-pdye_password', '--host=localhost', 'mydb']
         self.assertSequenceEqual(expected_args, mysql_args)
 
 
@@ -173,11 +174,9 @@ class TestDatabaseTestFunctions(MysqlMixin, unittest.TestCase):
         self.create_database()
         self.grant_privileges()
         self.create_table()
-        self.set_default_db_details()
         try:
             self.assertTrue(self.db.db_table_exists(self.TEST_TABLE))
         finally:
-            self.reset_db_details()
             self.drop_database()
             self.drop_database_user()
 
@@ -185,11 +184,9 @@ class TestDatabaseTestFunctions(MysqlMixin, unittest.TestCase):
         self.create_database_user()
         self.create_database()
         self.grant_privileges()
-        self.set_default_db_details()
         try:
             self.assertFalse(self.db.db_table_exists(self.TEST_TABLE))
         finally:
-            self.reset_db_details()
             self.drop_database()
             self.drop_database_user()
 
@@ -214,7 +211,8 @@ class TestDatabaseCreateFunctions(MysqlMixin, unittest.TestCase):
     def test_set_user_password_changes_user_password(self):
         self.create_database_user()
         try:
-            self.db.set_user_password(password='new_password')
+            self.db.password = 'new_password'
+            self.db.set_user_password()
             self.assertTrue(self.db.test_mysql_user_password_works(
                 password='new_password'))
         finally:
@@ -298,7 +296,8 @@ class TestMysqlDumpCron(MysqlMixin, unittest.TestCase):
         actual_output = output_file.getvalue()
         expected_output = \
             "#!/bin/sh\n" \
-            "/usr/bin/mysqldump -u dye_user -pdye_password dyedb > /var/dumps/dye-`/bin/date +\%d`.sql\n"
+            "/usr/bin/mysqldump -u dye_user -pdye_password " \
+            "--host=localhost dyedb > /var/dumps/dye-`/bin/date +\%d`.sql\n"
         self.assertEqual(expected_output, actual_output)
 
 
