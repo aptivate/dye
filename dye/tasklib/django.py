@@ -172,6 +172,26 @@ def create_test_db(drop_after_create=True, database='default'):
     env['test_db'].create_db_if_not_exists(drop_after_create=drop_after_create)
 
 
+def dump_db(dump_filename='db_dump.sql', for_rsync=False, database='default'):
+    _create_db_objects(database=database)
+    env['db'].dump_db(dump_filename, for_rsync)
+
+
+def restore_db(dump_filename='db_dump.sql', database='default'):
+    _create_db_objects(database=database)
+    env['db'].restore_db(dump_filename)
+
+
+def create_mysqldump_cron_file(cron_file, dump_file_stub, database='default'):
+    _create_db_objects(database=database)
+    env['db'].create_mysqldump_cron_file(cron_file, dump_file_stub)
+
+
+def setup_db_dumps(dump_dir, database='default'):
+    _create_db_objects(database=database)
+    env['db'].setup_db_dumps(dump_dir)
+
+
 def link_local_settings(environment):
     """ link local_settings.py.environment as local_settings.py """
     if not env['quiet']:
