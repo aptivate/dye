@@ -239,8 +239,8 @@ def create_copy_for_next():
     # if it does maybe there was an aborted deploy, or maybe someone else is
     # deploying.  Either way, stop and ask the user what to do.
     if files.exists(env.next_dir):
-        utils.warn('The "next" directory already exists.  Maybe a previous deploy'
-                   'failed, or maybe another deploy is in progress.')
+        utils.warn('The "next" directory already exists.  Maybe a previous '
+                   'deploy failed, or maybe another deploy is in progress.')
         continue_anyway = prompt('Would you like to continue anyway '
                                  '(and delete the current next dir)? [no/yes]',
                 default='no', validate='^no|yes$')
