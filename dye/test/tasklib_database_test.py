@@ -3,6 +3,7 @@ from os import path
 import sys
 import StringIO
 import unittest
+import sqlite3
 import MySQLdb
 
 dye_dir = path.join(path.dirname(__file__), os.pardir)
@@ -16,6 +17,56 @@ tasklib.env['quiet'] = True
 
 # cache this in a global variable so that we only need it once
 mysql_root_password = None
+
+
+class TestSqliteManager(unittest.TestCase):
+    TEST_DB = 'dyedb'
+    TEST_TABLE = 'dyetable'
+
+    def setUp(self):
+        self.db = database.get_db_manager(
+            engine='sqlite',
+            name=self.TEST_DB,
+            root_dir='.',
+        )
+        super(TestSqliteManager, self).setUp()
+
+    def tearDown(self):
+        self.db.drop_db()
+
+    def create_db(self):
+        conn = sqlite3.connect(self.db.file_path)
+        conn.close()
+        # check this has done what we expect
+        self.assertTrue(path.exists(self.db.file_path))
+
+    def create_table(self):
+        conn = sqlite3.connect(self.db.file_path)
+        conn.execute("CREATE TABLE %s (mycolumn CHAR(30))" % self.TEST_TABLE)
+
+    def test_drop_db_deletes_db_file(self):
+        self.create_db()
+        self.db.drop_db()
+        self.assertFalse(path.exists(self.db.file_path))
+
+    def test_drop_db_doesnt_give_error_when_db_doesnt_exist(self):
+        # check our assumptions are correct
+        self.assertFalse(path.exists(self.db.file_path))
+        try:
+            self.db.drop_db()
+        except Exception as e:
+            self.fail(
+                'Exception %s thrown by sqlite drop_db() when no db file present'
+                % e)
+
+    def test_db_table_exists_returns_false_when_table_not_present(self):
+        self.create_db()
+        self.assertFalse(self.db.db_table_exists('testtable'))
+
+    def test_db_table_exists_returns_false_when_table_present(self):
+        self.create_db()
+        self.create_table()
+        self.assertTrue(self.db.db_table_exists(self.TEST_TABLE))
 
 
 class MysqlMixin(object):

@@ -1,5 +1,6 @@
 import os
 from os import path
+import sqlite3
 import MySQLdb
 
 from .exceptions import InvalidArgumentError, InvalidProjectError
@@ -11,16 +12,46 @@ from .util import (_check_call_wrapper, _capture_command,
 from .environment import env
 
 
+# the methods in this class are those used externally
 class DBManager(object):
-    pass
+
+    def drop_db(self):
+        raise NotImplementedError()
+
+    def ensure_user_and_db_exist(self):
+        raise NotImplementedError()
+
+    def db_table_exists(self, table):
+        raise NotImplementedError()
 
 
 class SqliteManager(DBManager):
 
     ENGINE = 'Sqlite'
 
-    def __init__(filename):
+    def __init__(self, name, root_dir):
+        if path.isabs(name):
+            self.file_path = name
+        else:
+            self.file_path = path.abspath(path.join(root_dir, name))
+
+    def drop_db(self):
+        if path.exists(self.file_path):
+            os.remove(self.file_path)
+
+    # django syncdb will create the sqlite table
+    def ensure_user_and_db_exist(self):
         pass
+
+    def db_table_exists(self, table):
+        conn = sqlite3.connect(self.file_path)
+        try:
+            result = conn.execute(
+                "select name from sqlite_master where type = 'table' and "
+                "name = '%s'" % table)
+            return len(list(result.fetchall())) != 0
+        finally:
+            conn.close()
 
 
 class MySQLManager(DBManager):
