@@ -251,7 +251,9 @@ def create_copy_for_next():
     # if this is the initial deploy, the vcs_root_dir won't exist yet. In that
     # case, don't create it (otherwise the checkout code will get confused).
     if files.exists(env.vcs_root_dir):
-        # cp -a
+        # cp -a - amongst other things this preserves links and timestamps
+        # so the compare that bootstrap.py does to see if the virtualenv
+        # needs an update should still work.
         sudo_or_run('cp -a %s %s' % (env.vcs_root_dir, env.next_dir))
 
 
