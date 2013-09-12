@@ -263,6 +263,7 @@ def next_to_current_to_rollback():
     # if this is the initial deploy, the vcs_root_dir won't exist yet.  In that
     # case just skip the rollback version.
     if files.exists(env.vcs_root_dir):
+        _create_dir_if_not_exists(prev_dir)
         prev_dir = path.join(env.prev_root, time.strftime("%Y-%m-%d_%H-%M-%S"))
         sudo_or_run('mv %s %s' % (env.vcs_root_dir, prev_dir))
         _dump_db_in_previous_directory(prev_dir)
