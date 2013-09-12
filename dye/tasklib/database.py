@@ -4,8 +4,8 @@ import MySQLdb
 
 from .exceptions import InvalidArgumentError, InvalidProjectError
 from .util import (_check_call_wrapper, _capture_command,
-                   _call_command, _create_dir_if_not_exists, CalledProcessError,
-                   _ask_for_password, _get_file_contents)
+                   _call_command, _create_dir_if_not_exists,
+                   CalledProcessError, _ask_for_password, _get_file_contents)
 
 # this is a global dictionary
 from .environment import env
@@ -41,7 +41,8 @@ class MySQLManager(DBManager):
             self.host = host
         self.root_password = root_password
         self.grant_enabled = grant_enabled
-        # connections to the MySQL database for the normal user and the root user
+        # connections to the MySQL database for the normal user and the root
+        # user
         self.user_db_conn = None
         self.root_db_conn = None
 
@@ -134,9 +135,9 @@ class MySQLManager(DBManager):
 
     def mysql_exec(self, mysql_cmd, db_name=None, capture_output=False):
         """execute a SQL statement using the mysql command line client.
-        We do this rather than using the python libraries so this script can be
-        run without the python libraries being installed.  (Also this was orginally
-        written for fabric, so the code was already proven there)."""
+        We do this rather than using the python libraries so this script can
+        be run without the python libraries being installed.  (Also this was
+        orginally written for fabric, so the code was already proven there)."""
         mysql_call = ['mysql'] + self.create_mysql_args(db_name)
         mysql_call += ['-e', mysql_cmd]
 
@@ -160,7 +161,8 @@ class MySQLManager(DBManager):
             user = self.user
         cursor = self.get_root_db_cursor()
         try:
-            rows = cursor.execute("SELECT 1 FROM mysql.user WHERE user = '%s'" % user)
+            rows = cursor.execute(
+                "SELECT 1 FROM mysql.user WHERE user = '%s'" % user)
         finally:
             cursor.close()
         return rows != 0
@@ -184,12 +186,14 @@ class MySQLManager(DBManager):
 
     def create_user_if_not_exists(self):
         if not self.test_mysql_user_exists(self.user):
-            self.mysql_exec_as_root("CREATE USER '%s'@'%s' IDENTIFIED BY '%s'" %
-                                (self.user, self.host, self.password))
+            self.mysql_exec_as_root(
+                "CREATE USER '%s'@'%s' IDENTIFIED BY '%s'" %
+                (self.user, self.host, self.password))
 
     def set_user_password(self):
-        self.mysql_exec_as_root("SET PASSWORD FOR '%s'@'%s' = PASSWORD('%s')" %
-                            (self.user, self.host, self.password))
+        self.mysql_exec_as_root(
+            "SET PASSWORD FOR '%s'@'%s' = PASSWORD('%s')" %
+            (self.user, self.host, self.password))
 
     def grant_all_privileges_for_database(self):
         if not self.grant_enabled:
@@ -201,7 +205,8 @@ class MySQLManager(DBManager):
 
     def create_db_if_not_exists(self):
         if not self.db_exists():
-            self.mysql_exec_as_root('CREATE DATABASE %s CHARACTER SET utf8' % self.name)
+            self.mysql_exec_as_root(
+                'CREATE DATABASE %s CHARACTER SET utf8' % self.name)
 
     def ensure_user_and_db_exist(self):
         # the below just make sure things line up at the end of the process
@@ -250,7 +255,8 @@ class MySQLManager(DBManager):
 
         # don't use "with" for compatibility with python 2.3 on whov2hinari
         cron_file.write('#!/bin/sh\n')
-        cron_file.write('/usr/bin/mysqldump ' + ' '.join(self.create_mysql_args()))
+        cron_file.write('/usr/bin/mysqldump ' +
+                        ' '.join(self.create_mysql_args()))
         cron_file.write(' > %s' % dump_file_stub)
         cron_file.write(r'`/bin/date +\%d`.sql')
         cron_file.write('\n')
