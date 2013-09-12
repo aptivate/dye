@@ -6,7 +6,7 @@ import unittest
 # make sure a project_settings is available
 dye_dir = path.join(path.dirname(__file__), os.pardir)
 sys.path.append(dye_dir)
-example_dir = path.join(dye_dir, os.pardir, 'examples', 'deploy')
+example_dir = path.join(dye_dir, os.pardir, '{{cookiecutter.repo_name}}', 'deploy')
 sys.path.append(example_dir)
 
 # import from dye

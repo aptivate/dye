@@ -1,0 +1,20 @@
+DEVELOPING
+==========
+
+## Git Branches
+
+The intent is that:
+
+- master is stable and has been tested with at least one project
+- develop is expected to be stable, but needs some testing
+- feature branches might be completely broken
+
+So small incremental improvements should be done on the develop branch
+and then tested against at least one project before being merged into
+master.
+
+If you're doing something bigger, then please make a new branch.  Once
+it is working, merge the develop branch into your feature branch, check
+everything still works, and then merge your branch into develop.
+Alternatively you could make a fork and merge back in via a pull
+request, so it is easier to do a good code review of your changes.

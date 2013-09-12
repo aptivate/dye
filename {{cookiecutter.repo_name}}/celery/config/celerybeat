@@ -1,0 +1,12 @@
+# Where the Django project is.
+CELERYBEAT_CHDIR="/var/django/insert_project_name_here/dev/django/website/"
+
+# Name of the projects settings module.
+export DJANGO_SETTINGS_MODULE="settings"
+
+# Path to celerybeat
+CELERYBEAT="/var/django/insert_project_name_here/dev/django/website/manage.py celerybeat -S djcelery.schedulers.DatabaseScheduler"
+
+# Details for user running Celery
+CELERYBEAT_USER="apache"
+CELERYBEAT_GROUP="apache"
