@@ -111,7 +111,6 @@ def _create_db_objects(database='default'):
 
 def clean_db(database='default'):
     """Delete the database for a clean start"""
-    # TODO: fix for new database objects
     _create_db_objects(database=database)
     env['db'].drop_db()
     env['test_db'].drop_db()

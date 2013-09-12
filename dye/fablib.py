@@ -235,7 +235,7 @@ def clean_old_celery():
 def create_copy_for_next():
     """Copy the current version to "next" so that we can do stuff like
     the VCS update and virtualenv update without taking the site offline"""
-    # TODO: check if next directory already exists
+    # check if next directory already exists
     # if it does maybe there was an aborted deploy, or maybe someone else is
     # deploying.  Either way, stop and ask the user what to do.
     if files.exists(env.next_dir):
