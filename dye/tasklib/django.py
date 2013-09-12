@@ -4,8 +4,6 @@ import sys
 import random
 import subprocess
 
-#from .database import (ensure_user_and_db_exist, create_db_if_not_exists,
-#    grant_all_privileges_for_database, _db_table_exists, drop_db)
 from .database import get_db_manager
 from .exceptions import InvalidProjectError, ShellCommandError
 from .util import _check_call_wrapper
@@ -54,7 +52,7 @@ def _manage_py(args, cwd=None):
     return output_lines
 
 
-def set_django_db_settings(database='default'):
+def _create_db_objects(database='default'):
     """
         Args:
             database (string): The database key to use in the 'DATABASES'
@@ -78,7 +76,9 @@ def set_django_db_settings(database='default'):
         db = local_settings.DATABASES[database]
         db_details['engine'] = db['ENGINE']
         db_details['name'] = db['NAME']
-        if not db_details['engine'].endswith('sqlite'):
+        if db_details['engine'].endswith('sqlite'):
+            db_details['root_dir'] = env['django_dir']
+        else:
             db_details['user'] = db['USER']
             db_details['password'] = db['PASSWORD']
             db_details['port'] = db.get('PORT', None)
@@ -88,7 +88,9 @@ def set_django_db_settings(database='default'):
         try:
             db_details['engine'] = local_settings.DATABASE_ENGINE
             db_details['name'] = local_settings.DATABASE_NAME
-            if not db_details['engine'].endswith('sqlite'):
+            if db_details['engine'].endswith('sqlite'):
+                db_details['root_dir'] = env['django_dir']
+            else:
                 db_details['user'] = local_settings.DATABASE_USER
                 db_details['password'] = local_settings.DATABASE_PASSWORD
                 db_details['port'] = getattr(local_settings, 'DATABASE_PORT', None)
@@ -98,6 +100,8 @@ def set_django_db_settings(database='default'):
             raise InvalidProjectError("Failed to find database settings")
     # sort out the engine part - discard everything before the last .
     db_details['engine'] = db_details['engine'].split('.')[-1]
+    if env['environment'] == 'dev_fasttests':
+        db['grant_enabled'] = False
     # and create the objects that hold the db details
     env['db'] = get_db_manager(**db_details)
     # and the test db object
@@ -108,20 +112,9 @@ def set_django_db_settings(database='default'):
 def clean_db(database='default'):
     """Delete the database for a clean start"""
     # TODO: fix for new database objects
-    set_django_db_settings(database=database)
-    # then see if the database exists
-    if env['db'].engine.lower() == 'sqlite':
-        # TODO: do sqlite drop_db() and merge this code
-        # delete sqlite file
-        if path.isabs(env['db'].name):
-            db_path = env['db'].name
-        else:
-            db_path = path.abspath(path.join(env['django_dir'], env['db'].name))
-        os.remove(db_path)
-    elif env['db'].engine.lower() == 'mysql':
-        # DROP DATABASE
-        env['db'].drop_db()
-        env['test_db'].drop_db()
+    _create_db_objects(database=database)
+    env['db'].drop_db()
+    env['test_db'].drop_db()
 
 
 def _get_cache_table():
@@ -149,9 +142,7 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, databa
     if not env['quiet']:
         print "### Creating and updating the databases"
 
-    set_django_db_settings(database=database)
-    if env['environment'] == 'dev_fasttests':
-        env['db'].grant_enabled = False
+    _create_db_objects(database=database)
 
     # then see if the database exists
     env['db'].ensure_user_and_db_exist()
@@ -177,7 +168,7 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, databa
 
 
 def create_test_db(drop_after_create=True, database='default'):
-    set_django_db_settings(database=database)
+    _create_db_objects(database=database)
     env['test_db'].create_db_if_not_exists(drop_after_create=drop_after_create)
 
 
