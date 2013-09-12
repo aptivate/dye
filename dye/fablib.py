@@ -263,7 +263,7 @@ def next_to_current_to_rollback():
     # if this is the initial deploy, the vcs_root_dir won't exist yet.  In that
     # case just skip the rollback version.
     if files.exists(env.vcs_root_dir):
-        _create_dir_if_not_exists(prev_dir)
+        _create_dir_if_not_exists(env.prev_root)
         prev_dir = path.join(env.prev_root, time.strftime("%Y-%m-%d_%H-%M-%S"))
         sudo_or_run('mv %s %s' % (env.vcs_root_dir, prev_dir))
         _dump_db_in_previous_directory(prev_dir)
@@ -361,7 +361,7 @@ def rollback(version='last', migrate=False, restore_db=False):
     if restore_db:
         # feed the dump file into mysql command
         with cd(rollback_dir):
-            _tasks('load_dbdump')
+            _tasks('restore_db')
     # delete everything - don't want stray files left over
     sudo_or_run('rm -rf %s' % env.vcs_root_dir)
     # cp -a from rollback_dir to vcs_root_dir
