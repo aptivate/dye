@@ -59,14 +59,14 @@ class TestSqliteManager(unittest.TestCase):
                 'Exception %s thrown by sqlite drop_db() when no db file present'
                 % e)
 
-    def test_db_table_exists_returns_false_when_table_not_present(self):
+    def test_test_db_table_exists_returns_false_when_table_not_present(self):
         self.create_db()
-        self.assertFalse(self.db.db_table_exists('testtable'))
+        self.assertFalse(self.db.test_db_table_exists('testtable'))
 
-    def test_db_table_exists_returns_false_when_table_present(self):
+    def test_test_db_table_exists_returns_false_when_table_present(self):
         self.create_db()
         self.create_table()
-        self.assertTrue(self.db.db_table_exists(self.TEST_TABLE))
+        self.assertTrue(self.db.test_db_table_exists(self.TEST_TABLE))
 
 
 class MysqlMixin(object):
@@ -220,23 +220,23 @@ class TestDatabaseTestFunctions(MysqlMixin, unittest.TestCase):
         finally:
             self.drop_database()
 
-    def test_db_table_exists_returns_true_when_table_exists(self):
+    def test_test_db_table_exists_returns_true_when_table_exists(self):
         self.create_database_user()
         self.create_database()
         self.grant_privileges()
         self.create_table()
         try:
-            self.assertTrue(self.db.db_table_exists(self.TEST_TABLE))
+            self.assertTrue(self.db.test_db_table_exists(self.TEST_TABLE))
         finally:
             self.drop_database()
             self.drop_database_user()
 
-    def test_db_table_exists_returns_false_when_table_doesnt_exist(self):
+    def test_test_db_table_exists_returns_false_when_table_doesnt_exist(self):
         self.create_database_user()
         self.create_database()
         self.grant_privileges()
         try:
-            self.assertFalse(self.db.db_table_exists(self.TEST_TABLE))
+            self.assertFalse(self.db.test_db_table_exists(self.TEST_TABLE))
         finally:
             self.drop_database()
             self.drop_database_user()

@@ -156,7 +156,7 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, databa
         # if we are using the database cache we need to create the table
         # and we need to do it before syncdb
         cache_table = _get_cache_table()
-        if cache_table and not env['db'].db_table_exists(cache_table):
+        if cache_table and not env['db'].test_db_table_exists(cache_table):
             _manage_py(['createcachetable', cache_table])
         # if we are using South we need to do the migrations aswell
         for app in env['django_apps']:

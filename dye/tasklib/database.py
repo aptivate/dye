@@ -21,7 +21,7 @@ class DBManager(object):
     def ensure_user_and_db_exist(self):
         raise NotImplementedError()
 
-    def db_table_exists(self, table):
+    def test_db_table_exists(self, table):
         raise NotImplementedError()
 
 
@@ -43,7 +43,7 @@ class SqliteManager(DBManager):
     def ensure_user_and_db_exist(self):
         pass
 
-    def db_table_exists(self, table):
+    def test_db_table_exists(self, table):
         conn = sqlite3.connect(self.file_path)
         try:
             result = conn.execute(
@@ -207,7 +207,7 @@ class MySQLManager(DBManager):
             cursor.close()
         return self.name in db_list
 
-    def db_table_exists(self, table_name):
+    def test_db_table_exists(self, table_name):
         cursor = self.get_user_db_cursor()
         try:
             rows = cursor.execute("SHOW TABLES LIKE '%s'" % table_name)
