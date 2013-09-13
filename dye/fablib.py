@@ -353,10 +353,13 @@ def _dump_db_in_previous_directory(prev_dir):
 
 
 def delete_old_rollback_versions(keep=None):
-    """Delete old rollback directories, keeping the last "keep" (default 5)"."""
-    require('prev_root', provided_by=env.valid_envs)
+    """ Delete old rollback directories, keeping the last "keep" (default 5)".
+    """
+    require('server_project_home', provided_by=env.valid_envs)
     # the -1 argument ensures one directory per line
-    prev_versions = run('ls -1 ' + env.prev_root).split('\n')
+    dir_contents = run('ls -1 ' + env.server_project_home).split('\n')
+    # we're expecting timestamps, so this test will be safe until 2100
+    prev_versions = [d for d in dir_contents if d.startswith('20')]
     if keep is None:
         if 'versions_to_keep' in env:
             keep = env.versions_to_keep
@@ -366,7 +369,9 @@ def delete_old_rollback_versions(keep=None):
         keep = int(keep)
     if keep == 0:
         return
-    versions_to_keep = -1 * int(keep)
+    # add 1 as we want the current copy plus keep old copies
+    versions_to_keep = -1 * (int(keep) + 1)
+    # mylist[:-6] would be the list missing the last 6 elements
     prev_versions_to_delete = prev_versions[:versions_to_keep]
     for version_to_delete in prev_versions_to_delete:
         sudo_or_run('rm -rf ' + path.join(
