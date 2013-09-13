@@ -87,33 +87,33 @@ class MySQLManager(DBManager):
             self.host = host
         self.root_password = root_password
         self.grant_enabled = grant_enabled
-        # connections to the MySQL database for the normal user and the root
+        # connections to the database for the normal user and the root
         # user
         self.user_db_conn = None
         self.root_db_conn = None
 
-    def get_mysql_root_password(self):
+    def get_root_password(self):
         """This can be overridden (by monkeypatching) if required."""
         # first try to read the root password from a file
         # otherwise ask the user
         if self.root_password is None:
             root_pw = _get_file_contents(self.root_pw_file, sudo=self.root_pw_file_needs_sudo)
             # maybe it is wrong (on developer machine) - check it
-            if root_pw is not None and not self.test_mysql_root_password(root_pw):
+            if root_pw is not None and not self.test_root_password(root_pw):
                 if env['verbose']:
                     print "mysql root password in %s doesn't work" % self.root_pw_file
                 root_pw = None
 
             # still haven't got it, ask the user
             if root_pw is None and not env['quiet']:
-                root_pw = _ask_for_password("", test_fn=self.test_mysql_root_password)
+                root_pw = _ask_for_password("", test_fn=self.test_root_password)
 
             # now we have root password that works
             self.root_password = root_pw
 
         return self.root_password
 
-    def test_mysql_user_password_works(self, user=None, password=None):
+    def test_sql_user_password(self, user=None, password=None):
         # try to connect
         kwargs = {
             'user': user if user else self.user,
@@ -129,9 +129,9 @@ class MySQLManager(DBManager):
         db_conn.close()
         return True
 
-    def test_mysql_root_password(self, password):
+    def test_root_password(self, password):
         """Try a no-op with the root password"""
-        return self.test_mysql_user_password_works(user='root', password=password)
+        return self.test_sql_user_password(user='root', password=password)
 
     def create_db_connection(self, **kwargs):
         if self.host:
@@ -158,7 +158,7 @@ class MySQLManager(DBManager):
         if self.root_db_conn is None:
             self.root_db_conn = self.create_db_connection(
                 user='root',
-                passwd=self.get_mysql_root_password()
+                passwd=self.get_root_password()
             )
         return self.root_db_conn.cursor(**cursor_kwargs)
 
@@ -167,41 +167,41 @@ class MySQLManager(DBManager):
             self.root_db_conn.close()
             self.root_db_conn = None
 
-    def create_mysql_args(self):
-        mysql_args = [
+    def create_cmdline_args(self):
+        cmdline_args = [
             '-u', self.user,
             '-p%s' % self.password,
         ]
         if self.host:
-            mysql_args.append('--host=%s' % self.host)
+            cmdline_args.append('--host=%s' % self.host)
         if self.port:
-            mysql_args.append('--port=%s' % self.port)
-        mysql_args.append(self.name)
-        return mysql_args
+            cmdline_args.append('--port=%s' % self.port)
+        cmdline_args.append(self.name)
+        return cmdline_args
 
-    def mysql_exec(self, mysql_cmd, db_name=None, capture_output=False):
+    def sql_exec(self, sql_cmd, db_name=None, capture_output=False):
         """execute a SQL statement using the mysql command line client.
         We do this rather than using the python libraries so this script can
         be run without the python libraries being installed.  (Also this was
         orginally written for fabric, so the code was already proven there)."""
-        mysql_call = ['mysql'] + self.create_mysql_args(db_name)
-        mysql_call += ['-e', mysql_cmd]
+        cmdline_call = ['mysql'] + self.create_cmdline_args(db_name)
+        cmdline_call += ['-e', sql_cmd]
 
         if capture_output:
-            return _capture_command(mysql_call)
+            return _capture_command(cmdline_call)
         else:
-            _check_call_wrapper(mysql_call)
+            _check_call_wrapper(cmdline_call)
 
-    def mysql_exec_as_root(self, *mysql_cmd_list):
+    def exec_as_root(self, *sql_cmd_list):
         """ execute a SQL statement using MySQL as the root MySQL user"""
         cursor = self.get_root_db_cursor()
         try:
-            for cmd in mysql_cmd_list:
+            for cmd in sql_cmd_list:
                 cursor.execute(cmd)
         finally:
             cursor.close()
 
-    def test_mysql_user_exists(self, user=None):
+    def test_sql_user_exists(self, user=None):
         # check user in mysql table
         if not user:
             user = self.user
@@ -231,27 +231,27 @@ class MySQLManager(DBManager):
         return rows != 0
 
     def create_user_if_not_exists(self):
-        if not self.test_mysql_user_exists(self.user):
-            self.mysql_exec_as_root(
+        if not self.test_sql_user_exists(self.user):
+            self.exec_as_root(
                 "CREATE USER '%s'@'%s' IDENTIFIED BY '%s'" %
                 (self.user, self.host, self.password))
 
     def set_user_password(self):
-        self.mysql_exec_as_root(
+        self.exec_as_root(
             "SET PASSWORD FOR '%s'@'%s' = PASSWORD('%s')" %
             (self.user, self.host, self.password))
 
     def grant_all_privileges_for_database(self):
         if not self.grant_enabled:
             return
-        self.mysql_exec_as_root(
+        self.exec_as_root(
             "GRANT ALL PRIVILEGES ON %s.* TO '%s'@'%s'" % (self.name, self.user, self.host),
             "FLUSH PRIVILEGES",
         )
 
     def create_db_if_not_exists(self):
         if not self.db_exists():
-            self.mysql_exec_as_root(
+            self.exec_as_root(
                 'CREATE DATABASE %s CHARACTER SET utf8' % self.name)
 
     def ensure_user_and_db_exist(self):
@@ -264,11 +264,11 @@ class MySQLManager(DBManager):
         self.grant_all_privileges_for_database()
 
     def drop_db(self):
-        self.mysql_exec_as_root('DROP DATABASE IF EXISTS %s' % self.name)
+        self.exec_as_root('DROP DATABASE IF EXISTS %s' % self.name)
 
     def dump_db(self, dump_filename='db_dump.sql', for_rsync=False):
         """Dump the database in the current working directory"""
-        dump_cmd = ['mysqldump'] + self.create_mysql_args()
+        dump_cmd = ['mysqldump'] + self.create_cmdline_args()
         # this option will mean that there will be one line per insert
         # thus making the dump file better for rsync, but slightly bigger
         if for_rsync:
@@ -284,7 +284,7 @@ class MySQLManager(DBManager):
 
     def restore_db(self, dump_filename):
         """Restore a database dump file by name"""
-        restore_cmd = ['mysql'] + self.create_mysql_args()
+        restore_cmd = ['mysql'] + self.create_cmdline_args()
         dump_file = open(dump_filename, 'r')
         if env['verbose']:
             print 'Executing mysql restore command: %s\nSending stdin to %s' % \
@@ -302,7 +302,7 @@ class MySQLManager(DBManager):
         # don't use "with" for compatibility with python 2.3 on whov2hinari
         cron_file.write('#!/bin/sh\n')
         cron_file.write('/usr/bin/mysqldump ' +
-                        ' '.join(self.create_mysql_args()))
+                        ' '.join(self.create_cmdline_args()))
         cron_file.write(' > %s' % dump_file_stub)
         cron_file.write(r'`/bin/date +\%d`.sql')
         cron_file.write('\n')
@@ -332,7 +332,7 @@ class MySQLManager(DBManager):
         # don't use "with" for compatibility with python 2.3 on whov2hinari
         f = open(cron_file, 'w')
         try:
-            self.create_mysqldump_cron_file(f, dump_file_stub)
+            self.create_dbdump_cron_file(f, dump_file_stub)
         finally:
             f.close()
 
