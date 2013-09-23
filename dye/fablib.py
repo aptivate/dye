@@ -328,7 +328,7 @@ def point_current_to_next():
     if files.exists(env.current_link):
         sudo_or_run('rm %s' % env.current_link)
     with cd(env.server_project_home):
-        sudo_or_run('ln -s %s current' % env.timestamp)
+        sudo_or_run('ln -s %s current' % env.next_dir)
     # and dump the database in the old directory
     _dump_db_in_previous_directory(env.vcs_root_dir_timestamp)
 
