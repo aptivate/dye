@@ -27,7 +27,7 @@ if 'IGNORE_DOTVE' not in os.environ and 'VIRTUAL_ENV' not in os.environ:
     updater = ve_mgr.UpdateVE()
     if updater.virtualenv_needs_update():
         print "VirtualEnv needs to be updated"
-        print 'Run "deploy/bootstrap.py'
+        print 'Run deploy/bootstrap.py'
         sys.exit(1)
 
     # now we should enter the virtualenv. We will only get
