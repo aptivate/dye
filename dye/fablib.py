@@ -265,7 +265,9 @@ def _migrate_directory_structure():
     prev_root = path.join(env.server_project_home, 'previous')
     if not files.exists(prev_root):
         return
-    prev_versions = [v.strip() for v in run('ls -1 ' + env.prev_root).split('\n')]
+    # the if v at the end is to filter any empty strings (say if output of
+    # run(...) ends in \n )
+    prev_versions = [v for v in run('ls -1 ' + env.prev_root).split('\n') if v]
 
     # first move the current version to the newest timestamp and create the
     # links required
