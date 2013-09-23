@@ -367,12 +367,12 @@ def delete_old_rollback_versions(keep=None):
             keep = env.versions_to_keep
         else:
             keep = 5
-    else:
-        keep = int(keep)
+    # ensure we have a number rather than a string
+    keep = int(keep)
     if keep == 0:
         return
     # add 1 as we want the current copy plus keep old copies
-    versions_to_keep = -1 * (int(keep) + 1)
+    versions_to_keep = -1 * (keep + 1)
     # mylist[:-6] would be the list missing the last 6 elements
     prev_versions_to_delete = prev_versions[:versions_to_keep]
     for version_to_delete in prev_versions_to_delete:
@@ -665,8 +665,8 @@ def update_requirements():
 
 
 def collect_static_files():
-    """ coolect static files in the 'static' directory """
-    sudo(_get_tasks_bin() + ' collect_static')
+    """ collect static files in the 'static' directory """
+    _tasks('collect_static')
 
 
 def clean_db(revision=None):
