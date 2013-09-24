@@ -6,7 +6,7 @@ import re
 import time
 
 from fabric.context_managers import cd, hide, settings
-from fabric.operations import require, prompt, get, run, sudo, local
+from fabric.operations import require, prompt, get, run, sudo, local, put
 from fabric.state import env
 from fabric.contrib import files
 from fabric import utils
@@ -262,6 +262,13 @@ def _migrate_directory_structure():
     The old was timestamp directories in <server project home>/previous/ with
     the timestamp being the time the directory was archived.  The current
     deploy was in <server project home>/dev/"""
+    # check if the README is present
+    readme_path = path.join(env.server_project_home, 'README.mkd')
+    if not files.exists(readme_path):
+        local_readme_path = path.join(path.realpath(__file__),
+                                      'static', 'README-server-project-home.mkd')
+        put(local_readme_path, readme_path, use_sudo=env.use_sudo)
+
     prev_root = path.join(env.server_project_home, 'previous')
     if not files.exists(prev_root):
         return
