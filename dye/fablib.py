@@ -290,8 +290,14 @@ def _migrate_directory_structure():
         sudo_or_run('ln -s current dev')
 
     # next move the previous versions along, but move them back a timestamp
+    # and also move the repo from inside the dev directory to being the
+    # directory, and don't forget the sql dump
     for i in range(len(prev_versions) - 1):
-        sudo_or_run('mv %s %s' % (
+        sudo_or_run('mv %s/dev %s' % (
+            path.join(prev_root, prev_versions[i + 1]),
+            path.join(env.server_project_home, prev_versions[i])
+        ))
+        sudo_or_run('mv %s/db_dump.sql %s' % (
             path.join(prev_root, prev_versions[i + 1]),
             path.join(env.server_project_home, prev_versions[i])
         ))
