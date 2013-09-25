@@ -356,6 +356,11 @@ def _dump_db_in_previous_directory(prev_dir):
             # just in case there is some other reason why the dump fails
             with settings(warn_only=True):
                 _tasks('dump_db')
+            # and compress the dump
+            dump_file = 'db_dump.sql'
+            dump_file_compressed = dump_file + '.gz'
+            sudo_or_run('gzip -c %s > %s' % (dump_file, dump_file_compressed))
+            sudo_or_run('rm %s' % dump_file)
 
 
 def delete_old_rollback_versions(keep=None):
