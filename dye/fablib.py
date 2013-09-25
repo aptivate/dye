@@ -29,8 +29,6 @@ def _setup_paths(project_settings):
                    path.join(env.server_home, env.project_name))
     env.setdefault('current_link', path.join(env.server_project_home, 'current'))
     env.setdefault('vcs_root_dir', env.current_link)
-    # TODO: delete prev_root, check purged from this file
-    env.setdefault('prev_root', path.join(env.server_project_home, 'previous'))
     env.setdefault('next_dir', _create_timestamp_dirname(env.timestamp))
     env.setdefault('dump_dir', path.join(env.server_project_home, 'dbdumps'))
     env.setdefault('deploy_dir', path.join(env.vcs_root_dir, 'deploy'))
@@ -392,8 +390,8 @@ def delete_old_rollback_versions(keep=None):
 def list_previous():
     """List the previous versions available to rollback to."""
     # could also determine the VCS revision number
-    require('prev_root', provided_by=env.valid_envs)
-    run('ls ' + env.prev_root)
+    require('env.server_project_home', provided_by=env.valid_envs)
+    run('ls ' + env.server_project_home)
 
 
 def rollback(version='last', migrate=False, restore_db=False):
@@ -411,7 +409,7 @@ def rollback(version='last', migrate=False, restore_db=False):
       The default is False
 
     Note that migrate and restore_db cannot both be True."""
-    require('prev_root', 'vcs_root_dir', provided_by=env.valid_envs)
+    require('server_project_home', 'vcs_root_dir', provided_by=env.valid_envs)
     if migrate and restore_db:
         utils.abort('rollback cannot do both migrate and restore_db')
     if migrate:
@@ -419,10 +417,10 @@ def rollback(version='last', migrate=False, restore_db=False):
 
     if version == 'last':
         # get the latest directory from prev_dir
-        # list directories in env.prev_root, use last one
-        version = run('ls ' + env.prev_root).split('\n')[-1]
+        # list directories in env.server_project_home, use last one
+        version = run('ls ' + env.server_project_home).split('\n')[-1]
     # check version specified exists
-    rollback_dir = path.join(env.prev_root, version)
+    rollback_dir = path.join(env.server_project_home, version)
     if not files.exists(rollback_dir):
         utils.abort("Cannot rollback to version %s, it does not exist, use list_previous to see versions available" % version)
 
