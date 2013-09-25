@@ -273,7 +273,7 @@ def _migrate_directory_structure():
     # the if v at the end is to filter any empty strings (say if output of
     # run(...) ends in \n )
     prev_versions = [v.strip() for v in
-                     run('ls -1 ' + env.prev_root).split('\n')
+                     run('ls -1 ' + prev_root).split('\n')
                      if v.startswith('20')]
 
     # first move the current version to the newest timestamp and create the
