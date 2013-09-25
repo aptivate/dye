@@ -387,11 +387,18 @@ def delete_old_rollback_versions(keep=None):
             env.server_project_home, version_to_delete.strip()))
 
 
-def list_previous():
+def list_versions():
     """List the previous versions available to rollback to."""
     # could also determine the VCS revision number
     require('env.server_project_home', provided_by=env.valid_envs)
-    run('ls ' + env.server_project_home)
+    _set_vcs_root_dir_timestamp()
+    # if we do "ls path/20*" then ls will show the full path
+    # -1 means show 1 entry per line
+    # -d means list the directories, not the directory contents
+    with cd(env.server_project_home):
+        utils.puts('Available versions are:')
+        run('ls -d1 20*')
+        utils.puts('Current version is %s' % env.vcs_root_dir_timestamp)
 
 
 def rollback(version='last', migrate=False, restore_db=False):
@@ -400,7 +407,7 @@ def rollback(version='last', migrate=False, restore_db=False):
     Arguments are 'version', 'migrate' and 'restore_db':
 
     * if version is 'last' (the default) then the most recent version will be
-      restored. Otherwise specify by timestamp - use list_previous to get a list
+      restored. Otherwise specify by timestamp - use list_versions to get a list
       of available versions.
     * if restore_db is True, then the database will be restored as well as the
       code. The default is False.
@@ -422,7 +429,7 @@ def rollback(version='last', migrate=False, restore_db=False):
     # check version specified exists
     rollback_dir = path.join(env.server_project_home, version)
     if not files.exists(rollback_dir):
-        utils.abort("Cannot rollback to version %s, it does not exist, use list_previous to see versions available" % version)
+        utils.abort("Cannot rollback to version %s, it does not exist, use list_versions to see versions available" % version)
 
     webserver_cmd("stop")
     # first copy this version out of the way
