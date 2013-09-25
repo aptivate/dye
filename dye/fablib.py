@@ -338,19 +338,19 @@ def point_current_to_next():
     """ Change the soft link `current` to point to the new next_dir """
     # dump the database in the old directory - do this before we remove
     # the current link
-    _dump_db_in_previous_directory(env.vcs_root_dir_timestamp)
+    _dump_db_in_directory(env.vcs_root_dir_timestamp)
     if files.exists(env.current_link):
         sudo_or_run('rm %s' % env.current_link)
     with cd(env.server_project_home):
         sudo_or_run('ln -s %s current' % env.next_dir)
 
 
-def _dump_db_in_previous_directory(prev_dir):
+def _dump_db_in_directory(dump_dir):
     require('django_settings_dir', provided_by=env.valid_envs)
     if (env.project_type == 'django' and
             files.exists(path.join(env.django_settings_dir, 'local_settings.py'))):
         # dump database (provided local_settings has been set up properly)
-        with cd(prev_dir):
+        with cd(dump_dir):
             # just in case there is some other reason why the dump fails
             with settings(warn_only=True):
                 _tasks('dump_db')
