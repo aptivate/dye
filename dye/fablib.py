@@ -361,14 +361,18 @@ def _dump_db_in_directory(dump_dir):
             sudo_or_run('rm %s' % dump_file)
 
 
+def _get_list_of_versions():
+    require('env.server_project_home', provided_by=env.valid_envs)
+    with cd(env.server_project_home):
+        versions = run('ls -1')
+    # we're expecting timestamps, so this test will be safe until 2100
+    return [v.strip() for v in versions.split('\n') if v.startswith('20')]
+
+
 def delete_old_rollback_versions(keep=None):
     """ Delete old rollback directories, keeping the last "keep" (default 5)".
     """
     require('server_project_home', provided_by=env.valid_envs)
-    # the -1 argument ensures one directory per line
-    dir_contents = run('ls -1 ' + env.server_project_home).split('\n')
-    # we're expecting timestamps, so this test will be safe until 2100
-    prev_versions = [d for d in dir_contents if d.startswith('20')]
     if keep is None:
         if 'versions_to_keep' in env:
             keep = env.versions_to_keep
@@ -380,11 +384,13 @@ def delete_old_rollback_versions(keep=None):
         return
     # add 1 as we want the current copy plus keep old copies
     versions_to_keep = -1 * (keep + 1)
+
+    version_list = _get_list_of_versions()
     # mylist[:-6] would be the list missing the last 6 elements
-    prev_versions_to_delete = prev_versions[:versions_to_keep]
-    for version_to_delete in prev_versions_to_delete:
+    versions_to_delete = version_list[:versions_to_keep]
+    for version_to_delete in versions_to_delete:
         sudo_or_run('rm -rf ' + path.join(
-            env.server_project_home, version_to_delete.strip()))
+            env.server_project_home, version_to_delete))
 
 
 def list_versions():
@@ -392,13 +398,11 @@ def list_versions():
     # could also determine the VCS revision number
     require('env.server_project_home', provided_by=env.valid_envs)
     _set_vcs_root_dir_timestamp()
-    # if we do "ls path/20*" then ls will show the full path
-    # -1 means show 1 entry per line
-    # -d means list the directories, not the directory contents
-    with cd(env.server_project_home):
-        utils.puts('Available versions are:')
-        run('ls -d1 20*')
-        utils.puts('Current version is %s' % env.vcs_root_dir_timestamp)
+    version_list = _get_list_of_versions()
+    utils.puts('Available versions are:')
+    for version in version_list:
+        utils.puts(version)
+    utils.puts('Current version is %s' % env.vcs_root_dir_timestamp)
 
 
 def rollback(version='last', migrate=False, restore_db=False):
