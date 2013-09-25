@@ -3,7 +3,6 @@ from os import path
 from datetime import datetime
 import getpass
 import re
-import time
 
 from fabric.context_managers import cd, hide, settings
 from fabric.operations import require, prompt, get, run, sudo, local, put
@@ -179,6 +178,7 @@ def deploy(revision=None, keep=None):
     link_webserver_conf(maintenance=True)
     with settings(warn_only=True):
         webserver_cmd('reload')
+    # TODO: do a database dump in the old directory
     point_current_to_next()
 
     # Use tasks.py deploy:env to actually do the deployment, including
@@ -346,18 +346,6 @@ def point_current_to_next():
     _dump_db_in_previous_directory(env.vcs_root_dir_timestamp)
 
 
-def create_copy_for_rollback():
-    """Move the current version to the previous directory (so we can roll back
-    to it, move the next version to the current version (so it will be used) and
-    do a db dump in the rollback directory."""
-    # create directory for it
-    prev_dir = path.join(env.prev_root, time.strftime("%Y-%m-%d_%H-%M-%S"))
-    _create_dir_if_not_exists(prev_dir)
-    # cp -a
-    sudo_or_run('cp %s %s' % (env.vcs_root_dir, prev_dir))
-    _dump_db_in_previous_directory(prev_dir)
-
-
 def _dump_db_in_previous_directory(prev_dir):
     require('django_settings_dir', provided_by=env.valid_envs)
     if (env.project_type == 'django' and
@@ -434,7 +422,6 @@ def rollback(version='last', migrate=False, restore_db=False):
 
     webserver_cmd("stop")
     # first copy this version out of the way
-    create_copy_for_rollback()
     if migrate:
         # run the south migrations back to the old version
         # but how to work out what the old version is??
