@@ -411,8 +411,8 @@ def rollback(version='last', migrate=False, restore_db=False):
     Arguments are 'version', 'migrate' and 'restore_db':
 
     * if version is 'last' (the default) then the most recent version will be
-      restored. Otherwise specify by timestamp - use list_versions to get a list
-      of available versions.
+      restored. Otherwise specify by timestamp - use list_versions to get a
+      list of available versions.
     * if restore_db is True, then the database will be restored as well as the
       code. The default is False.
     * if migrate is True, then fabric will attempt to work out the new and old
@@ -426,17 +426,22 @@ def rollback(version='last', migrate=False, restore_db=False):
     if migrate:
         utils.abort("rollback: haven't worked out how to do migrate yet ...")
 
+    _set_vcs_root_dir_timestamp()
+
     if version == 'last':
         # get the latest directory from prev_dir
-        # list directories in env.server_project_home, use last one
-        version = run('ls ' + env.server_project_home).split('\n')[-1]
+        version_list = _get_list_of_versions()
+        current_index = version_list.index(env.vcs_root_dir_timestamp)
+        version = version_list[current_index - 1]
     # check version specified exists
     rollback_dir = path.join(env.server_project_home, version)
     if not files.exists(rollback_dir):
-        utils.abort("Cannot rollback to version %s, it does not exist, use list_versions to see versions available" % version)
+        utils.abort("Cannot rollback to version %s, it does not exist, use"
+                    "list_versions to see versions available" % version)
 
     webserver_cmd("stop")
-    # first copy this version out of the way
+    # first make a db dump of the current state
+    _dump_db_in_directory(env.vcs_root_dir)
     if migrate:
         # run the south migrations back to the old version
         # but how to work out what the old version is??
@@ -445,10 +450,11 @@ def rollback(version='last', migrate=False, restore_db=False):
         # feed the dump file into mysql command
         with cd(rollback_dir):
             _tasks('load_dbdump')
-    # delete everything - don't want stray files left over
-    sudo_or_run('rm -rf %s' % env.vcs_root_dir)
-    # cp -a from rollback_dir to vcs_root_dir
-    sudo_or_run('cp -a %s %s' % (rollback_dir, env.vcs_root_dir))
+    # change current link
+    if files.exists(env.current_link):
+        sudo_or_run('rm %s' % env.current_link)
+    with cd(env.server_project_home):
+        sudo_or_run('ln -s %s current' % version)
     webserver_cmd("start")
 
 
