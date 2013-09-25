@@ -386,7 +386,7 @@ def delete_old_rollback_versions(keep=None):
     prev_versions_to_delete = prev_versions[:versions_to_keep]
     for version_to_delete in prev_versions_to_delete:
         sudo_or_run('rm -rf ' + path.join(
-            env.prev_root, version_to_delete.strip()))
+            env.server_project_home, version_to_delete.strip()))
 
 
 def list_previous():
