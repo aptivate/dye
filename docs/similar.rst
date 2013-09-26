@@ -40,6 +40,48 @@ https://github.com/winhamwr/neckbeard
 
 AWS based deploy, including using local chef scripts to set up the server in the first place.
 
+Python Build Tools
+==================
+
+Invoke
+------
+
+http://pyinvoke.org/
+
+Being `split out of fabric`_ - looks promising.
+
+Read more at http://thechangelog.com/pynt-versus-invoke/
+
+And there is the start of a library of reusable tasks at https://github.com/pyinvoke/invocations
+
+.. _`split out of fabric`: http://docs.fabfile.org/en/1.7/roadmap.html
+
+Pynt
+----
+
+https://github.com/rags/pynt
+
+Quite young, but showing promise.
+
+python-doit
+-----------
+
+http://pydoit.org/
+
+scons
+-----
+
+http://www.scons.org/
+
+Focussed on building software
+
+paver
+-----
+
+http://paver.github.io/
+
+Tied to distutils
+
 Other deployment frameworks
 ===========================
 
