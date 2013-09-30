@@ -6,7 +6,8 @@ TEMPLATE_DEBUG = DEBUG
 # These email addresses will get all the error email for the production server
 # (and any other servers with DEBUG = False )
 ADMINS = (
-    ('Aptivate', '{{project_name}}-team@aptivate.org')
+    ('Aptivate {{project_name}} team', '{{project_name}}-team@aptivate.org'),
+    ('{{author_name}}', '{{email}}'),  # this is in case the above email doesn't work
 )
 
 MANAGERS = ADMINS

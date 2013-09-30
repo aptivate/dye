@@ -1,0 +1,54 @@
+Directory Structure
+===================
+
+If you come to this directory and wonder what the different directories, files
+and links are, here is your explanation.
+
+A typical list might look like:
+
+    2013-09-17_15-06-03/
+    2013-09-19_11-14-50/
+    2013-09-19_11-32-16/
+    2013-09-19_16-51-23/
+    2013-09-23_17-15-53/
+    2013-09-23_17-52-14/
+    current@ -> /var/django/<projectname>/2013-09-23_17-52-14
+    dbdumps/
+    dev@ -> current
+    README.mkd
+
+where:
+
+- items ending in `/` are directories,
+- items ending in `@` are links, which what they link to following that
+- other items are files
+
+The directories which are date/time stamps are the checkouts, and the
+date/time is when they were created - ie when there was a deploy.
+
+The `current` link is used to identify the directory that is currently being
+served by apache.
+
+The `dev` link is there for backwards compatibility - the directory being
+served by apache used to be called `dev/`, so this link means that anything
+looking there will find what it expects.
+
+And the `README.mkd` is this file - describing the directory contents.
+
+## Why?
+
+### Multiple versions for rollback
+
+Rollback should now be as simple as deleting the `current` link and pointing
+it at an older directory.
+
+### virtualenv
+
+One key reason is that virtualenvs don't react well to being moved around, and
+there is a virtualenv within each directory.  Some files within the virtualenv
+will hardcode the full path.  And while there is a relocatable option, it is
+still considered experimental.
+
+We want to build the virtualenv for the next version without taking the old
+site down, but if we do that and then rename the directory then the virtualenv
+will stop working due to the hardcoded full paths.

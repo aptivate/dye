@@ -3,10 +3,9 @@ from os import path
 from datetime import datetime
 import getpass
 import re
-import time
 
 from fabric.context_managers import cd, hide, settings
-from fabric.operations import require, prompt, get, run, sudo, local
+from fabric.operations import require, prompt, get, run, sudo, local, put
 from fabric.state import env
 from fabric.contrib import files
 from fabric import utils
@@ -18,6 +17,9 @@ def _setup_paths(project_settings):
     for setting in user_settings:
         env[setting] = vars(project_settings)[setting]
 
+    # set the timestamp - used for directory names at least
+    env.timestamp = datetime.now()
+
     # allow for project_settings having set up some of these differently
     env.setdefault('verbose', False)
     env.setdefault('use_sudo', True)
@@ -25,10 +27,9 @@ def _setup_paths(project_settings):
     env.setdefault('default_branch', {'production': 'master', 'staging': 'master'})
     env.setdefault('server_project_home',
                    path.join(env.server_home, env.project_name))
-    # TODO: change dev -> current
-    env.setdefault('vcs_root_dir', path.join(env.server_project_home, 'dev'))
-    env.setdefault('prev_root', path.join(env.server_project_home, 'previous'))
-    env.setdefault('next_dir', path.join(env.server_project_home, 'next'))
+    env.setdefault('current_link', path.join(env.server_project_home, 'current'))
+    env.setdefault('vcs_root_dir', env.current_link)
+    env.setdefault('next_dir', _create_timestamp_dirname(env.timestamp))
     env.setdefault('dump_dir', path.join(env.server_project_home, 'dbdumps'))
     env.setdefault('deploy_dir', path.join(env.vcs_root_dir, 'deploy'))
     env.setdefault('settings', '%(project_name)s.settings' % env)
@@ -40,21 +41,21 @@ def _setup_paths(project_settings):
 
         # now create the absolute paths of everything else
         env.setdefault('django_dir',
-                    path.join(env['vcs_root_dir'], env['relative_django_dir']))
+                       path.join(env['vcs_root_dir'], env['relative_django_dir']))
         env.setdefault('django_settings_dir',
-                    path.join(env['vcs_root_dir'], env['relative_django_settings_dir']))
+                       path.join(env['vcs_root_dir'], env['relative_django_settings_dir']))
         env.setdefault('ve_dir',
-                    path.join(env['vcs_root_dir'], env['relative_ve_dir']))
+                       path.join(env['vcs_root_dir'], env['relative_ve_dir']))
         env.setdefault('manage_py', path.join(env['django_dir'], 'manage.py'))
 
     # local_tasks_bin is the local copy of tasks.py
     # this should be the copy from where ever fab.py is being run from ...
     if 'DEPLOYDIR' in os.environ:
         env.setdefault('local_tasks_bin',
-            path.join(os.environ['DEPLOYDIR'], 'tasks.py'))
+                       path.join(os.environ['DEPLOYDIR'], 'tasks.py'))
     else:
         env.setdefault('local_tasks_bin',
-            path.join(path.dirname(__file__), 'tasks.py'))
+                       path.join(path.dirname(__file__), 'tasks.py'))
 
     # valid environments - used for require statements in fablib
     env.valid_envs = env.host_list.keys()
@@ -143,19 +144,26 @@ def deploy(revision=None, keep=None):
     * keep is the number of old versions to keep around for rollback (default
       5)"""
     require('server_project_home', provided_by=env.valid_envs)
-    check_for_local_changes()
+
+    # if the <server_project_home>/previous/ directory doesn't exist, this does
+    # nothing
+    _migrate_directory_structure()
+    _set_vcs_root_dir_timestamp()
 
     _create_dir_if_not_exists(env.server_project_home)
 
-    # TODO: check if our live site is in <sitename>/dev/ - if so
-    # move it to <sitename>/current/ and make a link called dev/ to
-    # the current/ directory
-    # TODO: if dev/ is found to be a link, ask the user if the apache config
-    # has been updated to point at current/ - and if so then delete dev/
-    # _migrate_from_dev_to_current()
+    check_for_local_changes()
+    # TODO: check for deploy-in-progress.json file
+    # also check if there are any directories newer than current ???
+    # might just mean we did a rollback, so maybe don't bother as the
+    # deploy-in-progress should be enough
+    # _check_for_deploy_in_progress()
+
+    # TODO: create deploy-in-progress.json file
+    # _set_deploy_in_progress()
     create_copy_for_next()
     checkout_or_update(in_next=True, revision=revision)
-    # remove any old pyc files - essential if the .py file has been removed
+    # remove any old pyc files - essential if the .py file is removed by VCS
     if env.project_type == "django":
         rm_pyc_files(path.join(env.next_dir, env.relative_django_dir))
     # create the deploy virtualenv if we use it
@@ -168,7 +176,8 @@ def deploy(revision=None, keep=None):
     link_webserver_conf(maintenance=True)
     with settings(warn_only=True):
         webserver_cmd('reload')
-    next_to_current_to_rollback()
+    # TODO: do a database dump in the old directory
+    point_current_to_next()
 
     # Use tasks.py deploy:env to actually do the deployment, including
     # creating the virtualenv if it thinks it necessary, ignoring
@@ -186,6 +195,9 @@ def deploy(revision=None, keep=None):
     if env.environment == 'production':
         setup_db_dumps()
 
+    # TODO: _remove_deploy_in_progress()
+    # move the deploy-in-progress.json file into the old directory as
+    # deploy-details.json
     _report_downtime(downtime_start, downtime_end)
 
 
@@ -232,6 +244,71 @@ def clean_old_celery():
             sudo_or_run('rm %s' % celery_configuration_destination)
 
 
+def _create_timestamp_dirname(timestamp=None):
+    if timestamp is None:
+        timestamp = datetime.now()
+    return path.join(env.server_project_home, timestamp.strftime("%Y-%m-%d_%H-%M-%S"))
+
+
+def _migrate_directory_structure():
+    """ The new directory structure is timestamp directories in server project
+    home, with the timestamp being the time that directory was deployed.  A
+    soft link named current/ will point at the version that apache will serve.
+    For backwards compatibility with apache config, a dev/ link will also be
+    created, pointing at current/
+
+    The old was timestamp directories in <server project home>/previous/ with
+    the timestamp being the time the directory was archived.  The current
+    deploy was in <server project home>/dev/"""
+    # check if the README is present
+    readme_path = path.join(env.server_project_home, 'README.mkd')
+    if not files.exists(readme_path):
+        local_readme_path = path.join(path.realpath(__file__),
+                                      'static', 'README-server-project-home.mkd')
+        put(local_readme_path, readme_path, use_sudo=env.use_sudo)
+
+    prev_root = path.join(env.server_project_home, 'previous')
+    if not files.exists(prev_root):
+        return
+    # the if v at the end is to filter any empty strings (say if output of
+    # run(...) ends in \n )
+    prev_versions = [v.strip() for v in
+                     run('ls -1 ' + prev_root).split('\n')
+                     if v.startswith('20')]
+
+    # first move the current version to the newest timestamp and create the
+    # links required
+    old_vcs_root = path.join(env.server_project_home, 'dev')
+    new_vcs_root = path.join(env.server_project_home, prev_versions[-1])
+    sudo_or_run('mv %s %s' % (old_vcs_root, new_vcs_root))
+    with cd(env.server_project_home):
+        # create the current link so we know which apache should serve
+        sudo_or_run('ln -s %s current' % prev_versions[-1])
+        # create the dev link for backwards compatibility
+        sudo_or_run('ln -s current dev')
+
+    # next move the previous versions along, but move them back a timestamp
+    # and also move the repo from inside the dev directory to being the
+    # directory, and don't forget the sql dump
+    for i in range(len(prev_versions) - 1):
+        sudo_or_run('mv %s/dev %s' % (
+            path.join(prev_root, prev_versions[i + 1]),
+            path.join(env.server_project_home, prev_versions[i])
+        ))
+        sudo_or_run('mv %s/db_dump.sql %s' % (
+            path.join(prev_root, prev_versions[i + 1]),
+            path.join(env.server_project_home, prev_versions[i])
+        ))
+
+    # and finally delete the previous/ directory altogether
+    sudo_or_run('rm -rf %s' % prev_root)
+
+
+def _set_vcs_root_dir_timestamp():
+    """ Find what the real directory name is that current/ points to. """
+    env.vcs_root_dir_timestamp = sudo_or_run('readlink -f %s' % env.vcs_root_dir)
+
+
 def create_copy_for_next():
     """Copy the current version to "next" so that we can do stuff like
     the VCS update and virtualenv update without taking the site offline"""
@@ -239,8 +316,8 @@ def create_copy_for_next():
     # if it does maybe there was an aborted deploy, or maybe someone else is
     # deploying.  Either way, stop and ask the user what to do.
     if files.exists(env.next_dir):
-        utils.warn('The "next" directory already exists.  Maybe a previous deploy'
-                   'failed, or maybe another deploy is in progress.')
+        utils.warn('The "next" directory already exists.  Maybe a previous '
+                   'deploy failed, or maybe another deploy is in progress.')
         continue_anyway = prompt('Would you like to continue anyway '
                                  '(and delete the current next dir)? [no/yes]',
                 default='no', validate='^no|yes$')
@@ -251,74 +328,81 @@ def create_copy_for_next():
     # if this is the initial deploy, the vcs_root_dir won't exist yet. In that
     # case, don't create it (otherwise the checkout code will get confused).
     if files.exists(env.vcs_root_dir):
-        # cp -a
-        sudo_or_run('cp -a %s %s' % (env.vcs_root_dir, env.next_dir))
+        # cp -a - amongst other things this preserves links and timestamps
+        # so the compare that bootstrap.py does to see if the virtualenv
+        # needs an update should still work.
+        sudo_or_run('cp -a %s %s' % (env.vcs_root_dir_timestamp, env.next_dir))
 
 
-def next_to_current_to_rollback():
-    """Move the current version to the previous directory (so we can roll back
-    to it, move the next version to the current version (so it will be used) and
-    do a db dump in the rollback directory."""
-    # create directory for it
-    # if this is the initial deploy, the vcs_root_dir won't exist yet.  In that
-    # case just skip the rollback version.
-    if files.exists(env.vcs_root_dir):
-        _create_dir_if_not_exists(env.prev_root)
-        prev_dir = path.join(env.prev_root, time.strftime("%Y-%m-%d_%H-%M-%S"))
-        sudo_or_run('mv %s %s' % (env.vcs_root_dir, prev_dir))
-        _dump_db_in_previous_directory(prev_dir)
-    sudo_or_run('mv %s %s' % (env.next_dir, env.vcs_root_dir))
+def point_current_to_next():
+    """ Change the soft link `current` to point to the new next_dir """
+    # dump the database in the old directory - do this before we remove
+    # the current link
+    _dump_db_in_directory(env.vcs_root_dir_timestamp)
+    if files.exists(env.current_link):
+        sudo_or_run('rm %s' % env.current_link)
+    with cd(env.server_project_home):
+        sudo_or_run('ln -s %s current' % env.next_dir)
 
 
-def create_copy_for_rollback():
-    """Move the current version to the previous directory (so we can roll back
-    to it, move the next version to the current version (so it will be used) and
-    do a db dump in the rollback directory."""
-    # create directory for it
-    prev_dir = path.join(env.prev_root, time.strftime("%Y-%m-%d_%H-%M-%S"))
-    _create_dir_if_not_exists(prev_dir)
-    # cp -a
-    sudo_or_run('cp %s %s' % (env.vcs_root_dir, prev_dir))
-    _dump_db_in_previous_directory(prev_dir)
-
-
-def _dump_db_in_previous_directory(prev_dir):
+def _dump_db_in_directory(dump_dir):
     require('django_settings_dir', provided_by=env.valid_envs)
     if (env.project_type == 'django' and
             files.exists(path.join(env.django_settings_dir, 'local_settings.py'))):
         # dump database (provided local_settings has been set up properly)
-        with cd(prev_dir):
+        with cd(dump_dir):
             # just in case there is some other reason why the dump fails
             with settings(warn_only=True):
                 _tasks('dump_db')
+            # and compress the dump
+            dump_file = 'db_dump.sql'
+            dump_file_compressed = dump_file + '.gz'
+            sudo_or_run('gzip -c %s > %s' % (dump_file, dump_file_compressed))
+            sudo_or_run('rm %s' % dump_file)
+
+
+def _get_list_of_versions():
+    require('env.server_project_home', provided_by=env.valid_envs)
+    with cd(env.server_project_home):
+        versions = run('ls -1')
+    # we're expecting timestamps, so this test will be safe until 2100
+    return [v.strip() for v in versions.split('\n') if v.startswith('20')]
 
 
 def delete_old_rollback_versions(keep=None):
-    """Delete old rollback directories, keeping the last "keep" (default 5)"."""
-    require('prev_root', provided_by=env.valid_envs)
-    # the -1 argument ensures one directory per line
-    prev_versions = run('ls -1 ' + env.prev_root).split('\n')
+    """ Delete old rollback directories, keeping the last "keep" (default 5)".
+    """
+    require('server_project_home', provided_by=env.valid_envs)
     if keep is None:
         if 'versions_to_keep' in env:
             keep = env.versions_to_keep
         else:
             keep = 5
-    else:
-        keep = int(keep)
+    # ensure we have a number rather than a string
+    keep = int(keep)
     if keep == 0:
         return
-    versions_to_keep = -1 * int(keep)
-    prev_versions_to_delete = prev_versions[:versions_to_keep]
-    for version_to_delete in prev_versions_to_delete:
+    # add 1 as we want the current copy plus keep old copies
+    versions_to_keep = -1 * (keep + 1)
+
+    version_list = _get_list_of_versions()
+    # mylist[:-6] would be the list missing the last 6 elements
+    versions_to_delete = version_list[:versions_to_keep]
+    for version_to_delete in versions_to_delete:
         sudo_or_run('rm -rf ' + path.join(
-            env.prev_root, version_to_delete.strip()))
+            env.server_project_home, version_to_delete))
 
 
-def list_previous():
+def list_versions():
     """List the previous versions available to rollback to."""
     # could also determine the VCS revision number
-    require('prev_root', provided_by=env.valid_envs)
-    run('ls ' + env.prev_root)
+    require('env.server_project_home', provided_by=env.valid_envs)
+    _set_vcs_root_dir_timestamp()
+    version_list = _get_list_of_versions()
+    utils.puts('Available versions are:')
+    for version in version_list:
+        utils.puts(version)
+    utils.puts('Current version is %s' % env.vcs_root_dir_timestamp)
 
 
 def rollback(version='last', migrate=False, restore_db=False):
@@ -327,8 +411,8 @@ def rollback(version='last', migrate=False, restore_db=False):
     Arguments are 'version', 'migrate' and 'restore_db':
 
     * if version is 'last' (the default) then the most recent version will be
-      restored. Otherwise specify by timestamp - use list_previous to get a list
-      of available versions.
+      restored. Otherwise specify by timestamp - use list_versions to get a
+      list of available versions.
     * if restore_db is True, then the database will be restored as well as the
       code. The default is False.
     * if migrate is True, then fabric will attempt to work out the new and old
@@ -336,24 +420,28 @@ def rollback(version='last', migrate=False, restore_db=False):
       The default is False
 
     Note that migrate and restore_db cannot both be True."""
-    require('prev_root', 'vcs_root_dir', provided_by=env.valid_envs)
+    require('server_project_home', 'vcs_root_dir', provided_by=env.valid_envs)
     if migrate and restore_db:
         utils.abort('rollback cannot do both migrate and restore_db')
     if migrate:
         utils.abort("rollback: haven't worked out how to do migrate yet ...")
 
+    _set_vcs_root_dir_timestamp()
+
     if version == 'last':
         # get the latest directory from prev_dir
-        # list directories in env.prev_root, use last one
-        version = run('ls ' + env.prev_root).split('\n')[-1]
+        version_list = _get_list_of_versions()
+        current_index = version_list.index(env.vcs_root_dir_timestamp)
+        version = version_list[current_index - 1]
     # check version specified exists
-    rollback_dir = path.join(env.prev_root, version)
+    rollback_dir = path.join(env.server_project_home, version)
     if not files.exists(rollback_dir):
-        utils.abort("Cannot rollback to version %s, it does not exist, use list_previous to see versions available" % version)
+        utils.abort("Cannot rollback to version %s, it does not exist, use"
+                    "list_versions to see versions available" % version)
 
     webserver_cmd("stop")
-    # first copy this version out of the way
-    create_copy_for_rollback()
+    # first make a db dump of the current state
+    _dump_db_in_directory(env.vcs_root_dir)
     if migrate:
         # run the south migrations back to the old version
         # but how to work out what the old version is??
@@ -361,11 +449,12 @@ def rollback(version='last', migrate=False, restore_db=False):
     if restore_db:
         # feed the dump file into mysql command
         with cd(rollback_dir):
-            _tasks('restore_db')
-    # delete everything - don't want stray files left over
-    sudo_or_run('rm -rf %s' % env.vcs_root_dir)
-    # cp -a from rollback_dir to vcs_root_dir
-    sudo_or_run('cp -a %s %s' % (rollback_dir, env.vcs_root_dir))
+            _tasks('load_dbdump')
+    # change current link
+    if files.exists(env.current_link):
+        sudo_or_run('rm %s' % env.current_link)
+    with cd(env.server_project_home):
+        sudo_or_run('ln -s %s current' % version)
     webserver_cmd("start")
 
 
@@ -589,7 +678,8 @@ def create_deploy_virtualenv(in_next=False):
         bootstrap_path = path.join(env.next_dir, 'deploy', 'bootstrap.py')
     else:
         bootstrap_path = path.join(env.deploy_dir, 'bootstrap.py')
-    sudo_or_run('%s %s --quiet' % (_get_python(), bootstrap_path))
+    sudo_or_run('%s %s --full-rebuild --quiet' %
+                (_get_python(), bootstrap_path))
 
 
 def update_requirements():
@@ -598,8 +688,8 @@ def update_requirements():
 
 
 def collect_static_files():
-    """ coolect static files in the 'static' directory """
-    sudo(_get_tasks_bin() + ' collect_static')
+    """ collect static files in the 'static' directory """
+    _tasks('collect_static')
 
 
 def clean_db(revision=None):

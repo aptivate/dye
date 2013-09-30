@@ -17,12 +17,8 @@ virtualenv, either locally or on a remote server. It is built on fabric. It is
 most well developed for Django web apps, but we have used it for PHP projects
 aswell.
 
-You should copy the example/deploy directory to a deploy/ directory in your
-project and edit the project_settings.py file. You may also want to add
-localtasks.py and/or localfab.py
-
-You should then replace the manage.py in the django directory with the manage.py
-from the examples/django/ directory.
+You can create a compatible project using cookiecutter - see
+readme-cookiecutter.rst for details.
 
 Expected Project Structure
 ==========================
@@ -42,7 +38,7 @@ A bare bones project structure would be:
         tasks.py
         ve_mgr.py
     /django
-        /django_project        <- top level for Django project
+        /website               <- top level for Django project
             manage.py          <- a modified version of manage.py - see examples/
             .ve/               <- contains the virtualenv
             local_settings.py  <- a link to the real local_settings.py.env
@@ -95,7 +91,9 @@ by defining a function with the same name as the function in tasklib.py
 
 You can override the main `deploy()` function, but you might lose out if the
 deploy function starts to do more.  Generally a better strategy is to define a
-`post_deploy()` function - this will be called by dye if it exists.
+`post_deploy()` function - when you run `./tasks.py deploy` then after the other
+tasks have completed it will check if there is a function called `post_deploy()`
+in `localtasks.py` and if so it will call it.
 
 manage.py and bootstrap.py
 --------------------------
@@ -126,19 +124,26 @@ where possible. Our standard fab deploy will:
 * check if you have made any local changes to the server. If it finds any it
   will alert you to them and give you the choice of whether to continue or not.
 * if using git it will check the branch set in project_settings.py, the branch
-  currently on the server and the branch you are currently on locally.  If there
-  is a mismatch it will ask you to confirm what branch you want to use.
-* create a copy of the current deploy, and a database dump, so you can rollback
-  easily to the last known state.
+  currently on the server and the branch you are currently on locally.  If
+  there is a mismatch it will ask you to confirm what branch you want to use.
+* create a copy of the current deploy in a directory called `next/` - or create
+  the directory on the server (if this is the first deploy)
+* checkout or update the project from your repository (git, svn and CVS
+  currently supported).  It uses the `next/` directory so that your running
+  website is unaffected.
+* remove all `*.pyc` files.  (If x.py is removed by your VCS but x.pyc remains,
+  then as far as python is concerned, x.py is still present).
+* ensure the virtualenv is created and packages installed (as bootstrap.py does)
 * unlink the webserver config and reload the web server (effectively turning off
   the site)
-* create the directory on the server (if this is the first deploy)
-* checkout or update the project from your repository (git, svn and CVS
-  currently supported)
-* ensure the virtualenv is created and packages installed (as bootstrap.py does)
-* call tasks.py deploy
+* do a database dump in the current directory
+* move the current directory to a subdirectory of `previous` so that a rollback
+  can occur, and then move `next/` to where the current directory is.
+* call `tasks.py deploy` - which ensures settings are ready and does all the
+  database related stuff.
 * relink the webserver config and reload the web server (effectively turning on
   the site again)
+* delete excess copies in `previous/` (by default 5 copies are retained).
 
 As with tasks.py you can add extra functions and override the default behaviour
 by putting functions in:
@@ -153,6 +158,10 @@ Dye will create /var/django/project_name and in that directory will be:
 
     dev/           <- contains the checked out code
     previous/      <- copies for rollback, with directories named by timestamp
+
+During a deploy there will also be:
+
+    next/         <- only temporary
 
 You can override the project root with the server_home variable in
 project_settings.py
