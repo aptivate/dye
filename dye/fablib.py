@@ -134,7 +134,7 @@ def _create_dir_if_not_exists(path):
         sudo_or_run('mkdir -p %s' % path)
 
 
-def deploy(revision=None, keep=None):
+def deploy(revision=None, keep=None, rebuild_ve=True):
     """ update remote host environment (virtualenv, deploy, update)
 
     It takes two arguments:
@@ -167,7 +167,7 @@ def deploy(revision=None, keep=None):
     if env.project_type == "django":
         rm_pyc_files(path.join(env.next_dir, env.relative_django_dir))
     # create the deploy virtualenv if we use it
-    create_deploy_virtualenv(in_next=True)
+    create_deploy_virtualenv(in_next=True, rebuild_ve=rebuild_ve)
 
     # we only have to disable this site after creating the rollback copy
     # (do this so that apache carries on serving other sites on this server
@@ -670,7 +670,7 @@ def sudo_or_run(command):
         return run(command)
 
 
-def create_deploy_virtualenv(in_next=False):
+def create_deploy_virtualenv(in_next=False, rebuild_ve=True):
     """ if using new style dye stuff, create the virtualenv to hold dye """
     require('deploy_dir', provided_by=env.valid_envs)
     if in_next:
@@ -678,8 +678,11 @@ def create_deploy_virtualenv(in_next=False):
         bootstrap_path = path.join(env.next_dir, 'deploy', 'bootstrap.py')
     else:
         bootstrap_path = path.join(env.deploy_dir, 'bootstrap.py')
-    sudo_or_run('%s %s --full-rebuild --quiet' %
-                (_get_python(), bootstrap_path))
+    if rebuild_ve:
+        args = '--full-rebuild --quiet'
+    else:
+        args = '--quiet'
+    sudo_or_run('%s %s %s' % (_get_python(), bootstrap_path, args))
 
 
 def update_requirements():
