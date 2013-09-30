@@ -22,10 +22,9 @@ import os
 from os import path
 import sys
 
-from .exceptions import TasksError
 from .django import (collect_static, create_private_settings,
         _install_django_jenkins, link_local_settings, _manage_py,
-        _manage_py_jenkins, clean_db, update_db)
+        _manage_py_jenkins, clean_db, update_db, _infer_environment)
 from .util import _check_call_wrapper, _call_wrapper, _rm_all_pyc
 # this is a global dictionary
 from .environment import env
@@ -147,14 +146,6 @@ def run_jenkins():
     clean_db()
     update_db()
     _manage_py_jenkins()
-
-
-def _infer_environment():
-    local_settings = path.join(env['django_settings_dir'], 'local_settings.py')
-    if path.exists(local_settings):
-        return os.readlink(local_settings).split('.')[-1]
-    else:
-        raise TasksError('no environment set, or pre-existing')
 
 
 def deploy(environment=None):

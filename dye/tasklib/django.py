@@ -4,6 +4,7 @@ import sys
 import random
 import subprocess
 
+from .exceptions import TasksError
 from .database import get_db_manager
 from .exceptions import InvalidProjectError, ShellCommandError
 from .util import _check_call_wrapper
@@ -52,6 +53,14 @@ def _manage_py(args, cwd=None):
     return output_lines
 
 
+def _infer_environment():
+    local_settings = path.join(env['django_settings_dir'], 'local_settings.py')
+    if path.exists(local_settings):
+        return os.readlink(local_settings).split('.')[-1]
+    else:
+        raise TasksError('no environment set, or pre-existing')
+
+
 def _create_db_objects(database='default'):
     """
         Args:
@@ -61,6 +70,10 @@ def _create_db_objects(database='default'):
     """
     if 'db' in env:
         return
+    # work out what the environment is if necessary
+    if 'environment' not in env:
+        env['environment'] = _infer_environment()
+
     # import local_settings from the django dir. Here we are adding the django
     # project directory to the path. Note that env['django_dir'] may be more than
     # one directory (eg. 'django/project') which is why we use django_module
