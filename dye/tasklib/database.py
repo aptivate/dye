@@ -273,7 +273,6 @@ class MySQLManager(DBManager):
         # thus making the dump file better for rsync, but slightly bigger
         if for_rsync:
             dump_cmd.append('--skip-extended-insert')
-        dump_cmd.append(self.name)
 
         dump_file = open(dump_filename, 'w')
         if env['verbose']:
