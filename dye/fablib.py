@@ -263,7 +263,7 @@ def _migrate_directory_structure():
     # check if the README is present
     readme_path = path.join(env.server_project_home, 'README.mkd')
     if not files.exists(readme_path):
-        local_readme_path = path.join(path.realpath(__file__),
+        local_readme_path = path.join(path.dirname(path.realpath(__file__)),
                                       'static', 'README-server-project-home.mkd')
         put(local_readme_path, readme_path, use_sudo=env.use_sudo)
 
@@ -362,7 +362,7 @@ def _dump_db_in_directory(dump_dir):
 
 
 def _get_list_of_versions():
-    require('env.server_project_home', provided_by=env.valid_envs)
+    require('server_project_home', provided_by=env.valid_envs)
     with cd(env.server_project_home):
         versions = run('ls -1')
     # we're expecting timestamps, so this test will be safe until 2100
@@ -396,7 +396,7 @@ def delete_old_rollback_versions(keep=None):
 def list_versions():
     """List the previous versions available to rollback to."""
     # could also determine the VCS revision number
-    require('env.server_project_home', provided_by=env.valid_envs)
+    require('server_project_home', provided_by=env.valid_envs)
     _set_vcs_root_dir_timestamp()
     version_list = _get_list_of_versions()
     utils.puts('Available versions are:')
