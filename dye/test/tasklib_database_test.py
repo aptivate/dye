@@ -147,6 +147,33 @@ class MysqlMixin(object):
         db_conn.close()
 
 
+class TestDatabaseInit(MysqlMixin, unittest.TestCase):
+
+    def get_db_kwargs(self, host):
+        return {
+            'engine': 'mysql',
+            'name': self.TEST_DB,
+            'user': self.TEST_USER,
+            'password': self.TEST_PASSWORD,
+            'port': None,
+            'host': host,
+            'root_password': None,
+            'grant_enabled': True,
+        }
+
+    def test_host_set_to_localhost_if_none_passed(self):
+        db = database.get_db_manager(**self.get_db_kwargs(None))
+        self.assertEqual('localhost', db.host)
+
+    def test_host_set_to_localhost_if_empty_string_passed(self):
+        db = database.get_db_manager(**self.get_db_kwargs(''))
+        self.assertEqual('localhost', db.host)
+
+    def test_host_set_to_ip_address_if_ip_address_passed(self):
+        db = database.get_db_manager(**self.get_db_kwargs('12.34.56.78'))
+        self.assertEqual('12.34.56.78', db.host)
+
+
 class TestCreateMysqlArgs(MysqlMixin, unittest.TestCase):
 
     def test_create_cmdline_args_simple_case(self):
