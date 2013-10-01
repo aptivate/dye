@@ -140,7 +140,9 @@ class MysqlMixin(object):
 
     def assert_user_has_access_to_database(self):
         try:
-            db_conn = self.db.create_db_connection()
+            db_conn = self.db.create_db_connection(user=self.TEST_USER,
+                                                   passwd=self.TEST_PASSWORD,
+                                                   db=self.TEST_DB)
         except MySQLdb.OperationalError as e:
             self.fail("Failed to connect to database after privileges "
                       "should have been granted.\n%s" % e)
