@@ -69,6 +69,18 @@ class TestSqliteManager(unittest.TestCase):
         self.assertTrue(self.db.test_db_table_exists(self.TEST_TABLE))
 
 
+class TestSqlite3Manager(unittest.TestCase):
+
+    def setUp(self):
+        super(TestSqlite3Manager, self).setUp()
+        # override the database and then run the same tests
+        self.db = database.get_db_manager(
+            engine='sqlite3',
+            name=self.TEST_DB,
+            root_dir='.',
+        )
+
+
 class MysqlMixin(object):
 
     TEST_USER = 'dye_user'

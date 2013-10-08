@@ -15,7 +15,7 @@ from .environment import env
 # the methods in this class are those used externally
 class DBManager(object):
 
-    # the first three are required for tasks.py deploy
+    # the first four are required for tasks.py deploy
     def drop_db(self):
         raise NotImplementedError()
 
@@ -23,6 +23,10 @@ class DBManager(object):
         raise NotImplementedError()
 
     def test_db_table_exists(self, table):
+        raise NotImplementedError()
+
+    # this is used directly for the test database
+    def grant_all_privileges_for_database(self):
         raise NotImplementedError()
 
     # these four are only required for fablib deploy, which is why I
@@ -67,6 +71,11 @@ class SqliteManager(DBManager):
             return len(list(result.fetchall())) != 0
         finally:
             conn.close()
+
+    # this is used directly for the test database
+    def grant_all_privileges_for_database(self):
+        # no privileges in sqlite world
+        pass
 
 
 class MySQLManager(DBManager):
@@ -341,7 +350,7 @@ class MySQLManager(DBManager):
 def get_db_manager(engine, **kwargs):
     if engine.lower() == 'mysql':
         return MySQLManager(**kwargs)
-    elif engine.lower() == 'sqlite':
+    elif engine.lower() in ['sqlite', 'sqlite3']:
         return SqliteManager(**kwargs)
     else:
         raise InvalidProjectError('Database engine %s not supported' % engine)

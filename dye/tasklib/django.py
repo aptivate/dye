@@ -89,7 +89,7 @@ def _create_db_objects(database='default'):
         db = local_settings.DATABASES[database]
         db_details['engine'] = db['ENGINE']
         db_details['name'] = db['NAME']
-        if db_details['engine'].endswith('sqlite'):
+        if db_details['engine'].endswith('sqlite3'):
             db_details['root_dir'] = env['django_dir']
         else:
             db_details['user'] = db['USER']
@@ -101,7 +101,7 @@ def _create_db_objects(database='default'):
         try:
             db_details['engine'] = local_settings.DATABASE_ENGINE
             db_details['name'] = local_settings.DATABASE_NAME
-            if db_details['engine'].endswith('sqlite'):
+            if db_details['engine'].endswith('sqlite3'):
                 db_details['root_dir'] = env['django_dir']
             else:
                 db_details['user'] = local_settings.DATABASE_USER
