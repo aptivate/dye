@@ -240,12 +240,16 @@ class MySQLManager(DBManager):
         return rows != 0
 
     def create_user_if_not_exists(self):
+        if not self.grant_enabled:
+            return
         if not self.test_sql_user_exists(self.user):
             self.exec_as_root(
                 "CREATE USER '%s'@'%s' IDENTIFIED BY '%s'" %
                 (self.user, self.host, self.password))
 
     def set_user_password(self):
+        if not self.grant_enabled:
+            return
         self.exec_as_root(
             "SET PASSWORD FOR '%s'@'%s' = PASSWORD('%s')" %
             (self.user, self.host, self.password))
