@@ -100,7 +100,7 @@ def run_tests(*extra_args):
     if not env['quiet']:
         print "### Running tests"
 
-    args = ['test', '-v0']
+    args = ['test', '--noinput', '-v0']
 
     if extra_args:
         args += extra_args
