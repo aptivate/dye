@@ -114,7 +114,7 @@ def _create_db_objects(database='default'):
     # sort out the engine part - discard everything before the last .
     db_details['engine'] = db_details['engine'].split('.')[-1]
     if env['environment'] == 'dev_fasttests':
-        db['grant_enabled'] = False
+        db_details['grant_enabled'] = False
     # and create the objects that hold the db details
     env['db'] = get_db_manager(**db_details)
     # and the test db object
