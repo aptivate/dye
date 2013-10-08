@@ -89,7 +89,7 @@ class MySQLManager(DBManager):
         self.name = name
         self.user = user
         self.password = password
-        self.port = port
+        self.port = int(port) if port else None
         if not host:
             self.host = 'localhost'
         else:
