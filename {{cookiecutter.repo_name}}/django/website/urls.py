@@ -1,6 +1,5 @@
 from django.conf.urls import patterns, include, url
 
-# Uncomment the next two lines to enable the admin:
 from django.contrib import admin
 from django.conf import settings
 admin.autodiscover()
@@ -15,10 +14,10 @@ urlpatterns = patterns('',
 
     # Uncomment the next line to enable the admin:
     url(r'^admin/', include(admin.site.urls)),
-    
-    #This requires that static files are served from the 'static' folder.
-    #The apache conf is set up to do this for you, but you will need to do it on
-    #dev 
-    (r'/favicon.ico', 'django.views.generic.simple.redirect_to', 
-     {'url':  '{0]images/favicon.ico'.format(settings.STATIC_URL)} ),
+
+    # This requires that static files are served from the 'static' folder.
+    # The apache conf is set up to do this for you, but you will need to do it
+    # on dev
+    (r'/favicon.ico', 'django.views.generic.simple.redirect_to',
+        {'url':  '{0}images/favicon.ico'.format(settings.STATIC_URL)}),
 )
