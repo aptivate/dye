@@ -29,7 +29,7 @@ def _setup_paths(project_settings):
                    path.join(env.server_home, env.project_name))
     env.setdefault('current_link', path.join(env.server_project_home, 'current'))
     env.setdefault('vcs_root_dir', env.current_link)
-    env.setdefault('next_dir', _create_timestamp_dirname(env.timestamp))
+    env.setdefault('next_dir', path.join(env.server_project_home, _create_timestamp_dirname(env.timestamp)))
     env.setdefault('dump_dir', path.join(env.server_project_home, 'dbdumps'))
     # TODO: use relative_deploy_dir
     env.setdefault('deploy_dir', path.join(env.vcs_root_dir, 'deploy'))
@@ -250,7 +250,7 @@ def clean_old_celery():
 def _create_timestamp_dirname(timestamp=None):
     if timestamp is None:
         timestamp = datetime.now()
-    return path.join(env.server_project_home, timestamp.strftime("%Y-%m-%d_%H-%M-%S"))
+    return timestamp.strftime("%Y-%m-%d_%H-%M-%S")
 
 
 def _migrate_directory_structure():
@@ -312,6 +312,19 @@ def _set_vcs_root_dir_timestamp():
     env.vcs_root_dir_timestamp = sudo_or_run('readlink -f %s' % env.vcs_root_dir)
 
 
+def _fix_virtualenv_bin_paths():
+    """The virtualenv bin/ files have the absolute directory hardwired
+    into them.  We need to change the name of the directory - which in our
+    case means replacing the timestamp.
+    """
+    ve_bin_dir = path.join(env.next_dir, env.relative_ve_dir, 'bin')
+    old_timestamp = path.basename(env.vcs_root_dir_timestamp)
+    new_timestamp = _create_timestamp_dirname(env.timestamp)
+    cmd = "sed -i 's/%s/%s/' *" % (old_timestamp, new_timestamp)
+    with cd(ve_bin_dir):
+        sudo_or_run(cmd)
+
+
 def create_copy_for_next():
     """Copy the current version to "next" so that we can do stuff like
     the VCS update and virtualenv update without taking the site offline"""
@@ -335,6 +348,9 @@ def create_copy_for_next():
         # so the compare that bootstrap.py does to see if the virtualenv
         # needs an update should still work.
         sudo_or_run('cp -a %s %s' % (env.vcs_root_dir_timestamp, env.next_dir))
+
+        # fix the virtualenv
+        _fix_virtualenv_bin_paths()
 
 
 def point_current_to_next():
@@ -671,10 +687,6 @@ def sudo_or_run(command):
         return sudo(command)
     else:
         return run(command)
-
-
-def _fix_virtualenv_bin_paths():
-    pass
 
 
 def create_deploy_virtualenv(in_next=False, full_rebuild=True):
