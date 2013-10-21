@@ -4,6 +4,7 @@ import sys
 import StringIO
 import unittest
 import sqlite3
+import subprocess
 import MySQLdb
 
 dye_dir = path.join(path.dirname(__file__), os.pardir)
@@ -87,6 +88,7 @@ class MysqlMixin(object):
     TEST_PASSWORD = 'dye_password'
     TEST_DB = 'dyedb'
     TEST_TABLE = 'dyetable'
+    TEST_RESTORE_FILE = path.join(path.dirname(__file__), 'data', 'testrestore.sql')
     TEST_DUMP_FILE = path.join(path.dirname(__file__), 'data', 'testdump.sql')
 
     def setUp(self):
@@ -368,25 +370,29 @@ class TestDatabaseCreateFunctions(MysqlMixin, unittest.TestCase):
         except Exception as e:
             self.fail('drop_db() raised exception: %s' % e)
 
-    # dump db
-    # do a restore from a saved test dump file
-    # do the dump
-    # check the generated dump file matches test dump (but think about time
-    # stamps ...)
-
-    # restore db
-    # ensure db does not exist
-    # do restore
-    # check db and table exist
     def test_restore_db_causes_db_and_table_to_be_created(self):
         try:
             self.db.ensure_user_and_db_exist()
-            self.assert_user_has_access_to_database()
-            self.db.restore_db(self.TEST_DUMP_FILE)
+            self.db.restore_db(self.TEST_RESTORE_FILE)
             self.assertTrue(self.db.test_db_table_exists(self.TEST_TABLE))
         finally:
             self.drop_database_user()
             self.drop_database()
+
+    def test_dump_db_generates_dump_similar_to_what_was_loaded(self):
+        try:
+            self.db.ensure_user_and_db_exist()
+            self.db.restore_db(self.TEST_RESTORE_FILE)
+            self.db.dump_db(self.TEST_DUMP_FILE)
+            # do a diff but ignore comments that may contain date stamps
+            # may also need to add '--ignore-matching-lines', '^/\*',
+            # to allow for non-data bits
+            subprocess.check_call(['diff', '--ignore-matching-lines', '^--',
+                                   self.TEST_RESTORE_FILE, self.TEST_DUMP_FILE])
+        finally:
+            self.drop_database_user()
+            self.drop_database()
+            os.remove(self.TEST_DUMP_FILE)
 
 
 class TestMysqlDumpCron(MysqlMixin, unittest.TestCase):
