@@ -287,22 +287,21 @@ class MySQLManager(DBManager):
         if for_rsync:
             dump_cmd.append('--skip-extended-insert')
 
-        dump_file = open(dump_filename, 'w')
-        if env['verbose']:
-            print 'Executing mysqldump command: %s\nSending stdout to %s' % \
-                (' '.join(dump_cmd), dump_filename)
-        _call_command(dump_cmd, stdout=dump_file)
+        with open(dump_filename, 'w') as dump_file:
+            if env['verbose']:
+                print 'Executing mysqldump command: %s\nSending stdout to %s' % \
+                    (' '.join(dump_cmd), dump_filename)
+            _call_command(dump_cmd, stdout=dump_file)
         dump_file.close()
 
     def restore_db(self, dump_filename):
         """Restore a database dump file by name"""
         restore_cmd = ['mysql'] + self.create_cmdline_args()
-        dump_file = open(dump_filename, 'r')
-        if env['verbose']:
-            print 'Executing mysql restore command: %s\nSending stdin to %s' % \
-                (' '.join(restore_cmd), dump_filename)
-        _call_command(restore_cmd, stdin=dump_file)
-        dump_file.close()
+        with open(dump_filename, 'r') as dump_file:
+            if env['verbose']:
+                print 'Executing mysql restore command: %s\nSending stdin to %s' % \
+                    (' '.join(restore_cmd), dump_filename)
+            _call_command(restore_cmd, stdin=dump_file)
 
     def create_dbdump_cron_file(self, cron_file, dump_file_stub):
         # write something like:
