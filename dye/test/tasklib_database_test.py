@@ -87,6 +87,7 @@ class MysqlMixin(object):
     TEST_PASSWORD = 'dye_password'
     TEST_DB = 'dyedb'
     TEST_TABLE = 'dyetable'
+    TEST_DUMP_FILE = path.join(path.dirname(__file__), 'data', 'testdump.sql')
 
     def setUp(self):
         self.db = database.get_db_manager(
@@ -377,6 +378,15 @@ class TestDatabaseCreateFunctions(MysqlMixin, unittest.TestCase):
     # ensure db does not exist
     # do restore
     # check db and table exist
+    def test_restore_db_causes_db_and_table_to_be_created(self):
+        try:
+            self.db.ensure_user_and_db_exist()
+            self.assert_user_has_access_to_database()
+            self.db.restore_db(self.TEST_DUMP_FILE)
+            self.assertTrue(self.db.test_db_table_exists(self.TEST_TABLE))
+        finally:
+            self.drop_database_user()
+            self.drop_database()
 
 
 class TestMysqlDumpCron(MysqlMixin, unittest.TestCase):
