@@ -31,6 +31,7 @@ def _setup_paths(project_settings):
     env.setdefault('vcs_root_dir', env.current_link)
     env.setdefault('next_dir', _create_timestamp_dirname(env.timestamp))
     env.setdefault('dump_dir', path.join(env.server_project_home, 'dbdumps'))
+    # TODO: use relative_deploy_dir
     env.setdefault('deploy_dir', path.join(env.vcs_root_dir, 'deploy'))
     env.setdefault('settings', '%(project_name)s.settings' % env)
 
@@ -134,15 +135,17 @@ def _create_dir_if_not_exists(path):
         sudo_or_run('mkdir -p %s' % path)
 
 
-def deploy(revision=None, keep=None, rebuild_ve=True):
+def deploy(revision=None, keep=None, full_rebuild=True):
     """ update remote host environment (virtualenv, deploy, update)
 
-    It takes two arguments:
+    It takes three arguments:
 
     * revision is the VCS revision ID to checkout (if not specified then
       the latest will be checked out)
     * keep is the number of old versions to keep around for rollback (default
-      5)"""
+      5)
+    * full_rebuild is whether to do a full rebuild of the virtualenv
+    """
     require('server_project_home', provided_by=env.valid_envs)
 
     # if the <server_project_home>/previous/ directory doesn't exist, this does
@@ -167,7 +170,7 @@ def deploy(revision=None, keep=None, rebuild_ve=True):
     if env.project_type == "django":
         rm_pyc_files(path.join(env.next_dir, env.relative_django_dir))
     # create the deploy virtualenv if we use it
-    create_deploy_virtualenv(in_next=True, rebuild_ve=rebuild_ve)
+    create_deploy_virtualenv(in_next=True, full_rebuild=full_rebuild)
 
     # we only have to disable this site after creating the rollback copy
     # (do this so that apache carries on serving other sites on this server
@@ -670,7 +673,11 @@ def sudo_or_run(command):
         return run(command)
 
 
-def create_deploy_virtualenv(in_next=False, rebuild_ve=True):
+def _fix_virtualenv_bin_paths():
+    pass
+
+
+def create_deploy_virtualenv(in_next=False, full_rebuild=True):
     """ if using new style dye stuff, create the virtualenv to hold dye """
     require('deploy_dir', provided_by=env.valid_envs)
     if in_next:
@@ -678,16 +685,16 @@ def create_deploy_virtualenv(in_next=False, rebuild_ve=True):
         bootstrap_path = path.join(env.next_dir, 'deploy', 'bootstrap.py')
     else:
         bootstrap_path = path.join(env.deploy_dir, 'bootstrap.py')
-    if rebuild_ve:
+    if full_rebuild:
         args = '--full-rebuild --quiet'
     else:
         args = '--quiet'
     sudo_or_run('%s %s %s' % (_get_python(), bootstrap_path, args))
 
 
-def update_requirements():
+def update_requirements(in_next=False):
     """ update external dependencies on remote host """
-    _tasks('update_ve')
+    create_deploy_virtualenv(in_next, full_rebuild=False)
 
 
 def collect_static_files():
