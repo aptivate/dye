@@ -312,17 +312,28 @@ def _set_vcs_root_dir_timestamp():
     env.vcs_root_dir_timestamp = sudo_or_run('readlink -f %s' % env.vcs_root_dir)
 
 
-def _fix_virtualenv_bin_paths():
+def _fix_virtualenv_paths():
     """The virtualenv bin/ files have the absolute directory hardwired
-    into them.  We need to change the name of the directory - which in our
-    case means replacing the timestamp.
+    into them, as do site-packages/easy-install.pth and site-packages/*.egg-link
+    We need to change the name of the directory - which in our case means
+    replacing the timestamp.
     """
     ve_bin_dir = path.join(env.next_dir, env.relative_ve_dir, 'bin')
+    # the expected result of this is, say:
+    # /var/django/project_name/2013-10-13_12-13-14/django/website/.ve/lib/python2.6
+    # the * on the end is to match any/all python versions
+    ve_lib_python = sudo_or_run(
+        'ls -d %s*' % path.join(env.next_dir, env.relative_ve_dir, 'lib', 'python'))
+    ve_site_packages_dir = path.join(ve_lib_python, 'site-packages')
+
     old_timestamp = path.basename(env.vcs_root_dir_timestamp)
     new_timestamp = _create_timestamp_dirname(env.timestamp)
     cmd = "sed -i 's/%s/%s/' *" % (old_timestamp, new_timestamp)
     with cd(ve_bin_dir):
         sudo_or_run(cmd)
+    with cd(ve_site_packages_dir):
+        sudo_or_run(cmd + '.pth')
+        sudo_or_run(cmd + '.egg-link')
 
 
 def create_copy_for_next():
@@ -350,7 +361,7 @@ def create_copy_for_next():
         sudo_or_run('cp -a %s %s' % (env.vcs_root_dir_timestamp, env.next_dir))
 
         # fix the virtualenv
-        _fix_virtualenv_bin_paths()
+        _fix_virtualenv_paths()
 
 
 def point_current_to_next():
