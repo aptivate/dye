@@ -148,12 +148,12 @@ def deploy(revision=None, keep=None, full_rebuild=True):
     """
     require('server_project_home', provided_by=env.valid_envs)
 
+    _create_dir_if_not_exists(env.server_project_home)
+
     # if the <server_project_home>/previous/ directory doesn't exist, this does
     # nothing
     _migrate_directory_structure()
     _set_vcs_root_dir_timestamp()
-
-    _create_dir_if_not_exists(env.server_project_home)
 
     check_for_local_changes()
     # TODO: check for deploy-in-progress.json file
