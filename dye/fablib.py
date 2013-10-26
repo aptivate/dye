@@ -148,6 +148,7 @@ def deploy(revision=None, keep=None, full_rebuild=True):
     """
     require('server_project_home', provided_by=env.valid_envs)
 
+    # this really needs to be first - other things assume the directory exists
     _create_dir_if_not_exists(env.server_project_home)
 
     # if the <server_project_home>/previous/ directory doesn't exist, this does
