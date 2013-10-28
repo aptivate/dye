@@ -310,7 +310,11 @@ def _migrate_directory_structure():
 
 def _set_vcs_root_dir_timestamp():
     """ Find what the real directory name is that current/ points to. """
-    env.vcs_root_dir_timestamp = sudo_or_run('readlink -f %s' % env.vcs_root_dir)
+    if files.exists(env.vcs_root_dir):
+        env.vcs_root_dir_timestamp = sudo_or_run('readlink -f %s' % env.vcs_root_dir)
+    else:
+        # TODO: review what uses this and how it will cope with a value of None
+        env.vcs_root_dir_timestamp = None
 
 
 def _fix_virtualenv_paths():
