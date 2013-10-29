@@ -140,15 +140,14 @@ def _get_cache_table():
     return settings.CACHES['default']['LOCATION']
 
 
-def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, database='default'):
+def update_db(syncdb=True, drop_test_db=True, force_use_migrations=True, database='default'):
     """ create the database, and do syncdb and migrations
     Note that if syncdb is true, then migrations will always be done if one of
     the Django apps has a directory called 'migrations/'
     Args:
         syncdb (bool): whether to run syncdb (aswell as creating database)
         drop_test_db (bool): whether to drop the test database after creation
-        force_use_migrations (bool): whether to force migrations, even when no
-            migrations/ directories are found.
+        force_use_migrations (bool): always True now
         database (string): The database value passed to _get_django_db_settings.
     """
     if not env['quiet']:
@@ -162,21 +161,15 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=False, databa
         env['test_db'].create_db_if_not_exists()
     env['test_db'].grant_all_privileges_for_database()
 
-    #print 'syncdb: %s' % type(syncdb)
-    use_migrations = force_use_migrations
     if env['project_type'] == "django" and syncdb:
         # if we are using the database cache we need to create the table
         # and we need to do it before syncdb
         cache_table = _get_cache_table()
         if cache_table and not env['db'].test_db_table_exists(cache_table):
             _manage_py(['createcachetable', cache_table])
-        # if we are using South we need to do the migrations aswell
-        for app in env['django_apps']:
-            if path.exists(path.join(env['django_dir'], app, 'migrations')):
-                use_migrations = True
         _manage_py(['syncdb', '--noinput'])
-        if use_migrations:
-            _manage_py(['migrate', '--noinput'])
+        # always call migrate - shouldn't fail (I think)
+        _manage_py(['migrate', '--noinput'])
 
 
 def create_test_db(drop_after_create=True, database='default'):
