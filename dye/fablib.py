@@ -156,7 +156,7 @@ def deploy(revision=None, keep=None, full_rebuild=True):
     _migrate_directory_structure()
     _set_vcs_root_dir_timestamp()
 
-    check_for_local_changes()
+    check_for_local_changes(revision)
     # TODO: check for deploy-in-progress.json file
     # also check if there are any directories newer than current ???
     # might just mean we did a rollback, so maybe don't bother as the
@@ -526,7 +526,12 @@ def version():
         utils.abort('Unsupported repo type: %s' % (env.repo_type))
 
 
-def _check_git_branch():
+def _check_git_branch(revision):
+    # cover the case where the revision (or commit ID) is passed on the
+    # command line.  If it is, then skip the checking
+    if revision:
+        env.revision = revision
+        return
     env.revision = None
     with cd(env.vcs_root_dir):
         with settings(warn_only=True):
@@ -566,7 +571,7 @@ def _check_git_branch():
                     default=default_branch, validate=validate_branch)
 
 
-def check_for_local_changes():
+def check_for_local_changes(revision):
     """ check if there are local changes on the remote server """
     require('repo_type', 'vcs_root_dir', provided_by=env.valid_envs)
     status_cmd = {
@@ -588,7 +593,7 @@ def check_for_local_changes():
                 if cont == 'no':
                     utils.abort('Aborting deployment')
         if env.repo_type == 'git':
-            _check_git_branch()
+            _check_git_branch(revision)
 
 
 def checkout_or_update(in_next=False, revision=None):
