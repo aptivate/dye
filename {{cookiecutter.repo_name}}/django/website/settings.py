@@ -12,6 +12,11 @@ ADMINS = (
 
 MANAGERS = ADMINS
 
+# these are the settings for production. We can override in the various
+# local_settings if we want to
+DEFAULT_FROM_EMAIL = 'donotreply@{{ domain_name }}'
+SERVER_EMAIL = 'server@{{ domain_name }}'
+
 # DATABASES are configured in local_settings.py.*
 
 # Local time zone for this installation. Choices can be found here:
@@ -22,7 +27,7 @@ TIME_ZONE = 'Europe/London'
 
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
-LANGUAGE_CODE = 'en-gb'
+LANGUAGE_CODE = 'en'
 
 SITE_ID = 1
 
@@ -152,4 +157,40 @@ LOGGING = {
 MONKEY_PATCHES = ['intranet_binder.monkeypatches']
 
 # tasks.py expects to find local_settings.py so the database stuff is there
-from local_settings import *
+#--------------------------------
+# local settings import
+#from http://djangosnippets.org/snippets/1873/
+#--------------------------------
+try:
+    import local_settings
+except ImportError:
+    print """
+    -------------------------------------------------------------------------
+    You need to create a local_settings.py file. Run ../../deploy/tasks.py
+    deploy:<whatever> to use one of the local_settings.py.* files as your
+    local_settings.py, and create the database and tables mentioned in it.
+    -------------------------------------------------------------------------
+    """
+    import sys
+    sys.exit(1)
+else:
+    # Import any symbols that begin with A-Z. Append to lists any symbols that
+    # begin with "EXTRA_".
+    import re
+    for attr in dir(local_settings):
+        match = re.search('^EXTRA_(\w+)', attr)
+        if match:
+            name = match.group(1)
+            value = getattr(local_settings, attr)
+            try:
+                globals()[name] += value
+            except KeyError:
+                globals()[name] = value
+        elif re.search('^[A-Z]', attr):
+            globals()[attr] = getattr(local_settings, attr)
+
+    CELERY_RESULT_BACKEND = "database"
+    default_db = DATABASES['default']
+    CELERY_RESULT_DBURI = "mysql://{0}:{1}@{2}:{3}/{4}".format(
+        default_db['USER'], default_db['PASSWORD'], default_db['HOST'],
+        default_db['PORT'], default_db['NAME'])
