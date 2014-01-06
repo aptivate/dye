@@ -1,8 +1,27 @@
 # Django settings for {{project_name}} project.
 
+# Build paths inside the project like this: path.join(BASE_DIR, ...)
+from os import path
+BASE_DIR = path.dirname(path.dirname(__file__))
+
+
+########## DEFAULT DEBUG SETTINGS - OVERRIDE IN local_settings
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
+##########
 
+
+########## DATABASES are configured in local_settings.py.*
+
+
+########## SECRET CONFIGURATION
+# See: https://docs.djangoproject.com/en/dev/ref/settings/#secret-key
+import private_settings
+SECRET_KEY = private_settings.SECRET_KEY
+########## END SECRET CONFIGURATION
+
+
+########## MANAGER/EMAIL CONFIGURATION
 # These email addresses will get all the error email for the production server
 # (and any other servers with DEBUG = False )
 ADMINS = (
@@ -16,112 +35,164 @@ MANAGERS = ADMINS
 # local_settings if we want to
 DEFAULT_FROM_EMAIL = 'donotreply@{{ domain_name }}'
 SERVER_EMAIL = 'server@{{ domain_name }}'
+########## MANAGER/EMAIL CONFIGURATION
 
-# DATABASES are configured in local_settings.py.*
 
-# Local time zone for this installation. Choices can be found here:
-# http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
-# although not all choices may be available on all operating systems.
-# In a Windows environment this must be set to your system time zone.
+########## GENERAL CONFIGURATION
+# See: https://docs.djangoproject.com/en/dev/ref/settings/#time-zone
 TIME_ZONE = 'Europe/London'
 
-# Language code for this installation. All choices can be found here:
-# http://www.i18nguy.com/unicode/language-identifiers.html
+# See: https://docs.djangoproject.com/en/dev/ref/settings/#language-code
 LANGUAGE_CODE = 'en'
 
+# See: https://docs.djangoproject.com/en/dev/ref/settings/#site-id
 SITE_ID = 1
 
-# If you set this to False, Django will make some optimizations so as not
-# to load the internationalization machinery.
+# See: https://docs.djangoproject.com/en/dev/ref/settings/#use-i18n
 USE_I18N = True
 
-# If you set this to False, Django will not format dates, numbers and
-# calendars according to the current locale.
+# See: https://docs.djangoproject.com/en/dev/ref/settings/#use-l10n
 USE_L10N = True
 
-# If you set this to False, Django will not use timezone-aware datetimes.
+# See: https://docs.djangoproject.com/en/dev/ref/settings/#use-tz
 USE_TZ = True
+########## END GENERAL CONFIGURATION
 
+
+########## MEDIA CONFIGURATION
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 # Example: "/home/media/media.lawrence.com/media/"
-from os import path
-MEDIA_ROOT = path.join(path.dirname(__file__), 'uploads')
+# See: https://docs.djangoproject.com/en/dev/ref/settings/#media-root
+MEDIA_ROOT = path.join(BASE_DIR, 'uploads')
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash.
-# Examples: "http://media.lawrence.com/media/", "http://example.com/media/"
+# See: https://docs.djangoproject.com/en/dev/ref/settings/#media-url
 MEDIA_URL = '/uploads/'
+########## END MEDIA CONFIGURATION
 
+
+########## STATIC FILE CONFIGURATION
 # Absolute path to the directory static files should be collected to.
 # Don't put anything in this directory yourself; store your static files
 # in apps' "static/" subdirectories and in STATICFILES_DIRS.
-# Example: "/home/media/media.lawrence.com/static/"
-STATIC_ROOT = path.join(path.dirname(__file__), 'static')
+# See: https://docs.djangoproject.com/en/dev/ref/settings/#static-root
+STATIC_ROOT = path.join(BASE_DIR, 'static')
 
 # URL prefix for static files.
-# Example: "http://media.lawrence.com/static/"
+# See: https://docs.djangoproject.com/en/dev/ref/settings/#static-url
 STATIC_URL = '/static/'
 
-# Additional locations of static files
+# See: https://docs.djangoproject.com/en/dev/ref/contrib/staticfiles/#std:setting-STATICFILES_DIRS
 STATICFILES_DIRS = (
     # Put strings here, like "/home/html/static" or "C:/www/django/static".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
+    path.join(BASE_DIR, 'media'),
 )
 
-# List of finder classes that know how to find static files in
-# various locations.
+# See: https://docs.djangoproject.com/en/dev/ref/contrib/staticfiles/#staticfiles-finders
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-    #'django.contrib.staticfiles.finders.DefaultStorageFinder',
 )
+########## END STATIC FILE CONFIGURATION
 
-import private_settings
-SECRET_KEY = private_settings.SECRET_KEY
 
-# List of callables that know how to import templates from various sources.
-TEMPLATE_LOADERS = (
-    'django.template.loaders.filesystem.Loader',
-    'django.template.loaders.app_directories.Loader',
-    #'django.template.loaders.eggs.Loader',
-)
-
-MIDDLEWARE_CLASSES = (
-    'django.middleware.common.CommonMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    # Uncomment the next line for simple clickjacking protection:
-    # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
-)
-
-ROOT_URLCONF = 'urls'
-
-# Python dotted path to the WSGI application used by Django's runserver.
-# WSGI_APPLICATION = 'wsgi.application'
-
-TEMPLATE_DIRS = (
-    # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
-    # Always use forward slashes, even on Windows.
-    # Don't forget to use absolute paths, not relative paths.
-    path.join(path.dirname(__file__), 'templates')
-)
-
-INSTALLED_APPS = (
+########## APP CONFIGURATION
+DJANGO_APPS = (
+    # Default Django apps:
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.sites',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # Uncomment the next line to enable the admin:
+
+    # Useful template tags:
+    # 'django.contrib.humanize',
+
+    # Admin
     'django.contrib.admin',
-    # Uncomment the next line to enable admin documentation:
-    # 'django.contrib.admindocs',
+)
+THIRD_PARTY_APPS = (
+    'south',  # Database migration helpers:
 )
 
+# Apps specific for this project go here.
+LOCAL_APPS = (
+    # Your stuff: custom apps go here
+)
+
+# See: https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+########## END APP CONFIGURATION
+
+
+########## MIDDLEWARE CONFIGURATION
+MIDDLEWARE_CLASSES = (
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+)
+########## END MIDDLEWARE CONFIGURATION
+
+
+########## URL Configuration
+ROOT_URLCONF = 'urls'
+
+# Python dotted path to the WSGI application used by Django's runserver.
+# WSGI_APPLICATION = 'wsgi.application'
+########## END URL Configuration
+
+
+########## django-secure - intended for sites that use SSL
+SECURE = False
+if SECURE:
+    INSTALLED_APPS += ("djangosecure", )
+
+    # set this to 60 seconds and then to 518400 when you can prove it works
+    SECURE_HSTS_SECONDS = 60
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_FRAME_DENY = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    SECURE_SSL_REDIRECT = True
+########## end django-secure
+
+
+########## AUTHENTICATION CONFIGURATION
+AUTHENTICATION_BACKENDS = (
+    "django.contrib.auth.backends.ModelBackend",
+    #"allauth.account.auth_backends.AuthenticationBackend",
+)
+
+# Some really nice defaults
+#ACCOUNT_AUTHENTICATION_METHOD = "username"
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+########## END AUTHENTICATION CONFIGURATION
+
+
+########## Custom user app defaults
+# Select the correct user model
+#AUTH_USER_MODEL = "users.User"
+#LOGIN_REDIRECT_URL = "users:redirect"
+########## END Custom user app defaults
+
+
+########## SLUGLIFIER
+#AUTOSLUG_SLUGIFY_FUNCTION = "slugify.slugify"
+########## END SLUGLIFIER
+
+
+########## LOGGING CONFIGURATION
+# See: https://docs.djangoproject.com/en/dev/ref/settings/#logging
 # A sample logging configuration. The only tangible logging
 # performed by this configuration is to send an email to
 # the site admins on every HTTP 500 error when DEBUG=False.
@@ -144,18 +215,25 @@ LOGGING = {
     },
     'loggers': {
         'django.request': {
-            'handlers': [],  # ['mail_admins'],
+            'handlers': ['mail_admins'],
             'level': 'ERROR',
             'propagate': True,
         },
     }
 }
+########## END LOGGING CONFIGURATION
 
+
+########## BINDER STUFF
+# Usually included by adding intranet_binder as a git submodule
 # The name of the class to use to run the test suite
 # TEST_RUNNER = 'intranet_binder.testing.SmartTestSuiteRunner'
 
-MONKEY_PATCHES = ['intranet_binder.monkeypatches']
+#MONKEY_PATCHES = ['intranet_binder.monkeypatches']
+########## END BINDER STUFF
 
+
+########## LOCAL_SETTINGS
 # tasks.py expects to find local_settings.py so the database stuff is there
 #--------------------------------
 # local settings import
@@ -190,7 +268,65 @@ else:
             globals()[attr] = getattr(local_settings, attr)
 
     CELERY_RESULT_BACKEND = "database"
-    default_db = DATABASES['default']
+    default_db = DATABASES['default']  # pyflakes: ignore
     CELERY_RESULT_DBURI = "mysql://{0}:{1}@{2}:{3}/{4}".format(
         default_db['USER'], default_db['PASSWORD'], default_db['HOST'],
         default_db['PORT'], default_db['NAME'])
+########## END LOCAL_SETTINGS
+
+
+##### from here on is stuff that depends on the value of DEBUG
+##### which is set in LOCAL_SETTINGS
+
+
+if DEBUG is False:
+    ########## SITE CONFIGURATION
+    # Hosts/domain names that are valid for this site
+    # See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
+    #ALLOWED_HOSTS = ["*"]
+    ALLOWED_HOSTS = [
+        '.{{ domain_name }}',
+        'www.{{ domain_name }}',
+        'fen-vz-{{ project_name }}.fen.aptivate.org',
+        'fen-vz-{{ project_name }}-dev.fen.aptivate.org',
+        '{{ project_name }}.dev.aptivate.org',
+        '{{ project_name }}.stage.aptivate.org',
+    ]
+    ########## END SITE CONFIGURATION
+
+########## TEMPLATE CONFIGURATION
+# See: https://docs.djangoproject.com/en/dev/ref/settings/#template-context-processors
+TEMPLATE_CONTEXT_PROCESSORS = (
+    'django.contrib.auth.context_processors.auth',
+    'django.core.context_processors.debug',
+    'django.core.context_processors.i18n',
+    'django.core.context_processors.media',
+    'django.core.context_processors.static',
+    'django.core.context_processors.tz',
+    'django.contrib.messages.context_processors.messages',
+    'django.core.context_processors.request',
+    # Your stuff: custom template context processers go here
+)
+
+
+# See: https://docs.djangoproject.com/en/dev/ref/settings/#template-dirs
+TEMPLATE_DIRS = (
+    path.join(BASE_DIR, 'templates'),
+)
+
+if DEBUG:
+    TEMPLATE_LOADERS = (
+        'django.template.loaders.filesystem.Loader',
+        'django.template.loaders.app_directories.Loader',
+    )
+else:
+    TEMPLATE_LOADERS = (
+        ('django.template.loaders.cached.Loader', (
+            'django.template.loaders.filesystem.Loader',
+            'django.template.loaders.app_directories.Loader',
+        )),
+    )
+########## END TEMPLATE CONFIGURATION
+
+
+########## Your stuff: Below this line define 3rd party libary settings
