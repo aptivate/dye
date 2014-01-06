@@ -15,6 +15,7 @@ import project_settings
 
 tasklib.env['verbose'] = False
 tasklib.env['quiet'] = True
+tasklib.env['noinput'] = True
 
 
 class TestLinkLocalSettings(unittest.TestCase):
