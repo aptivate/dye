@@ -108,6 +108,17 @@ def _get_svn_user_and_pass():
         env.svnpass = getpass.getpass('Enter SVN password:')
 
 
+def _local_is_file_writable(filename):
+    try:
+        # use 'a' for append - if we use 'w' then we truncate the file
+        # (ie we delete any existing content)
+        f = open(filename, 'a')
+        f.close()
+        return True
+    except IOError:
+        return False
+
+
 def verbose(verbose=True):
     """Set verbose output"""
     env.verbose = verbose
@@ -753,30 +764,46 @@ def clean_db(revision=None):
     _tasks("clean_db")
 
 
-def get_remote_dump(filename='/tmp/db_dump.sql', local_filename='./db_dump.sql',
-        rsync=True):
+def get_remote_dump(filename=None, local_filename=None, rsync=True):
     """ do a remote database dump and copy it to the local filesystem """
     # future enhancement, do a mysqldump --skip-extended-insert (one insert
     # per line) and then do rsync rather than get() - less data transferred on
     # however rsync might need ssh keys etc
     require('user', 'host', provided_by=env.valid_envs)
+    delete_after = False
+    if filename is None:
+        filename = '/tmp/db_dump.sql'
+    if local_filename is None:
+        # set a default, but ensure we can write to it
+        local_filename = './db_dump.sql'
+        if not _local_is_file_writable(local_filename):
+            # if we have to use /tmp, delete the file afterwards
+            local_filename = '/tmp/db_dump.sql'
+            delete_after = True
+    else:
+        # if the filename is specified, then don't change the name
+        if not _local_is_file_writable(local_filename):
+            raise Exception(
+                'Cannot write to local dump file you specified: %s' % local_filename)
     if rsync:
         _tasks('dump_db:' + filename + ',for_rsync=true')
-        local("rsync -vz -e 'ssh -p %s' %s@%s:%s %s" % (env.port,
-            env.user, env.host, filename, local_filename))
+        local("rsync -vz -e 'ssh -p %s' %s@%s:%s %s" % (
+            env.port, env.user, env.host, filename, local_filename))
     else:
         _tasks('dump_db:' + filename)
         get(filename, local_path=local_filename)
     sudo_or_run('rm ' + filename)
+    return local_filename, delete_after
 
 
-def get_remote_dump_and_load(filename='/tmp/db_dump.sql',
-        local_filename='./db_dump.sql', keep_dump=True, rsync=True):
+def get_remote_dump_and_load(filename=None, local_filename=None,
+                             keep_dump=True, rsync=True):
     """ do a remote database dump, copy it to the local filesystem and then
     load it into the local database """
-    get_remote_dump(filename=filename, local_filename=local_filename, rsync=rsync)
+    local_filename, delete_after = get_remote_dump(
+        filename=filename, local_filename=local_filename, rsync=rsync)
     local(env.local_tasks_bin + ' restore_db:' + local_filename)
-    if not keep_dump:
+    if delete_after or not keep_dump:
         local('rm ' + local_filename)
 
 
