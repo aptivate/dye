@@ -832,7 +832,7 @@ def rm_pyc_files(py_dir=None):
         py_dir = env.django_dir
     with settings(warn_only=True):
         with cd(py_dir):
-            sudo_or_run('find . -name \*.pyc | xargs rm')
+            sudo_or_run('find . -type f -name \*.pyc -exec rm {} \\;')
 
 
 def _delete_file(path):

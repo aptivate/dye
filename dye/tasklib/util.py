@@ -95,7 +95,7 @@ def _create_dir_if_not_exists(dir_path, world_writeable=False, owner=None):
 
 def _rm_all_pyc():
     """Remove all pyc files, to be sure"""
-    _call_wrapper('find . -name \*.pyc -print0 | xargs -0 rm', shell=True,
+    _call_wrapper('find . -type f -name \*.pyc -exec rm {} \\;', shell=True,
                   cwd=env['vcs_root_dir'])
 
 
