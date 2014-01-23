@@ -5,7 +5,6 @@
     "email": "Your email",
     "description": "A short description of the project.",
     "year": "Current year",
-    # minimal, normal or cms
     "django_type": "normal",
     "use_pytest": "no"
 }

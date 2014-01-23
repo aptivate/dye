@@ -44,14 +44,17 @@ It prompts you for questions. Answer them::
     remote: Compressing objects: 100% (33/33), done.
     remote: Total 49 (delta 6), reused 48 (delta 5)
     Unpacking objects: 100% (49/49), done.
-    full_name (default is "Your full name here")? Hamish Downer
-    email (default is "you@example.com")? hamish@aptivate.org
     project_name (default is "dj-project")? redditclone
-    app_name (default is "djproject")? redditclone
-    project_short_description (default is "Your project description goes here")? A reddit clone.
-    release_date (default is "2013-08-15")? 2013-08-15
-    year (default is "2013")? 2013
-    version (default is "0.1.0")? 0.3.0
+    domain_name: (default is "Domain name")?
+    author_name: (default is "Your Name")?
+    email: (default is "Your email")?
+    description: (default is "A short description of the project.")?
+    year: (default is "Current year")?
+    django_type: (default is "normal")?
+    use_pytest: (default is "no")?
+
+Note that django_type can be normal, minimal or cms - this affects what packages
+are added.
 
 Enter the project and take a look around::
 
