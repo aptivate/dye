@@ -235,6 +235,17 @@ LOGGING = {
 #MONKEY_PATCHES = ['intranet_binder.monkeypatches']
 ########## END BINDER STUFF
 
+# this section allows us to do a deep update of dictionaries
+import collections
+from copy import deepcopy
+
+
+def update_recursive(dest, source):
+    for k, v in source.iteritems():
+        if dest.get(k, None) and isinstance(v, collections.Mapping):
+            update_recursive(dest[k], source[k])
+        else:
+            dest[k] = deepcopy(source[k])
 
 ########## LOCAL_SETTINGS
 # tasks.py expects to find local_settings.py so the database stuff is there
@@ -255,8 +266,8 @@ except ImportError:
     import sys
     sys.exit(1)
 else:
-    # Import any symbols that begin with A-Z. Append to lists any symbols that
-    # begin with "EXTRA_".
+    # Import any symbols that begin with A-Z. Append to lists, or update
+    # dictionaries for any symbols that begin with "EXTRA_".
     import re
     for attr in dir(local_settings):
         match = re.search('^EXTRA_(\w+)', attr)
@@ -264,7 +275,11 @@ else:
             name = match.group(1)
             value = getattr(local_settings, attr)
             try:
-                globals()[name] += value
+                original = globals()[name]
+                if isinstance(original, collections.Mapping):
+                    update_recursive(original, value)
+                else:
+                    original += value
             except KeyError:
                 globals()[name] = value
         elif re.search('^[A-Z]', attr):
