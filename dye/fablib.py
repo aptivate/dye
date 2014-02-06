@@ -551,15 +551,16 @@ def _check_git_branch(revision):
             server_commit = sudo_or_run('git rev-parse HEAD')
             local_branch = local('git rev-parse --abbrev-ref HEAD', capture=True)
             default_branch = env.default_branch.get(env.environment, 'master')
-            server_git_branch_r = sudo_or_run('git branch --color=never --remote')
+            server_git_branch_r = sudo_or_run('git branch --color=never -r')
             server_git_branch_r = server_git_branch_r.split('\n')
             server_branches = [b.split('/')[-1].strip() for b in
                                server_git_branch_r if 'HEAD' not in b]
             # it's possible the branch hasn't been pulled onto the server yet
             # so also check the remote branches that the local machine knows
-            # about.  --remote means that only branches that have been pushed
-            # are included.
-            local_git_branch_r = local('git branch --color=never --remote')
+            # about.  -r means that only branches that have been pushed
+            # are included.  --remote would be nicer, but that is only
+            # available in newer versions of git
+            local_git_branch_r = local('git branch --color=never -r')
             local_git_branch_r = local_git_branch_r.split('\n')
             local_branches = [b.split('/')[-1].strip() for b in
                               local_git_branch_r if 'HEAD' not in b]
