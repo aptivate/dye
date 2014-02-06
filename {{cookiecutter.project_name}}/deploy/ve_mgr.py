@@ -100,13 +100,8 @@ class UpdateVE(object):
 
         self.ve_timestamp = path.join(self.ve_dir, 'timestamp')
 
-        try:
-            from project_settings import pypi_cache_url
-        except ImportError:
-            print >> sys.stderr, "could not find pypi_cache_url in project_settings.py"
-            raise
-
-        self.pypi_cache_url = pypi_cache_url
+        import project_settings
+        self.pypi_cache_url = getattr(project_settings, 'pypi_cache_url', None)
 
     def update_ve_timestamp(self):
         os.utime(self.ve_dir, None)
