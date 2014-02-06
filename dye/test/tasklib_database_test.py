@@ -2,7 +2,9 @@ import os
 from os import path
 import sys
 import StringIO
-import unittest
+# use unittest2 so we can use the SkipTest exception when the mysql
+# root password isn't available
+import unittest2 as unittest
 import sqlite3
 import subprocess
 import MySQLdb
@@ -12,9 +14,11 @@ sys.path.append(dye_dir)
 import tasklib
 
 from tasklib import database
+from tasklib.exceptions import InvalidPasswordError
 
 tasklib.env['verbose'] = False
 tasklib.env['quiet'] = True
+tasklib.env['noinput'] = True
 
 # cache this in a global variable so that we only need it once
 mysql_root_password = None
@@ -111,8 +115,13 @@ class MysqlMixin(object):
         """
         global mysql_root_password
         if mysql_root_password is None:
-            # this caches the root password in a global in database
-            mysql_root_password = self.db.get_root_password()
+            try:
+                # this caches the root password in a global in database
+                mysql_root_password = self.db.get_root_password()
+            except InvalidPasswordError:
+                # we use noinput, so if we can't discover the MySQL root
+                # password then skip the test
+                raise unittest.SkipTest('Could not discover MySQL root password')
         else:
             # if we've saved it, poke it into the database global
             # then it can be used without us having to pass it in ourselves
@@ -220,6 +229,7 @@ class TestCreateMysqlArgs(MysqlMixin, unittest.TestCase):
 class TestDatabaseTestFunctions(MysqlMixin, unittest.TestCase):
 
     def test_test_sql_user_exists_return_false_when_user_doesnt_exist(self):
+        self.get_mysql_root_password()
         self.assertFalse(self.db.test_sql_user_exists())
 
     def test_test_sql_user_exists_return_true_when_user_does_exist(self):
@@ -255,6 +265,7 @@ class TestDatabaseTestFunctions(MysqlMixin, unittest.TestCase):
         self.assertFalse(self.db.test_root_password('wrong_password'))
 
     def test_db_exists_returns_false_when_database_doesnt_exist(self):
+        self.get_mysql_root_password()
         self.assertFalse(self.db.db_exists())
 
     def test_db_exists_returns_true_when_database_exists(self):
@@ -324,6 +335,7 @@ class TestDatabaseCreateFunctions(MysqlMixin, unittest.TestCase):
             self.drop_database_user()
 
     def test_create_db_if_not_exists_creates_db_when_db_does_not_exist(self):
+        self.get_mysql_root_password()
         self.db.create_db_if_not_exists()
         try:
             self.assertTrue(self.db.db_exists())
@@ -365,6 +377,7 @@ class TestDatabaseCreateFunctions(MysqlMixin, unittest.TestCase):
         self.assertFalse(self.db.db_exists())
 
     def test_drop_db_doesnt_cause_error_when_db_doesnt_exist(self):
+        self.get_mysql_root_password()
         try:
             self.db.drop_db()
         except Exception as e:

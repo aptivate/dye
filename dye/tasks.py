@@ -16,6 +16,7 @@ Options:
     -d, --deploydir DEPLOYDIR  Set the deploy dir (where to find project_settings.py
                                and, optionally, localtasks.py)  Defaults to the
                                directory that contains tasks.py
+    -n, --noinput              Never ask for input from the user (for scripts)
     -q, --quiet                Print less output while executing (note: not none)
     -v, --verbose              Print extra output while executing
     -h, --help                 Print this help text
@@ -195,6 +196,7 @@ def main(argv):
         return 2
     tasklib.env['verbose'] = options['--verbose']
     tasklib.env['quiet'] = options['--quiet']
+    tasklib.env['noinput'] = options['--noinput']
 
     try:
         import project_settings

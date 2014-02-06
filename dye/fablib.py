@@ -108,6 +108,17 @@ def _get_svn_user_and_pass():
         env.svnpass = getpass.getpass('Enter SVN password:')
 
 
+def _local_is_file_writable(filename):
+    try:
+        # use 'a' for append - if we use 'w' then we truncate the file
+        # (ie we delete any existing content)
+        f = open(filename, 'a')
+        f.close()
+        return True
+    except IOError:
+        return False
+
+
 def verbose(verbose=True):
     """Set verbose output"""
     env.verbose = verbose
@@ -156,7 +167,7 @@ def deploy(revision=None, keep=None, full_rebuild=True):
     _migrate_directory_structure()
     _set_vcs_root_dir_timestamp()
 
-    check_for_local_changes()
+    check_for_local_changes(revision)
     # TODO: check for deploy-in-progress.json file
     # also check if there are any directories newer than current ???
     # might just mean we did a rollback, so maybe don't bother as the
@@ -526,7 +537,12 @@ def version():
         utils.abort('Unsupported repo type: %s' % (env.repo_type))
 
 
-def _check_git_branch():
+def _check_git_branch(revision):
+    # cover the case where the revision (or commit ID) is passed on the
+    # command line.  If it is, then skip the checking
+    if revision:
+        env.revision = revision
+        return
     env.revision = None
     with cd(env.vcs_root_dir):
         with settings(warn_only=True):
@@ -535,9 +551,20 @@ def _check_git_branch():
             server_commit = sudo_or_run('git rev-parse HEAD')
             local_branch = local('git rev-parse --abbrev-ref HEAD', capture=True)
             default_branch = env.default_branch.get(env.environment, 'master')
-            git_branch_r = sudo_or_run('git branch --color=never -r')
-            git_branch_r = git_branch_r.split('\n')
-            branches = [b.split('/')[-1].strip() for b in git_branch_r if 'HEAD' not in b]
+            server_git_branch_r = sudo_or_run('git branch --color=never --remote')
+            server_git_branch_r = server_git_branch_r.split('\n')
+            server_branches = [b.split('/')[-1].strip() for b in
+                               server_git_branch_r if 'HEAD' not in b]
+            # it's possible the branch hasn't been pulled onto the server yet
+            # so also check the remote branches that the local machine knows
+            # about.  --remote means that only branches that have been pushed
+            # are included.
+            local_git_branch_r = local('git branch --color=never --remote')
+            local_git_branch_r = local_git_branch_r.split('\n')
+            local_branches = [b.split('/')[-1].strip() for b in
+                              local_git_branch_r if 'HEAD' not in b]
+            # and now combine, deduplicate and sort the combined set of branches
+            branches = sorted(list(set(server_branches + local_branches)))
 
         # if all branches are the same, just stick to this branch
         if server_branch == local_branch == default_branch:
@@ -566,7 +593,7 @@ def _check_git_branch():
                     default=default_branch, validate=validate_branch)
 
 
-def check_for_local_changes():
+def check_for_local_changes(revision):
     """ check if there are local changes on the remote server """
     require('repo_type', 'vcs_root_dir', provided_by=env.valid_envs)
     status_cmd = {
@@ -588,7 +615,7 @@ def check_for_local_changes():
                 if cont == 'no':
                     utils.abort('Aborting deployment')
         if env.repo_type == 'git':
-            _check_git_branch()
+            _check_git_branch(revision)
 
 
 def checkout_or_update(in_next=False, revision=None):
@@ -737,30 +764,46 @@ def clean_db(revision=None):
     _tasks("clean_db")
 
 
-def get_remote_dump(filename='/tmp/db_dump.sql', local_filename='./db_dump.sql',
-        rsync=True):
+def get_remote_dump(filename=None, local_filename=None, rsync=True):
     """ do a remote database dump and copy it to the local filesystem """
     # future enhancement, do a mysqldump --skip-extended-insert (one insert
     # per line) and then do rsync rather than get() - less data transferred on
     # however rsync might need ssh keys etc
     require('user', 'host', provided_by=env.valid_envs)
+    delete_after = False
+    if filename is None:
+        filename = '/tmp/db_dump.sql'
+    if local_filename is None:
+        # set a default, but ensure we can write to it
+        local_filename = './db_dump.sql'
+        if not _local_is_file_writable(local_filename):
+            # if we have to use /tmp, delete the file afterwards
+            local_filename = '/tmp/db_dump.sql'
+            delete_after = True
+    else:
+        # if the filename is specified, then don't change the name
+        if not _local_is_file_writable(local_filename):
+            raise Exception(
+                'Cannot write to local dump file you specified: %s' % local_filename)
     if rsync:
         _tasks('dump_db:' + filename + ',for_rsync=true')
-        local("rsync -vz -e 'ssh -p %s' %s@%s:%s %s" % (env.port,
-            env.user, env.host, filename, local_filename))
+        local("rsync -vz -e 'ssh -p %s' %s@%s:%s %s" % (
+            env.port, env.user, env.host, filename, local_filename))
     else:
         _tasks('dump_db:' + filename)
         get(filename, local_path=local_filename)
     sudo_or_run('rm ' + filename)
+    return local_filename, delete_after
 
 
-def get_remote_dump_and_load(filename='/tmp/db_dump.sql',
-        local_filename='./db_dump.sql', keep_dump=True, rsync=True):
+def get_remote_dump_and_load(filename=None, local_filename=None,
+                             keep_dump=True, rsync=True):
     """ do a remote database dump, copy it to the local filesystem and then
     load it into the local database """
-    get_remote_dump(filename=filename, local_filename=local_filename, rsync=rsync)
+    local_filename, delete_after = get_remote_dump(
+        filename=filename, local_filename=local_filename, rsync=rsync)
     local(env.local_tasks_bin + ' restore_db:' + local_filename)
-    if not keep_dump:
+    if delete_after or not keep_dump:
         local('rm ' + local_filename)
 
 
@@ -789,7 +832,7 @@ def rm_pyc_files(py_dir=None):
         py_dir = env.django_dir
     with settings(warn_only=True):
         with cd(py_dir):
-            sudo_or_run('find . -name \*.pyc | xargs rm')
+            sudo_or_run('find . -type f -name \*.pyc -exec rm {} \\;')
 
 
 def _delete_file(path):

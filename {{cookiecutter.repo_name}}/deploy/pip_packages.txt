@@ -1,3 +1,0 @@
-Django==1.5
-MySQL-python>=1.2.3
--e git+git://github.com/aptivate/dye.git#egg=dye

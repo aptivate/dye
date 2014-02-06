@@ -3,7 +3,8 @@ from os import path
 import sqlite3
 import MySQLdb
 
-from .exceptions import InvalidArgumentError, InvalidProjectError
+from .exceptions import (InvalidArgumentError, InvalidProjectError,
+                         InvalidPasswordError)
 from .util import (_check_call_wrapper, _capture_command,
                    _call_command, _create_dir_if_not_exists,
                    CalledProcessError, _ask_for_password, _get_file_contents)
@@ -114,8 +115,11 @@ class MySQLManager(DBManager):
                 root_pw = None
 
             # still haven't got it, ask the user
-            if root_pw is None and not env['quiet']:
-                root_pw = _ask_for_password("", test_fn=self.test_root_password)
+            if root_pw is None:
+                if not env['noinput']:
+                    root_pw = _ask_for_password("", test_fn=self.test_root_password)
+                else:
+                    raise InvalidPasswordError('Could not discover MySQL root password')
 
             # now we have root password that works
             self.root_password = root_pw

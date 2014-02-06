@@ -9,12 +9,13 @@ sys.path.append(dye_dir)
 import tasklib
 from tasklib.exceptions import InvalidProjectError
 
-example_dir = path.join(dye_dir, os.pardir, '{{cookiecutter.repo_name}}', 'deploy')
+example_dir = path.join(dye_dir, os.pardir, '{{cookiecutter.project_name}}', 'deploy')
 sys.path.append(example_dir)
 import project_settings
 
 tasklib.env['verbose'] = False
 tasklib.env['quiet'] = True
+tasklib.env['noinput'] = True
 
 
 class TestLinkLocalSettings(unittest.TestCase):
