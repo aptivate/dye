@@ -100,6 +100,14 @@ class UpdateVE(object):
 
         self.ve_timestamp = path.join(self.ve_dir, 'timestamp')
 
+        try:
+            from project_settings import pypi_cache_url
+        except ImportError:
+            print >> sys.stderr, "could not find pypi_cache_url in project_settings.py"
+            raise
+
+        self.pypi_cache_url = pypi_cache_url
+
     def update_ve_timestamp(self):
         os.utime(self.ve_dir, None)
         file(self.ve_timestamp, 'w').close()
@@ -167,20 +175,26 @@ class UpdateVE(object):
             virtualenv.logger = virtualenv.Logger(consumers=[])
             virtualenv.create_environment(self.ve_dir, site_packages=False)
 
+        if self.pypi_cache_url is not None:
+            pypi_cache_args = ['-i', self.pypi_cache_url]
+        else:
+            pypi_cache_args = []
+        
         # install the pip requirements and exit
         pip_path = path.join(self.ve_dir, 'bin', 'pip')
         # first ensure we have an up to date version of distribute
         pip_retcode = subprocess.call(
-                [pip_path, 'install', '-U', 'distribute'])
+                [pip_path, 'install', '-U', 'distribute'] + pypi_cache_args)
         if pip_retcode != 0:
             return pip_retcode
 
         # use cwd to allow relative path specs in requirements file, e.g. ../tika
-        pip_retcode = subprocess.call(
-                [pip_path, 'install', '--requirement=%s' % self.requirements],
-                cwd=os.path.dirname(self.requirements))
+        command = [pip_path, 'install', '--requirement=%s' % self.requirements] + pypi_cache_args
+        pip_retcode = subprocess.call(command, cwd=os.path.dirname(self.requirements))
         if pip_retcode == 0:
             self.update_ve_timestamp()
+        else:
+            print "command failed: %s" % " ".join(command)
         return pip_retcode
 
     def go_to_ve(self, file_path, args):
