@@ -99,8 +99,6 @@ import socket
 
 if socket.getfqdn().endswith('.fen.aptivate.org'):
     pypi_cache_url = 'http://fen-vz-pypicache.fen.aptivate.org/simple'
-else:
-    pypi_cache_url = None
 
 ###################################################
 # OPTIONAL SETTINGS FOR FABRIC - will be put in env
