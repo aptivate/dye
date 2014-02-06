@@ -12,6 +12,22 @@ You shouldn't have to alter your `localtasks.py`
 
 # Notes on upgrading
 
+## 06/02/2014
+
+You need to add a `pypi_cache_url` to your `deploy/project_settings.py` file.
+The simplest configuration is to set it to `None`:
+
+    pypi_cache_url = None
+
+But if you have a local [pypicache](http://pypicache.readthedocs.org/en/latest/)
+server, then you might want to use that instead, depending on the hostname
+of the machine that's rebuilding the virtualenv. For example:
+
+    if socket.getfqdn().endswith('.fen.aptivate.org'):
+        pypi_cache_url = 'http://fen-vz-pypicache.fen.aptivate.org/simple'
+    else:
+        pypi_cache_url = None
+
 ## 19/08/2013
 
 Update celery scripts to be copied to `/etc/init.d/celerybeat_<project_name>`
