@@ -12,6 +12,18 @@ You shouldn't have to alter your `localtasks.py`
 
 # Notes on upgrading
 
+## 06/02/2014
+
+You can now add a `pypi_cache_url` to your `deploy/project_settings.py` file,
+though it is not required.
+
+But if you have a local [pypicache](http://pypicache.readthedocs.org/en/latest/)
+server, then you might want to use that instead, depending on the hostname
+of the machine that's rebuilding the virtualenv. For example:
+
+    if socket.getfqdn().endswith('.fen.aptivate.org'):
+        pypi_cache_url = 'http://fen-vz-pypicache.fen.aptivate.org/simple'
+
 ## 02/11/2013
 
 Added a `revision` argument to `check_for_local_changes()` in `fablib.py` - if
