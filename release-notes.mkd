@@ -12,6 +12,12 @@ You shouldn't have to alter your `localtasks.py`
 
 # Notes on upgrading
 
+## 02/11/2013
+
+Added a `revision` argument to `check_for_local_changes()` in `fablib.py` - if
+you have overridden `deploy()` in your `localfab.py` you will need to make the
+same change there.
+
 ## 19/08/2013
 
 Update celery scripts to be copied to `/etc/init.d/celerybeat_<project_name>`
