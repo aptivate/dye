@@ -117,9 +117,7 @@ DJANGO_APPS = (
 )
 THIRD_PARTY_APPS = (
     'south',  # Database migration helpers:
-    #{% if django_type == "normal" or django_type == "cms" %}
     'crispy_forms',  # Form layouts
-    #{% endif %}
 )
 
 # Apps specific for this project go here.

@@ -6,22 +6,10 @@ Django==1.5.5
 pytz==2013.9
 MySQL-python>=1.2.3
 south==0.8.4
-{% if django_type == 'normal' %}
 easy-thumbnails==1.4
 pillow==2.2.1
 image_diet==0.7.1
-{% endif %}
 
-{% if django_type == 'cms' %}
-# django cms bits
-django-cms==2.4.3
-cmsplugin-filer==0.9.5
-cmsplugin-blog==1.1.1
--e git+git://github.com/salvaorenick/django-cms-redirects.git@95584ff87a669631bc4475a8482714af2505db7f#egg=django-cms-redirects
--e git+https://github.com/daniell/djangocms-text-ckeditor.git#egg=django-text-ckeditor
-{% endif %}
-
-{% if django_type == 'normal' %}
 # search
 django-haystack==2.1.0
 pyelasticsearch==0.6
@@ -30,15 +18,11 @@ pyelasticsearch==0.6
 django-extended-choices==0.3.0
 django-recaptcha==0.0.6
 django-registration==1.0
-{% endif %}
 
 # testing
-{% if use_pytest == 'yes' %}pytest-django==2.3.1{% endif %}
 django-dynamic-fixture==1.6.5
 mock==1.0.1
 
-{% if django_type == 'cms' or django_type == 'normal' %}
 # development
 django-extensions==1.0.2
 django-debug-toolbar
-{% endif %}
