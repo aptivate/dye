@@ -46,7 +46,7 @@ if __name__ == "__main__":
             "does it contain errors? Did you run tasks.py deploy:dev?"
             % e)
 
-    # {% if use_pytest %}
+    # {% if cookiecutter.use_pytest %}
     # if using pytest then uncomment the next bit
     if 'test' in sys.argv:
         import pytest
