@@ -178,9 +178,16 @@ class UpdateVE(object):
         # install the pip requirements and exit
         pip_path = path.join(self.ve_dir, 'bin', 'pip')
         # first ensure we have an up to date version of distribute
-        pip_retcode = subprocess.call(
-                [pip_path, 'install', '-U', 'distribute'] + pypi_cache_args)
+        command = [pip_path, 'install', '-U', 'distribute'] + pypi_cache_args
+        
+        try:
+            pip_retcode = subprocess.call(command)
+        except OSError, e:
+            print "command failed: %s: %s" % (" ".join(command), e)
+            return 1
+            
         if pip_retcode != 0:
+            print "command failed: %s" % " ".join(command)
             return pip_retcode
 
         # use cwd to allow relative path specs in requirements file, e.g. ../tika

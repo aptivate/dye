@@ -66,6 +66,9 @@ local_requirements_file = path.join(local_deploy_dir, 'pip_packages.txt')
 
 test_cmd = ' manage.py test -v0 ' + ' '.join(django_apps)
 
+# django jenkins version - latest might require a too new version of django
+#django_jenkins_version = '0.14.0'  # compatible with Django 1.5
+
 # servers, for use by fabric
 
 # production server - if commented out then the production task will abort

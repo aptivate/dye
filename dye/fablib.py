@@ -216,9 +216,17 @@ def deploy(revision=None, keep=None, full_rebuild=True):
     _report_downtime(downtime_start, downtime_end)
 
 
+def _total_seconds(td):
+    """python 2.7 has a total_seconds() method, but before doesn't """
+    if hasattr(td, 'total_seconds'):
+        return td.total_seconds()
+    else:
+        return (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
+
+
 def _report_downtime(downtime_start, downtime_end):
     downtime = downtime_end - downtime_start
-    utils.puts("Downtime lasted for %.1f seconds" % downtime.total_seconds())
+    utils.puts("Downtime lasted for %.1f seconds" % _total_seconds(downtime))
     utils.puts("(Downtime started at %s and finished at %s)" %
                (downtime_start, downtime_end))
 
@@ -871,7 +879,7 @@ def link_webserver_conf(maintenance=False):
     # debian has sites-available/sites-enabled split with links
     if _linux_type() == 'debian':
         webserver_conf_enabled = webserver_conf.replace('available', 'enabled')
-        sudo_or_run('ln -s %s %s' % (webserver_conf, webserver_conf_enabled))
+        _link_files(webserver_conf, webserver_conf_enabled)
     webserver_configtest()
 
 

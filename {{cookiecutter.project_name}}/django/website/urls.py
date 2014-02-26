@@ -18,6 +18,6 @@ urlpatterns = patterns('',
     # This requires that static files are served from the 'static' folder.
     # The apache conf is set up to do this for you, but you will need to do it
     # on dev
-    (r'/favicon.ico', 'django.views.generic.simple.redirect_to',
+    (r'/favicon.ico', 'django.views.generic.base.RedirectView',
         {'url':  '{0}images/favicon.ico'.format(settings.STATIC_URL)}),
 )
