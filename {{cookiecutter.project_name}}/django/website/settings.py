@@ -2,7 +2,7 @@
 
 # Build paths inside the project like this: path.join(BASE_DIR, ...)
 from os import path
-BASE_DIR = path.dirname(path.dirname(__file__))
+BASE_DIR = path.abspath(path.dirname(__file__))
 
 
 ########## DEFAULT DEBUG SETTINGS - OVERRIDE IN local_settings
