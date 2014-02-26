@@ -47,7 +47,7 @@ if __name__ == "__main__":
             % e)
 
     # {% if cookiecutter.use_pytest %}
-    # if using pytest then uncomment the next bit
+    # we're using pytest so treat tests as special
     if 'test' in sys.argv:
         import pytest
         # We need to remove "test" so that pytest picks up additional args only
@@ -57,7 +57,6 @@ if __name__ == "__main__":
         from django.core.management import execute_from_command_line
         execute_from_command_line(sys.argv)
     # {% else %}
-
     from django.core.management import execute_from_command_line
     execute_from_command_line(sys.argv)
     # {% endif %}

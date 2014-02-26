@@ -119,6 +119,26 @@ THIRD_PARTY_APPS = (
     'south',  # Database migration helpers:
     #{% if cookiecutter.django_type == "normal" or cookiecutter.django_type == "cms" %}
     'crispy_forms',  # Form layouts
+    'django_extensions',
+    'easy_thumbnails',
+    'registration',
+    #{% endif %}
+    #{% if cookiecutter.django_type == "cms" %}
+    'djangocms_text_ckeditor',
+    'cms',
+    'mptt',
+    'menus',
+    'sekizai',
+    'filer',
+    'cms.plugins.link',
+    'cms.plugins.snippet',
+    'cms.plugins.googlemap',
+    'cmsplugin_filer_file',
+    'cmsplugin_filer_folder',
+    'cmsplugin_filer_image',
+    'cmsplugin_filer_teaser',
+    'cmsplugin_filer_video',
+    'cms_redirects',
     #{% endif %}
 )
 
@@ -140,6 +160,13 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    #{% if cookiecutter.django_type == "cms" %} cms stuff
+    'cms.middleware.user.CurrentUserMiddleware',
+    'cms.middleware.page.CurrentPageMiddleware',
+    'cms.middleware.toolbar.ToolbarMiddleware',
+    # 'debug_toolbar.middleware.DebugToolbarMiddleware',
+    'cms_redirects.middleware.RedirectFallbackMiddleware',
+    #{% endif %}
 )
 ########## END MIDDLEWARE CONFIGURATION
 
@@ -324,6 +351,10 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.contrib.messages.context_processors.messages',
     'django.core.context_processors.request',
     # Your stuff: custom template context processers go here
+    #{% if cookiecutter.django_type == "cms" %} cms stuff
+    'cms.context_processors.media',
+    'sekizai.context_processors.sekizai',
+    #{% endif %}
 )
 
 
