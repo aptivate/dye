@@ -871,7 +871,7 @@ def link_webserver_conf(maintenance=False):
     # debian has sites-available/sites-enabled split with links
     if _linux_type() == 'debian':
         webserver_conf_enabled = webserver_conf.replace('available', 'enabled')
-        sudo_or_run('ln -s %s %s' % (webserver_conf, webserver_conf_enabled))
+        _link_files(webserver_conf, webserver_conf_enabled)
     webserver_configtest()
 
 
