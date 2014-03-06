@@ -84,6 +84,7 @@ def _get_python():
 
 
 def _get_tasks_bin():
+    require('deploy_dir', provided_by=env.valid_envs)
     if 'tasks_bin' not in env:
         env.tasks_bin = path.join(env.deploy_dir, 'tasks.py')
     return env.tasks_bin
@@ -125,7 +126,6 @@ def deploy_clean(revision=None):
     """ delete the entire install and do a clean install """
     if env.environment == 'production':
         utils.abort('do not delete the production environment!!!')
-    require('server_project_home', provided_by=env.valid_envs)
     # TODO: dump before cleaning database?
     with settings(warn_only=True):
         webserver_cmd('stop')
@@ -135,6 +135,7 @@ def deploy_clean(revision=None):
 
 
 def clean_files():
+    require('server_project_home', provided_by=env.valid_envs)
     sudo_or_run('rm -rf %s' % env.server_project_home)
 
 
@@ -154,7 +155,7 @@ def deploy(revision=None, keep=None, full_rebuild=True):
       5)
     * full_rebuild is whether to do a full rebuild of the virtualenv
     """
-    require('server_project_home', provided_by=env.valid_envs)
+    require('project_type', 'server_project_home', provided_by=env.valid_envs)
 
     # this really needs to be first - other things assume the directory exists
     _create_dir_if_not_exists(env.server_project_home)
@@ -273,6 +274,7 @@ def _migrate_directory_structure():
     the timestamp being the time the directory was archived.  The current
     deploy was in <server project home>/dev/"""
     # check if the README is present
+    require('server_project_home', provided_by=env)
     readme_path = path.join(env.server_project_home, 'README.mkd')
     if not files.exists(readme_path):
         local_readme_path = path.join(path.dirname(path.realpath(__file__)),
@@ -331,6 +333,7 @@ def _fix_virtualenv_paths():
     We need to change the name of the directory - which in our case means
     replacing the timestamp.
     """
+    require('next_dir', 'relative_ve_dir', provided_by=env)
     ve_bin_dir = path.join(env.next_dir, env.relative_ve_dir, 'bin')
     # the expected result of this is, say:
     # /var/django/project_name/2013-10-13_12-13-14/django/website/.ve/lib/python2.6
@@ -352,6 +355,7 @@ def _fix_virtualenv_paths():
 def create_copy_for_next():
     """Copy the current version to "next" so that we can do stuff like
     the VCS update and virtualenv update without taking the site offline"""
+    require('next_dir', 'vcs_root_dir', provided_by=env)
     # check if next directory already exists
     # if it does maybe there was an aborted deploy, or maybe someone else is
     # deploying.  Either way, stop and ask the user what to do.
@@ -381,6 +385,7 @@ def point_current_to_next():
     """ Change the soft link `current` to point to the new next_dir """
     # dump the database in the old directory - do this before we remove
     # the current link
+    require('current_link', 'vcs_root_dir_timestamp', provided_by=env)
     _dump_db_in_directory(env.vcs_root_dir_timestamp)
     if files.exists(env.current_link):
         sudo_or_run('rm %s' % env.current_link)
@@ -389,7 +394,7 @@ def point_current_to_next():
 
 
 def _dump_db_in_directory(dump_dir):
-    require('django_settings_dir', provided_by=env.valid_envs)
+    require('django_settings_dir', 'project_type', provided_by=env.valid_envs)
     if (env.project_type == 'django' and
             files.exists(path.join(env.django_settings_dir, 'local_settings.py'))):
         # dump database (provided local_settings has been set up properly)
@@ -439,7 +444,6 @@ def delete_old_rollback_versions(keep=None):
 def list_versions():
     """List the previous versions available to rollback to."""
     # could also determine the VCS revision number
-    require('server_project_home', provided_by=env.valid_envs)
     _set_vcs_root_dir_timestamp()
     version_list = _get_list_of_versions()
     utils.puts('Available versions are:')
@@ -463,7 +467,8 @@ def rollback(version='last', migrate=False, restore_db=False):
       The default is False
 
     Note that migrate and restore_db cannot both be True."""
-    require('server_project_home', 'vcs_root_dir', provided_by=env.valid_envs)
+    require('server_project_home', 'vcs_root_dir', 'current_link',
+            provided_by=env.valid_envs)
     if migrate and restore_db:
         utils.abort('rollback cannot do both migrate and restore_db')
     if migrate:
@@ -503,14 +508,14 @@ def rollback(version='last', migrate=False, restore_db=False):
 
 def local_test():
     """ run the django tests on the local machine """
-    require('project_name')
+    require('project_name', 'test_cmd')
     with cd(path.join("..", env.project_name)):
         local("python " + env.test_cmd, capture=False)
 
 
 def remote_test():
     """ run the django tests remotely - staging only """
-    require('django_dir', provided_by=env.valid_envs)
+    require('django_dir', 'test_cmd', provided_by=env.valid_envs)
     if env.environment == 'production':
         utils.abort('do not run tests on the production environment')
     with cd(env.django_dir):
@@ -519,8 +524,7 @@ def remote_test():
 
 def version():
     """ return the deployed VCS revision and commit comments"""
-    require('server_project_home', 'repo_type', 'vcs_root_dir', 'repository',
-        provided_by=env.valid_envs)
+    require('repo_type', 'vcs_root_dir', provided_by=env.valid_envs)
     if env.repo_type == "git":
         with cd(env.vcs_root_dir):
             sudo_or_run('git log | head -5')
@@ -528,7 +532,8 @@ def version():
         _get_svn_user_and_pass()
         with cd(env.vcs_root_dir):
             with hide('running'):
-                cmd = 'svn log --non-interactive --username %s --password %s | head -4' % (env.svnuser, env.svnpass)
+                cmd = 'svn log --non-interactive --username %s --password %s | head -4' % \
+                    (env.svnuser, env.svnpass)
                 sudo_or_run(cmd)
     else:
         utils.abort('Unsupported repo type: %s' % (env.repo_type))
@@ -537,6 +542,7 @@ def version():
 def _check_git_branch(revision):
     # cover the case where the revision (or commit ID) is passed on the
     # command line.  If it is, then skip the checking
+    require('vcs_root_dir', provided_by=env.valid_envs)
     if revision:
         env.revision = revision
         return
@@ -622,8 +628,7 @@ def checkout_or_update(in_next=False, revision=None):
     This command works with svn, git and cvs repositories.
 
     You can also specify a revision to checkout, as an argument."""
-    require('server_project_home', 'repo_type', 'vcs_root_dir', 'repository',
-        provided_by=env.valid_envs)
+    require('next_dir', 'vcs_root_dir', 'repo_type', provided_by=env.valid_envs)
     checkout_fn = {
         'cvs': _checkout_or_update_cvs,
         'svn': _checkout_or_update_svn,
@@ -640,6 +645,7 @@ def checkout_or_update(in_next=False, revision=None):
 
 
 def _checkout_or_update_svn(vcs_root_dir, revision=None):
+    require('server_project_home', 'repository', provided_by=env.valid_envs)
     # function to ask for svnuser and svnpass
     _get_svn_user_and_pass()
     # if the .svn directory exists, do an update, otherwise do
@@ -663,6 +669,7 @@ def _checkout_or_update_svn(vcs_root_dir, revision=None):
 
 
 def _checkout_or_update_git(vcs_root_dir, revision=None):
+    require('server_project_home', 'repository', provided_by=env.valid_envs)
     # if the .git directory exists, do an update, otherwise do
     # a clone
     if files.exists(path.join(vcs_root_dir, ".git")):
@@ -699,6 +706,7 @@ def _checkout_or_update_git(vcs_root_dir, revision=None):
 
 
 def _checkout_or_update_cvs(vcs_root_dir, revision=None):
+    require('server_project_home', 'repository', provided_by=env.valid_envs)
     if files.exists(vcs_root_dir):
         with cd(vcs_root_dir):
             sudo_or_run('CVS_RSH="ssh" cvs update -d -P')
@@ -732,7 +740,7 @@ def sudo_or_run(command):
 
 def create_deploy_virtualenv(in_next=False, full_rebuild=True):
     """ if using new style dye stuff, create the virtualenv to hold dye """
-    require('deploy_dir', provided_by=env.valid_envs)
+    require('deploy_dir', 'next_dir', provided_by=env.valid_envs)
     if in_next:
         # TODO: use relative_deploy_dir
         bootstrap_path = path.join(env.next_dir, 'deploy', 'bootstrap.py')
@@ -767,7 +775,7 @@ def get_remote_dump(filename=None, local_filename=None, rsync=True):
     # future enhancement, do a mysqldump --skip-extended-insert (one insert
     # per line) and then do rsync rather than get() - less data transferred on
     # however rsync might need ssh keys etc
-    require('user', 'host', provided_by=env.valid_envs)
+    require('user', 'host', 'port', provided_by=env.valid_envs)
     delete_after = False
     if filename is None:
         filename = '/tmp/db_dump.sql'
@@ -798,6 +806,7 @@ def get_remote_dump_and_load(filename=None, local_filename=None,
                              keep_dump=True, rsync=True):
     """ do a remote database dump, copy it to the local filesystem and then
     load it into the local database """
+    require('local_tasks_bin', provided_by=env.valid_envs)
     local_filename, delete_after = get_remote_dump(
         filename=filename, local_filename=local_filename, rsync=rsync)
     local(env.local_tasks_bin + ' restore_db:' + local_filename)
@@ -845,7 +854,7 @@ def _link_files(source_file, target_path):
 
 def link_webserver_conf(maintenance=False):
     """link the webserver conf file"""
-    require('vcs_root_dir', provided_by=env.valid_envs)
+    require('webserver', 'vcs_root_dir', provided_by=env.valid_envs)
     if env.webserver is None:
         return
     vcs_config_stub = path.join(env.vcs_root_dir, env.webserver, env.environment)
@@ -873,6 +882,7 @@ def link_webserver_conf(maintenance=False):
 
 
 def _webserver_conf_path():
+    require('webserver', 'project_name', provided_by=env.valid_envs)
     webserver_conf_dir = {
         'apache_redhat': '/etc/httpd/conf.d',
         'apache_debian': '/etc/apache2/sites-available',
@@ -888,6 +898,7 @@ def _webserver_conf_path():
 
 def webserver_configtest():
     """ test webserver configuration """
+    require('webserver', provided_by=env.valid_envs)
     tests = {
         'apache_redhat': '/usr/sbin/httpd -S',
         'apache_debian': '/usr/sbin/apache2ctl -S',
@@ -913,6 +924,7 @@ def webserver_restart():
 
 def webserver_cmd(cmd):
     """ run cmd against webserver init.d script """
+    require('webserver', provided_by=env.valid_envs)
     cmd_strings = {
         'apache_redhat': '/etc/init.d/httpd',
         'apache_debian': '/etc/init.d/apache2',
