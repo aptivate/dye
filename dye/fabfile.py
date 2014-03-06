@@ -28,6 +28,8 @@ else:
 # import the project settings
 import project_settings
 
+# valid environments - used for require statements in fablib
+env.valid_envs = project_settings.host_list.keys()
 
 #
 # These commands set up the environment variables

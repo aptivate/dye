@@ -58,9 +58,6 @@ def _setup_paths(project_settings):
         env.setdefault('local_tasks_bin',
                        path.join(path.dirname(__file__), 'tasks.py'))
 
-    # valid environments - used for require statements in fablib
-    env.valid_envs = env.host_list.keys()
-
 
 def _linux_type():
     if 'linux_type' not in env:
