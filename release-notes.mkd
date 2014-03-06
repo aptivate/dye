@@ -12,6 +12,14 @@ You shouldn't have to alter your `localtasks.py`
 
 # Notes on upgrading
 
+## 26/02/2014
+
+You can now (optionally) set the django jenkins version in your `deploy/project_settings.py`
+(as recent versions of django jenkins required Django 1.6).  The last safe version
+of django jenkins was 0.14.0  You set it by adding
+
+    django_jenkins_version = '0.14.0'
+
 ## 06/02/2014
 
 You can now add a `pypi_cache_url` to your `deploy/project_settings.py` file,
@@ -20,6 +28,8 @@ though it is not required.
 But if you have a local [pypicache](http://pypicache.readthedocs.org/en/latest/)
 server, then you might want to use that instead, depending on the hostname
 of the machine that's rebuilding the virtualenv. For example:
+
+    import socket
 
     if socket.getfqdn().endswith('.fen.aptivate.org'):
         pypi_cache_url = 'http://fen-vz-pypicache.fen.aptivate.org/simple'
