@@ -2,7 +2,7 @@
 
 # Build paths inside the project like this: path.join(BASE_DIR, ...)
 from os import path
-BASE_DIR = path.dirname(path.dirname(__file__))
+BASE_DIR = path.abspath(path.dirname(__file__))
 
 
 ########## DEFAULT DEBUG SETTINGS - OVERRIDE IN local_settings
@@ -25,16 +25,16 @@ SECRET_KEY = private_settings.SECRET_KEY
 # These email addresses will get all the error email for the production server
 # (and any other servers with DEBUG = False )
 ADMINS = (
-    ('Aptivate {{project_name}} team', '{{project_name}}-team@aptivate.org'),
-    ('{{author_name}}', '{{email}}'),  # this is in case the above email doesn't work
+    ('Aptivate {{ cookiecutter.project_name }} team', '{{ cookiecutter.project_name }}-team@aptivate.org'),
+    ('{{ cookiecutter.author_name }}', '{{ cookiecutter.email }}'),  # this is in case the above email doesn't work
 )
 
 MANAGERS = ADMINS
 
 # these are the settings for production. We can override in the various
 # local_settings if we want to
-DEFAULT_FROM_EMAIL = 'donotreply@{{ domain_name }}'
-SERVER_EMAIL = 'server@{{ domain_name }}'
+DEFAULT_FROM_EMAIL = 'donotreply@{{ cookiecutter.domain_name }}'
+SERVER_EMAIL = 'server@{{ cookiecutter.domain_name }}'
 ########## MANAGER/EMAIL CONFIGURATION
 
 
@@ -117,8 +117,28 @@ DJANGO_APPS = (
 )
 THIRD_PARTY_APPS = (
     'south',  # Database migration helpers:
-    #{% if django_type == "normal" or django_type == "cms" %}
+    #{% if cookiecutter.django_type == "normal" or cookiecutter.django_type == "cms" %}
     'crispy_forms',  # Form layouts
+    'django_extensions',
+    'easy_thumbnails',
+    'registration',
+    #{% endif %}
+    #{% if cookiecutter.django_type == "cms" %}
+    'djangocms_text_ckeditor',
+    'cms',
+    'mptt',
+    'menus',
+    'sekizai',
+    'filer',
+    'cms.plugins.link',
+    'cms.plugins.snippet',
+    'cms.plugins.googlemap',
+    'cmsplugin_filer_file',
+    'cmsplugin_filer_folder',
+    'cmsplugin_filer_image',
+    'cmsplugin_filer_teaser',
+    'cmsplugin_filer_video',
+    'cms_redirects',
     #{% endif %}
 )
 
@@ -140,6 +160,13 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    #{% if cookiecutter.django_type == "cms" %} cms stuff
+    'cms.middleware.user.CurrentUserMiddleware',
+    'cms.middleware.page.CurrentPageMiddleware',
+    'cms.middleware.toolbar.ToolbarMiddleware',
+    # 'debug_toolbar.middleware.DebugToolbarMiddleware',
+    'cms_redirects.middleware.RedirectFallbackMiddleware',
+    #{% endif %}
 )
 ########## END MIDDLEWARE CONFIGURATION
 
@@ -324,6 +351,10 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.contrib.messages.context_processors.messages',
     'django.core.context_processors.request',
     # Your stuff: custom template context processers go here
+    #{% if cookiecutter.django_type == "cms" %} cms stuff
+    'cms.context_processors.media',
+    'sekizai.context_processors.sekizai',
+    #{% endif %}
 )
 
 

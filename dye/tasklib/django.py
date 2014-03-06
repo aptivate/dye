@@ -276,14 +276,15 @@ def _install_django_jenkins():
     """ ensure that pip has installed the django-jenkins thing """
     if not env['quiet']:
         print "### Installing Jenkins packages"
-    pip_bin = path.join(env['ve_dir'], 'bin', 'pip')
-    cmds = [
-        [pip_bin, 'install', 'django-jenkins'],
-        [pip_bin, 'install', 'pylint'],
-        [pip_bin, 'install', 'coverage']]
+    if 'django_jenkins_version' in env:
+        packages = ['django-jenkins==%s' % env['django_jenkins_version']]
+    else:
+        packages = ['django-jenkins']
+    packages += ['pylint', 'coverage']
 
-    for cmd in cmds:
-        _check_call_wrapper(cmd)
+    pip_bin = path.join(env['ve_dir'], 'bin', 'pip')
+    for package in packages:
+        _check_call_wrapper([pip_bin, 'install', package])
 
 
 def _manage_py_jenkins():

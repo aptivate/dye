@@ -46,15 +46,17 @@ if __name__ == "__main__":
             "does it contain errors? Did you run tasks.py deploy:dev?"
             % e)
 
-    # if using pytest then uncomment the next bit
-#    if 'test' in sys.argv:
-#        import pytest
-#        # We need to remove "test" so that pytest picks up additional args only
-#        sys.argv.pop(1)
-#        pytest.main()
-#    else:
-#        utility = ManagementUtility(argv)
-#        utility.execute()
-
+    # {% if cookiecutter.use_pytest %}
+    # we're using pytest so treat tests as special
+    if 'test' in sys.argv:
+        import pytest
+        # We need to remove "test" so that pytest picks up additional args only
+        sys.argv.pop(1)
+        pytest.main()
+    else:
+        from django.core.management import execute_from_command_line
+        execute_from_command_line(sys.argv)
+    # {% else %}
     from django.core.management import execute_from_command_line
     execute_from_command_line(sys.argv)
+    # {% endif %}
