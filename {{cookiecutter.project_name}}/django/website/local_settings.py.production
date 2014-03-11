@@ -3,6 +3,10 @@ import private_settings
 DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 
+# used in admin template so we know which site we're looking at
+DEPLOY_ENV = "production"
+DEPLOY_ENV_NAME = "Production Server"
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',  # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
@@ -20,8 +24,5 @@ DATABASES = {
 EMAIL_HOST = 'localhost'
 
 EMAIL_BACKEND = 'djcelery_email.backends.CeleryEmailBackend'
-
-# used in admin template so we know which site we're looking at
-DEPLOY_ENV = "Production Server"
 
 # vi: ft=python

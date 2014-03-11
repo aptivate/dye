@@ -3,6 +3,11 @@ import private_settings
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
+# used in admin template so we know which site we're looking at
+DEPLOY_ENV = "dev_server"
+DEPLOY_ENV_NAME = "Development Server"
+DEPLOY_ENV_COLOR = '#cc00ff'  # purple
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',  # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
@@ -21,8 +26,5 @@ EMAIL_HOST = 'localhost'
 
 EMAIL_BACKEND = 'djcelery_email.backends.CeleryEmailBackend'
 
-# used in admin template so we know which site we're looking at
-DEPLOY_ENV = "Staging Server"
-DEPLOY_ENV_COLOR = '#33ccff'  # bright blue
 
 # vi: ft=python

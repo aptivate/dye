@@ -4,6 +4,11 @@ import sys
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
+# used in admin template so we know which site we're looking at
+DEPLOY_ENV = "localdev"
+DEPLOY_ENV_NAME = "Local dev copy"
+DEPLOY_ENV_COLOR = '#ff9900'  # orange
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',  # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
