@@ -21,6 +21,16 @@ DATABASES = {
     }
 }
 
+#{% if cookiecutter.django_type == "normal" or cookiecutter.django_type == "cms" %}######### HAYSTACK SEARCH CONFIGURATION
+HAYSTACK_CONNECTIONS = {
+    'default': {
+        'ENGINE': 'haystack.backends.elasticsearch_backend.ElasticsearchSearchEngine',
+        'URL': 'http://10.12.0.1:9200/',  # lin-elasticsearch via openvpn
+        'INDEX_NAME': '{{ cookiecutter.project_name }}_%s' % DEPLOY_ENV,
+    },
+}
+#{% endif %}
+
 EMAIL_HOST = 'localhost'
 
 EMAIL_BACKEND = 'djcelery_email.backends.CeleryEmailBackend'
