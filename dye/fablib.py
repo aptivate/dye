@@ -12,50 +12,66 @@ from fabric import utils
 
 
 def _setup_paths(project_settings):
-    # first merge in variables from project_settings - but ignore __doc__ etc
-    user_settings = [x for x in vars(project_settings).keys() if not x.startswith('__')]
-    for setting in user_settings:
-        env[setting] = vars(project_settings)[setting]
+    env.project = project_settings
 
     # set the timestamp - used for directory names at least
     env.timestamp = datetime.now()
 
     # allow for project_settings having set up some of these differently
-    env.setdefault('verbose', False)
-    env.setdefault('use_sudo', True)
-    env.setdefault('cvs_rsh', 'CVS_RSH="ssh"')
-    env.setdefault('default_branch', {'production': 'master', 'staging': 'master'})
-    env.setdefault('server_project_home',
+    def copy_setting(name, default_value):
+        value = getattr(project_settings, name, default_value)
+    	setattr(env, name, value)
+
+    copy_setting('project_name', True)
+    copy_setting('project_type', True)
+    copy_setting('server_home', True)
+    copy_setting('verbose', False)
+    copy_setting('use_sudo', True)
+    copy_setting('repo_type', None)
+    copy_setting('repository', None)
+    copy_setting('revision', None)
+    copy_setting('cvs_project', '')
+    copy_setting('cvs_rsh', 'CVS_RSH="ssh"')
+    copy_setting('svnuser', '')
+    copy_setting('svnpass', '')
+    copy_setting('default_branch', {'production': 'master', 'staging': 'master'})
+    copy_setting('server_project_home',
                    path.join(env.server_home, env.project_name))
-    env.setdefault('current_link', path.join(env.server_project_home, 'current'))
-    env.setdefault('vcs_root_dir', env.current_link)
-    env.setdefault('next_dir', path.join(env.server_project_home, _create_timestamp_dirname(env.timestamp)))
-    env.setdefault('dump_dir', path.join(env.server_project_home, 'dbdumps'))
+    copy_setting('current_link', path.join(env.server_project_home, 'current'))
+    copy_setting('vcs_root_dir', env.current_link)
+    copy_setting('next_dir', path.join(env.server_project_home, _create_timestamp_dirname(env.timestamp)))
+    copy_setting('versions_to_keep', 5)
+    copy_setting('dump_dir', path.join(env.server_project_home, 'dbdumps'))
+    copy_setting('test_cmd', None)
     # TODO: use relative_deploy_dir
-    env.setdefault('deploy_dir', path.join(env.vcs_root_dir, 'deploy'))
-    env.setdefault('settings', '%(project_name)s.settings' % env)
+    copy_setting('deploy_dir', path.join(env.vcs_root_dir, 'deploy'))
+    copy_setting('settings', '%(project_name)s.settings' % env)
+    copy_setting('port', 22)
+    copy_setting('user', getpass.getuser())
+    copy_setting('host', env.hosts[0])
+    copy_setting('webserver', None)
 
     if env.project_type == "django":
-        env.setdefault('relative_django_dir', env.project_name)
-        env.setdefault('relative_django_settings_dir', env['relative_django_dir'])
-        env.setdefault('relative_ve_dir', path.join(env['relative_django_dir'], '.ve'))
+        copy_setting('relative_django_dir', env.project_name)
+        copy_setting('relative_django_settings_dir', env['relative_django_dir'])
+        copy_setting('relative_ve_dir', path.join(env['relative_django_dir'], '.ve'))
 
         # now create the absolute paths of everything else
-        env.setdefault('django_dir',
+        copy_setting('django_dir',
                        path.join(env['vcs_root_dir'], env['relative_django_dir']))
-        env.setdefault('django_settings_dir',
+        copy_setting('django_settings_dir',
                        path.join(env['vcs_root_dir'], env['relative_django_settings_dir']))
-        env.setdefault('ve_dir',
+        copy_setting('ve_dir',
                        path.join(env['vcs_root_dir'], env['relative_ve_dir']))
-        env.setdefault('manage_py', path.join(env['django_dir'], 'manage.py'))
+        copy_setting('manage_py', path.join(env['django_dir'], 'manage.py'))
 
     # local_tasks_bin is the local copy of tasks.py
     # this should be the copy from where ever fab.py is being run from ...
     if 'DEPLOYDIR' in os.environ:
-        env.setdefault('local_tasks_bin',
+        copy_setting('local_tasks_bin',
                        path.join(os.environ['DEPLOYDIR'], 'tasks.py'))
     else:
-        env.setdefault('local_tasks_bin',
+        copy_setting('local_tasks_bin',
                        path.join(path.dirname(__file__), 'tasks.py'))
 
 
@@ -430,10 +446,8 @@ def delete_old_rollback_versions(keep=None):
     """
     require('server_project_home', provided_by=env.valid_envs)
     if keep is None:
-        if 'versions_to_keep' in env:
-            keep = env.versions_to_keep
-        else:
-            keep = 5
+        keep = getattr(env, 'versions_to_keep', 5)
+
     # ensure we have a number rather than a string
     keep = int(keep)
     if keep == 0:
