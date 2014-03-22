@@ -222,6 +222,7 @@ HAYSTACK_CONNECTIONS = {
 HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
 HAYSTACK_SEARCH_RESULTS_PER_PAGE = 1000
 ########## END HAYSTACK SEARCH CONFIGURATION
+#{% endif %}
 
 ########## Custom user app defaults
 # Select the correct user model
