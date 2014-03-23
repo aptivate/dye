@@ -269,17 +269,26 @@ class MySQLManager(DBManager):
 
     def create_db_if_not_exists(self):
         if not self.db_exists():
-            self.exec_as_root(
-                'CREATE DATABASE %s CHARACTER SET utf8' % self.name)
+            try:
+                cursor = self.create_db_connection(user=self.user, passwd=self.password)
+                cursor.execute('CREATE DATABASE %s CHARACTER SET utf8' % self.name)
+            except:
+                self.exec_as_root('CREATE DATABASE %s CHARACTER SET utf8' % self.name)
 
     def ensure_user_and_db_exist(self):
         # the below just make sure things line up at the end of the process
         # TODO: should we do more fine grained checks and ask the user what
         # they would like to do.
-        self.create_user_if_not_exists()
-        self.set_user_password()
-        self.create_db_if_not_exists()
-        self.grant_all_privileges_for_database()
+
+        try:
+            self.get_user_db_cursor()
+            # the user and database obviously exist already
+            return
+        except:
+            self.create_user_if_not_exists()
+            self.set_user_password()
+            self.create_db_if_not_exists()
+            self.grant_all_privileges_for_database()
 
     def drop_db(self):
         self.exec_as_root('DROP DATABASE IF EXISTS %s' % self.name)
