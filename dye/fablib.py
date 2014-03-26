@@ -20,7 +20,7 @@ def _setup_paths(project_settings):
     # allow for project_settings having set up some of these differently
     def copy_setting(name, default_value):
         value = getattr(project_settings, name, default_value)
-    	setattr(env, name, value)
+        setattr(env, name, value)
 
     copy_setting('project_name', True)
     copy_setting('project_type', True)
@@ -36,7 +36,7 @@ def _setup_paths(project_settings):
     copy_setting('svnpass', '')
     copy_setting('default_branch', {'production': 'master', 'staging': 'master'})
     copy_setting('server_project_home',
-                   path.join(env.server_home, env.project_name))
+                 path.join(env.server_home, env.project_name))
     copy_setting('current_link', path.join(env.server_project_home, 'current'))
     copy_setting('vcs_root_dir', env.current_link)
     copy_setting('next_dir', path.join(env.server_project_home, _create_timestamp_dirname(env.timestamp)))
@@ -58,21 +58,21 @@ def _setup_paths(project_settings):
 
         # now create the absolute paths of everything else
         copy_setting('django_dir',
-                       path.join(env['vcs_root_dir'], env['relative_django_dir']))
+                     path.join(env['vcs_root_dir'], env['relative_django_dir']))
         copy_setting('django_settings_dir',
-                       path.join(env['vcs_root_dir'], env['relative_django_settings_dir']))
+                     path.join(env['vcs_root_dir'], env['relative_django_settings_dir']))
         copy_setting('ve_dir',
-                       path.join(env['vcs_root_dir'], env['relative_ve_dir']))
+                     path.join(env['vcs_root_dir'], env['relative_ve_dir']))
         copy_setting('manage_py', path.join(env['django_dir'], 'manage.py'))
 
     # local_tasks_bin is the local copy of tasks.py
     # this should be the copy from where ever fab.py is being run from ...
     if 'DEPLOYDIR' in os.environ:
         copy_setting('local_tasks_bin',
-                       path.join(os.environ['DEPLOYDIR'], 'tasks.py'))
+                     path.join(os.environ['DEPLOYDIR'], 'tasks.py'))
     else:
         copy_setting('local_tasks_bin',
-                       path.join(path.dirname(__file__), 'tasks.py'))
+                     path.join(path.dirname(__file__), 'tasks.py'))
 
 
 def _linux_type():
