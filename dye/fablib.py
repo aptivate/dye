@@ -18,22 +18,29 @@ def _setup_paths(project_settings):
     env.timestamp = datetime.now()
 
     # allow for project_settings having set up some of these differently
-    def copy_setting(name, default_value):
-        value = getattr(project_settings, name, default_value)
-        setattr(env, name, value)
+    def copy_setting(name, default_value="NODEFAULT", required=False):
+        if hasattr(project_settings, name):
+            value = getattr(project_settings, name)
+            setattr(env, name, value)
+        elif required:
+            raise Exception(
+                'Could not find the required setting "%s" in project_settings.py' %
+                name)
+        elif default_value != "NODEFAULT":
+            setattr(env, name, default_value)
 
-    copy_setting('project_name', True)
-    copy_setting('project_type', True)
-    copy_setting('server_home', True)
-    copy_setting('verbose', False)
+    # first do required settings
+    for setting in ['project_name', 'project_type', 'server_home', 'repo_type',
+                    'repository', 'webserver']:
+        copy_setting(setting, required=True)
+
+    # then do optional settings
+    for setting in ['cvs_project', 'cvs_rsh', 'svnuser', 'svnpass', 'test_cmd',
+                    'port', 'user', 'host']:
+        copy_setting(setting)
+
+    # now do settings with defaults
     copy_setting('use_sudo', True)
-    copy_setting('repo_type', None)
-    copy_setting('repository', None)
-    copy_setting('revision', None)
-    copy_setting('cvs_project', '')
-    copy_setting('cvs_rsh', 'CVS_RSH="ssh"')
-    copy_setting('svnuser', '')
-    copy_setting('svnpass', '')
     copy_setting('default_branch', {'production': 'master', 'staging': 'master'})
     copy_setting('server_project_home',
                  path.join(env.server_home, env.project_name))
@@ -42,14 +49,9 @@ def _setup_paths(project_settings):
     copy_setting('next_dir', path.join(env.server_project_home, _create_timestamp_dirname(env.timestamp)))
     copy_setting('versions_to_keep', 5)
     copy_setting('dump_dir', path.join(env.server_project_home, 'dbdumps'))
-    copy_setting('test_cmd', None)
     # TODO: use relative_deploy_dir
     copy_setting('deploy_dir', path.join(env.vcs_root_dir, 'deploy'))
     copy_setting('settings', '%(project_name)s.settings' % env)
-    copy_setting('port', 22)
-    copy_setting('user', getpass.getuser())
-    copy_setting('host', env.hosts[0])
-    copy_setting('webserver', None)
 
     if env.project_type == "django":
         copy_setting('relative_django_dir', env.project_name)
