@@ -347,7 +347,7 @@ if DEBUG is False:
     ALLOWED_HOSTS = [
         '.{{ cookiecutter.domain_name }}',
         'www.{{ cookiecutter.domain_name }}',
-        'fen-vz-{{ cookiecutter.project_name }}.fen.aptivate.org',
+        'fen-vz-{{ cookiecutter.project_name }}-stage.fen.aptivate.org',
         'fen-vz-{{ cookiecutter.project_name }}-dev.fen.aptivate.org',
         '{{ cookiecutter.project_name }}.dev.aptivate.org',
         '{{ cookiecutter.project_name }}.stage.aptivate.org',
