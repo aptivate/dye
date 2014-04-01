@@ -41,6 +41,6 @@ mock==1.0.1
 
 {% if cookiecutter.django_type == 'cms' or cookiecutter.django_type == 'normal' %}
 # development
-django-extensions==1.0.2
+django-extensions
 django-debug-toolbar
 {% endif %}
