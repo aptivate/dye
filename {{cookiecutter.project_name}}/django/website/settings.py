@@ -146,6 +146,7 @@ THIRD_PARTY_APPS = (
     'cmsplugin_filer_teaser',
     'cmsplugin_filer_video',
     'cms_redirects',
+    'reversion',
     'djangocms_text_ckeditor',  # must load after Django CMS
     #{% endif %}
 )
