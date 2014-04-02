@@ -125,7 +125,6 @@ THIRD_PARTY_APPS = (
     'haystack',
     #{% endif %}
     #{% if cookiecutter.django_type == "cms" %}
-    'djangocms_text_ckeditor',
     'cms',
     'mptt',
     'menus',
@@ -140,6 +139,7 @@ THIRD_PARTY_APPS = (
     'cmsplugin_filer_teaser',
     'cmsplugin_filer_video',
     'cms_redirects',
+    'djangocms_text_ckeditor',  # must load after Django CMS
     #{% endif %}
 )
 
