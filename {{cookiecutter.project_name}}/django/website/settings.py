@@ -45,6 +45,10 @@ TIME_ZONE = 'Europe/London'
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#language-code
 LANGUAGE_CODE = 'en'
 
+LANGUAGES = [
+    ('en', 'English'),
+]
+
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#site-id
 SITE_ID = 1
 
@@ -98,6 +102,9 @@ STATICFILES_FINDERS = (
 )
 ########## END STATIC FILE CONFIGURATION
 
+LOCALE_DIR = path.join(BASE_DIR, 'locale')
+if path.isdir(LOCALE_DIR):
+    LOCALE_PATHS = (LOCALE_DIR,)
 
 ########## APP CONFIGURATION
 DJANGO_APPS = (
@@ -125,7 +132,6 @@ THIRD_PARTY_APPS = (
     'haystack',
     #{% endif %}
     #{% if cookiecutter.django_type == "cms" %}
-    'djangocms_text_ckeditor',
     'cms',
     'mptt',
     'menus',
@@ -141,6 +147,7 @@ THIRD_PARTY_APPS = (
     'cmsplugin_filer_video',
     'cms_redirects',
     'reversion',
+    'djangocms_text_ckeditor',  # must load after Django CMS
     #{% endif %}
 )
 
