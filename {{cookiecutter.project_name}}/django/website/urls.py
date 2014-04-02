@@ -1,4 +1,5 @@
 from django.conf.urls import patterns, include, url
+from django.conf.urls.i18n import i18n_patterns
 
 from django.contrib import admin
 from django.conf import settings
@@ -20,4 +21,10 @@ urlpatterns = patterns('',
     # on dev
     (r'/favicon.ico', 'django.views.generic.base.RedirectView',
         {'url':  '{0}images/favicon.ico'.format(settings.STATIC_URL)}),
+) 
+
+#{% if cookiecutter.django_type == "cms" %}
+urlpatterns += i18n_patterns('',
+    url(r'^', include('cms.urls')),
 )
+#{% endif %}
