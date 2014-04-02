@@ -269,7 +269,10 @@ def create_private_settings():
 
 
 def collect_static():
-    return _manage_py(["collectstatic", "--noinput"])
+    print '### Collecting static files and building webassets'
+    _manage_py(["collectstatic", "--noinput"])
+    _manage_py(['assets', 'build'])
+    return
 
 
 def _install_django_jenkins():

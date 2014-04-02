@@ -43,4 +43,10 @@ mock==1.0.1
 # development
 django-extensions
 django-debug-toolbar
+
+# CSS and assets
+django-assets==0.8
+pyScss==1.2.0.post3
+cssmin==0.2.0
+argparse==1.2.1
 {% endif %}
