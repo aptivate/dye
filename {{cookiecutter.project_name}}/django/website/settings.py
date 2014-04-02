@@ -45,6 +45,10 @@ TIME_ZONE = 'Europe/London'
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#language-code
 LANGUAGE_CODE = 'en'
 
+LANGUAGES = [
+    ('en', 'English'),
+]
+
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#site-id
 SITE_ID = 1
 
@@ -98,6 +102,9 @@ STATICFILES_FINDERS = (
 )
 ########## END STATIC FILE CONFIGURATION
 
+LOCALE_DIR = path.join(BASE_DIR, 'locale')
+if path.isdir(LOCALE_DIR):
+    LOCALE_PATHS = (LOCALE_DIR,)
 
 ########## APP CONFIGURATION
 DJANGO_APPS = (
