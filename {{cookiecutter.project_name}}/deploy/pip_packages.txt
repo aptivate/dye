@@ -35,7 +35,7 @@ django-registration==1.0
 {% endif %}
 
 # testing
-{% if cookiecutter.use_pytest == 'yes' %}pytest-django==2.3.1{% endif %}
+{% if cookiecutter.use_pytest == 'yes' %}pytest-django==2.6{% endif %}
 django-dynamic-fixture==1.6.5
 mock==1.0.1
 
