@@ -169,6 +169,9 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=True, databas
             _manage_py(['createcachetable', cache_table])
         _manage_py(['syncdb', '--noinput'])
         # always call migrate - shouldn't fail (I think)
+        # first without initial data:
+        _manage_py(['migrate', '--noinput', '--no-initial-data'])
+        # then with initial data, AFTER tables have been created:
         _manage_py(['migrate', '--noinput'])
 
 
