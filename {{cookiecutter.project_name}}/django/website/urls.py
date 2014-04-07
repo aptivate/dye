@@ -23,6 +23,13 @@ urlpatterns = patterns('',
         {'url':  '{0}images/favicon.ico'.format(settings.STATIC_URL)}),
 ) 
 
+if settings.DEBUG:
+    urlpatterns = patterns('',
+        url(r'^uploads/(?P<path>.*)$', 'django.views.static.serve',
+            {'document_root': settings.MEDIA_ROOT, 'show_indexes': True}),
+        url(r'', include('django.contrib.staticfiles.urls')),
+    ) + urlpatterns
+
 #{% if cookiecutter.django_type == "cms" %}
 urlpatterns += i18n_patterns('',
     url(r'^', include('cms.urls')),
