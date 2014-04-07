@@ -285,6 +285,19 @@ LOGGING = {
 #MONKEY_PATCHES = ['intranet_binder.monkeypatches']
 ########## END BINDER STUFF
 
+
+#{% if cookiecutter.django_type == "cms" %}
+# https://django-filer.readthedocs.org/en/0.8.3/getting_started.html#configuration
+THUMBNAIL_PROCESSORS = (
+    'easy_thumbnails.processors.colorspace',
+    'easy_thumbnails.processors.autocrop',
+    #'easy_thumbnails.processors.scale_and_crop',
+    'filer.thumbnail_processors.scale_and_crop_with_subject_location',
+    'easy_thumbnails.processors.filters',
+)
+#{% endif %}
+
+
 # this section allows us to do a deep update of dictionaries
 import collections
 from copy import deepcopy
