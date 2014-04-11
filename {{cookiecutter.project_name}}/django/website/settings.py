@@ -9,6 +9,7 @@ BASE_DIR = path.abspath(path.dirname(__file__))
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 ASSETS_DEBUG = DEBUG
+ASSETS_AUTO_BUILD = DEBUG
 ##########
 
 
