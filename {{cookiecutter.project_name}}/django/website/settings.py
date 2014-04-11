@@ -97,7 +97,9 @@ STATICFILES_DIRS = (
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    #{% if cookiecutter.django_type == "normal" or cookiecutter.django_type == "cms" %}
     'django_assets.finders.AssetsFinder',
+    #{% endif %}
 )
 ########## END STATIC FILE CONFIGURATION
 
