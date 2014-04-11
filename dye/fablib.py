@@ -3,6 +3,7 @@ from os import path
 from datetime import datetime
 import getpass
 import re
+from distutils.util import strtobool
 
 from fabric.context_managers import cd, hide, settings
 from fabric.operations import require, prompt, get, run, sudo, local, put
@@ -832,6 +833,37 @@ def setup_db_dumps():
     """ set up mysql database dumps """
     require('dump_dir', provided_by=env.valid_envs)
     _tasks('setup_db_dumps:' + env.dump_dir)
+
+
+def push_django_dir(django_subdir=None, remote_temp_dir=None, 
+        keep_remote_copy=True, rsync=True):
+    """copy the uploads directory from local system to remote, so that
+    filer files match the database contents."""
+
+    require('user', 'host', 'port', 'local_vcs_root', 'relative_django_dir',
+        'vcs_root_dir', provided_by=env.valid_envs)
+    params = dict(env)
+
+    if django_subdir is None:
+        params['django_subdir'] = 'uploads'
+
+    if remote_temp_dir is None:
+        params['remote_temp_dir'] = 'push_uploads'
+
+    local_django_dir = os.path.join(env['local_vcs_root'],
+        env['relative_django_dir'])
+    params['local_source_dir'] = os.path.join(local_django_dir,
+        params['django_subdir'])
+    params['remote_django_dir'] = os.path.join(env['vcs_root_dir'],
+        env['relative_django_dir'])
+
+    local("rsync -avPz -e 'ssh -p %(port)s' %(local_source_dir)s "
+        "%(user)s@%(host)s:%(remote_temp_dir)s" % params)
+    sudo('rsync -avP %(remote_temp_dir)s/%(django_subdir)s '
+        '%(remote_django_dir)s' % params)
+
+    if not strtobool(keep_remote_copy):
+        sudo('rm -r %(remote_temp_dir)s/%(django_subdir)s' % params)
 
 
 def touch_wsgi():
