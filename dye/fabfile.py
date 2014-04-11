@@ -43,14 +43,20 @@ def _server_setup(environment):
     fablib._setup_paths(project_settings)
 
 
-def localhost():
-    """ use localhost as a target for easy testing """
-    _server_setup('localhost')
+# Create automatic tasks for each environment in project_settings.host_list.
+# These can be overridden by creating a function with the same name below,
+# or in localfab.
 
+for host in env.valid_envs:
+    # http://stackoverflow.com/a/2776585/648162
+    # This approach only defines specific functions, so it's less dangerous
+    # than implementing __getattr__ on the module, and also produces the same
+    # result every time, and allows importing and calling these default tasks
+    # from localfab.
 
-def dev_server():
-    """ use dev environment on remote host to play with code in production-like env"""
-    _server_setup('dev_server')
+    # Also need to capture the value at the time the lambda is defined,
+    # not when it's executed. http://stackoverflow.com/a/10452819/648162
+    globals()[host] = lambda h=host: _server_setup(h)
 
 
 def staging_test():
@@ -63,15 +69,6 @@ def staging_test():
     env.webserver = None
     _server_setup('staging_test')
 
-
-def staging():
-    """ use staging environment on remote host to demo to client"""
-    _server_setup('staging')
-
-
-def production():
-    """ use production environment on remote host"""
-    _server_setup('production')
 
 # now see if we can find localfab
 # it is important to do this after importing from fablib, and after
