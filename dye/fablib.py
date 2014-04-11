@@ -823,6 +823,51 @@ def get_remote_dump_and_load(filename=None, local_filename=None,
         local('rm ' + local_filename)
 
 
+def push_db(local_filename=None, remote_filename=None, 
+        keep_dump=True, rsync=True):
+    """ do a local database dump, copy it to the remote filesystem and then
+    load it into the remote database """
+
+    require('local_tasks_bin', provided_by=env.valid_envs)
+
+    # future enhancement, do a mysqldump --skip-extended-insert (one insert
+    # per line) and then do rsync rather than get() - less data transferred on
+    # however rsync might need ssh keys etc
+    require('user', 'host', 'port', provided_by=env.valid_envs)
+    delete_after = False
+
+    if local_filename is None:
+        # set a default, but ensure we can write to it
+        local_filename = './db_dump.sql'
+        if not _local_is_file_writable(local_filename):
+            # if we have to use /tmp, delete the file afterwards
+            local_filename = '/tmp/db_dump.sql'
+            delete_after = True
+    else:
+        # if the filename is specified, then don't change the name
+        if not _local_is_file_writable(local_filename):
+            raise Exception(
+                'Cannot write to local dump file you specified: %s' % local_filename)
+
+    if remote_filename is None:
+        remote_filename = 'db_dump.sql'
+
+    if rsync:
+        local(env.local_tasks_bin + ' dump_db:' + local_filename +
+            ',for_rsync=true')
+        local("rsync -vz -e 'ssh -p %s' %s %s@%s:%s" % (
+            env.port, local_filename, env.user, env.host, remote_filename))
+    else:
+        local(env.local_tasks_bin + ' dump_db:' + local_filename)
+        put(local_filename, remote_filename)
+
+    local('rm ' + local_filename)
+
+    _tasks('restore_db:' + remote_filename)
+    if delete_after or not keep_dump:
+        sudo('rm ' + remote_filename)
+
+
 def update_db(force_use_migrations=False):
     """ create and/or update the database, do migrations etc """
     _tasks('update_db:force_use_migrations=%s' % force_use_migrations)
