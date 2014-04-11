@@ -94,7 +94,7 @@ def _tasks(tasks_args, verbose=False):
     tasks_cmd = _get_tasks_bin()
     if env.verbose or verbose:
         tasks_cmd += ' -v'
-    sudo_or_run(tasks_cmd + ' ' + tasks_args)
+    return sudo_or_run(tasks_cmd + ' ' + tasks_args)
 
 
 def _get_svn_user_and_pass():
@@ -409,12 +409,13 @@ def _dump_db_in_directory(dump_dir):
         with cd(dump_dir):
             # just in case there is some other reason why the dump fails
             with settings(warn_only=True):
-                _tasks('dump_db')
-            # and compress the dump
-            dump_file = 'db_dump.sql'
-            dump_file_compressed = dump_file + '.gz'
-            sudo_or_run('gzip -c %s > %s' % (dump_file, dump_file_compressed))
-            sudo_or_run('rm %s' % dump_file)
+                dump_result = _tasks('dump_db')
+            if dump_result.succeeded:
+                # and compress the dump (provided it worked)
+                dump_file = 'db_dump.sql'
+                dump_file_compressed = dump_file + '.gz'
+                sudo_or_run('gzip -c %s > %s' % (dump_file, dump_file_compressed))
+                sudo_or_run('rm %s' % dump_file)
 
 
 def _get_list_of_versions():

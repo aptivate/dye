@@ -47,6 +47,10 @@ TIME_ZONE = 'Europe/London'
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#language-code
 LANGUAGE_CODE = 'en'
 
+LANGUAGES = [
+    ('en', 'English'),
+]
+
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#site-id
 SITE_ID = 1
 
@@ -103,6 +107,9 @@ STATICFILES_FINDERS = (
 )
 ########## END STATIC FILE CONFIGURATION
 
+LOCALE_DIR = path.join(BASE_DIR, 'locale')
+if path.isdir(LOCALE_DIR):
+    LOCALE_PATHS = (LOCALE_DIR,)
 
 ########## APP CONFIGURATION
 DJANGO_APPS = (
@@ -131,7 +138,6 @@ THIRD_PARTY_APPS = (
     'django_assets',
     #{% endif %}
     #{% if cookiecutter.django_type == "cms" %}
-    'djangocms_text_ckeditor',
     'cms',
     'mptt',
     'menus',
@@ -146,6 +152,8 @@ THIRD_PARTY_APPS = (
     'cmsplugin_filer_teaser',
     'cmsplugin_filer_video',
     'cms_redirects',
+    'reversion',
+    'djangocms_text_ckeditor',  # must load after Django CMS
     #{% endif %}
 )
 
@@ -262,13 +270,22 @@ LOGGING = {
             'level': 'ERROR',
             'filters': ['require_debug_false'],
             'class': 'django.utils.log.AdminEmailHandler'
-        }
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            # 'formatter': 'simple'
+        },
     },
     'loggers': {
         'django.request': {
             'handlers': ['mail_admins'],
             'level': 'ERROR',
             'propagate': True,
+        },
+        '': {
+            'handlers': ['console'],
+            'level': 'INFO',
         },
     }
 }
@@ -282,6 +299,19 @@ LOGGING = {
 
 #MONKEY_PATCHES = ['intranet_binder.monkeypatches']
 ########## END BINDER STUFF
+
+
+#{% if cookiecutter.django_type == "cms" %}
+# https://django-filer.readthedocs.org/en/0.8.3/getting_started.html#configuration
+THUMBNAIL_PROCESSORS = (
+    'easy_thumbnails.processors.colorspace',
+    'easy_thumbnails.processors.autocrop',
+    #'easy_thumbnails.processors.scale_and_crop',
+    'filer.thumbnail_processors.scale_and_crop_with_subject_location',
+    'easy_thumbnails.processors.filters',
+)
+#{% endif %}
+
 
 # this section allows us to do a deep update of dictionaries
 import collections
