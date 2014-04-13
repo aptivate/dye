@@ -51,7 +51,7 @@ if __name__ == "__main__":
     if 'test' in sys.argv:
         import pytest
         # We need to remove "test" so that pytest picks up additional args only
-        sys.argv.pop(1)
+        sys.argv = [arg for arg in sys.argv if arg != 'test']
         pytest.main()
     else:
         from django.core.management import execute_from_command_line
