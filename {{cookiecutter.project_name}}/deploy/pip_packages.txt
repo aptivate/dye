@@ -45,4 +45,16 @@ mock==1.0.1
 # development
 django-extensions
 django-debug-toolbar
+
+# CSS and assets
+
+# Until https://github.com/miracle2k/django-assets/pull/30 is fixed,
+# we need to use our fork of django-assets for tests to pass:
+# django-assets==0.8
+-e git+https://github.com/aptivate/django-assets.git@20dc2650e3e2f2038d917c98c034d2b01b8f1dad#egg=django-assets
+# Need to use webassets >= 0.9. https://github.com/miracle2k/django-assets/pull/31
+webassets==0.9
+pyScss==1.2.0.post3
+cssmin==0.2.0
+argparse==1.2.1
 {% endif %}

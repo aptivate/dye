@@ -273,7 +273,13 @@ def create_private_settings():
 
 
 def collect_static():
-    return _manage_py(["collectstatic", "--noinput"])
+    print '### Collecting static files and building webassets'
+    _manage_py(["collectstatic", "--noinput"])
+
+    sys.path.append(env['django_settings_dir'])
+    import settings
+    if 'django_assets' in settings.INSTALLED_APPS:
+        _manage_py(['assets', 'build'])
 
 
 def _install_django_jenkins():

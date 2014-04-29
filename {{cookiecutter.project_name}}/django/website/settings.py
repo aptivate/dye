@@ -8,6 +8,8 @@ BASE_DIR = path.abspath(path.dirname(__file__))
 ########## DEFAULT DEBUG SETTINGS - OVERRIDE IN local_settings
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
+ASSETS_DEBUG = DEBUG
+ASSETS_AUTO_BUILD = DEBUG
 ##########
 
 
@@ -99,6 +101,9 @@ STATICFILES_DIRS = (
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    #{% if cookiecutter.django_type == "normal" or cookiecutter.django_type == "cms" %}
+    'django_assets.finders.AssetsFinder',
+    #{% endif %}
 )
 ########## END STATIC FILE CONFIGURATION
 
@@ -130,6 +135,7 @@ THIRD_PARTY_APPS = (
     'easy_thumbnails',
     'registration',
     'haystack',
+    'django_assets',
     #{% endif %}
     #{% if cookiecutter.django_type == "cms" %}
     'cms',
