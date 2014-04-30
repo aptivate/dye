@@ -279,6 +279,7 @@ def collect_static():
     sys.path.append(env['django_settings_dir'])
     import settings
     if 'django_assets' in settings.INSTALLED_APPS:
+        _manage_py(['assets', 'clean'])
         _manage_py(['assets', 'build'])
 
 
