@@ -3,6 +3,8 @@ import sys
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
+ASSETS_DEBUG = DEBUG
+ASSETS_AUTO_BUILD = DEBUG
 
 # used in admin template so we know which site we're looking at
 DEPLOY_ENV = "localdev"
