@@ -75,11 +75,15 @@ def _linux_type():
 
 def _get_python():
     if 'python_bin' not in env:
-        python26 = path.join('/', 'usr', 'bin', 'python2.6')
-        if files.exists(python26):
+        python_bin = path.join('/', 'usr', 'bin', 'python')
+        python26 = python_bin + '2.6'
+        python27 = python_bin + '2.7'
+        if files.exists(python27):
+            env.python_bin = python27
+        elif files.exists(python26):
             env.python_bin = python26
         else:
-            env.python_bin = path.join('/', 'usr', 'bin', 'python')
+            env.python_bin = python_bin
     return env.python_bin
 
 
