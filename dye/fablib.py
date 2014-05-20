@@ -15,7 +15,7 @@ def _setup_paths(project_settings):
     # first merge in variables from project_settings - but ignore __doc__ etc
     user_settings = [x for x in vars(project_settings).keys() if not x.startswith('__')]
     for setting in user_settings:
-        env[setting] = vars(project_settings)[setting]
+        env.setdefault(setting, vars(project_settings)[setting])
 
     # set the timestamp - used for directory names at least
     env.timestamp = datetime.now()
