@@ -34,6 +34,7 @@ def _setup_paths(project_settings):
     env.setdefault('relative_deploy_dir', 'deploy')
     env.setdefault('deploy_dir', path.join(env.vcs_root_dir, env.relative_deploy_dir))
     env.setdefault('settings', '%(project_name)s.settings' % env)
+    env.setdefault('relative_webserver_dir', 'apache')
 
     if env.project_type == "django":
         env.setdefault('relative_django_dir', env.project_name)
@@ -755,7 +756,6 @@ def create_deploy_virtualenv(in_next=False, full_rebuild=True):
     """ if using new style dye stuff, create the virtualenv to hold dye """
     require('deploy_dir', 'next_dir', provided_by=env.valid_envs)
     if in_next:
-        # TODO: use relative_deploy_dir
         bootstrap_path = path.join(env.next_dir, env.relative_deploy_dir,
                                    'bootstrap.py')
     else:
@@ -871,7 +871,9 @@ def link_webserver_conf(maintenance=False):
     require('webserver', 'vcs_root_dir', provided_by=env.valid_envs)
     if env.webserver is None:
         return
-    vcs_config_stub = path.join(env.vcs_root_dir, env.webserver, env.environment)
+
+    vcs_config_stub = path.join(env.vcs_root_dir, env.relative_webserver_dir,
+                                env.environment)
     vcs_config_live = vcs_config_stub + '.conf'
     vcs_config_maintenance = vcs_config_stub + '-maintenance.conf'
     webserver_conf = _webserver_conf_path()
