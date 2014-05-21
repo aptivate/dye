@@ -31,8 +31,8 @@ def _setup_paths(project_settings):
     env.setdefault('vcs_root_dir', env.current_link)
     env.setdefault('next_dir', path.join(env.server_project_home, _create_timestamp_dirname(env.timestamp)))
     env.setdefault('dump_dir', path.join(env.server_project_home, 'dbdumps'))
-    # TODO: use relative_deploy_dir
-    env.setdefault('deploy_dir', path.join(env.vcs_root_dir, 'deploy'))
+    env.setdefault('relative_deploy_dir', 'deploy')
+    env.setdefault('deploy_dir', path.join(env.vcs_root_dir, env.relative_deploy_dir))
     env.setdefault('settings', '%(project_name)s.settings' % env)
 
     if env.project_type == "django":
@@ -756,7 +756,8 @@ def create_deploy_virtualenv(in_next=False, full_rebuild=True):
     require('deploy_dir', 'next_dir', provided_by=env.valid_envs)
     if in_next:
         # TODO: use relative_deploy_dir
-        bootstrap_path = path.join(env.next_dir, 'deploy', 'bootstrap.py')
+        bootstrap_path = path.join(env.next_dir, env.relative_deploy_dir,
+                                   'bootstrap.py')
     else:
         bootstrap_path = path.join(env.deploy_dir, 'bootstrap.py')
     if full_rebuild:
