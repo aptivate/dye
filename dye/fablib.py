@@ -41,6 +41,8 @@ def _setup_paths(project_settings):
         env.setdefault('relative_django_settings_dir', env['relative_django_dir'])
         env.setdefault('relative_ve_dir', path.join(env['relative_django_dir'], '.ve'))
 
+        env.setdefault('relative_wsgi_dir', 'wsgi')
+
         # now create the absolute paths of everything else
         env.setdefault('django_dir',
                        path.join(env['vcs_root_dir'], env['relative_django_dir']))
@@ -842,7 +844,7 @@ def setup_db_dumps():
 def touch_wsgi():
     """ touch wsgi file to trigger reload """
     require('vcs_root_dir', provided_by=env.valid_envs)
-    wsgi_dir = path.join(env.vcs_root_dir, 'wsgi')
+    wsgi_dir = path.join(env.vcs_root_dir, env.relative_wsgi_dir)
     sudo_or_run('touch ' + path.join(wsgi_dir, 'wsgi_handler.py'))
 
 
