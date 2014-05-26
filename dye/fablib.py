@@ -31,14 +31,17 @@ def _setup_paths(project_settings):
     env.setdefault('vcs_root_dir', env.current_link)
     env.setdefault('next_dir', path.join(env.server_project_home, _create_timestamp_dirname(env.timestamp)))
     env.setdefault('dump_dir', path.join(env.server_project_home, 'dbdumps'))
-    # TODO: use relative_deploy_dir
-    env.setdefault('deploy_dir', path.join(env.vcs_root_dir, 'deploy'))
+    env.setdefault('relative_deploy_dir', 'deploy')
+    env.setdefault('deploy_dir', path.join(env.vcs_root_dir, env.relative_deploy_dir))
     env.setdefault('settings', '%(project_name)s.settings' % env)
+    env.setdefault('relative_webserver_dir', 'apache')
 
     if env.project_type == "django":
         env.setdefault('relative_django_dir', env.project_name)
         env.setdefault('relative_django_settings_dir', env['relative_django_dir'])
         env.setdefault('relative_ve_dir', path.join(env['relative_django_dir'], '.ve'))
+
+        env.setdefault('relative_wsgi_dir', 'wsgi')
 
         # now create the absolute paths of everything else
         env.setdefault('django_dir',
@@ -755,8 +758,8 @@ def create_deploy_virtualenv(in_next=False, full_rebuild=True):
     """ if using new style dye stuff, create the virtualenv to hold dye """
     require('deploy_dir', 'next_dir', provided_by=env.valid_envs)
     if in_next:
-        # TODO: use relative_deploy_dir
-        bootstrap_path = path.join(env.next_dir, 'deploy', 'bootstrap.py')
+        bootstrap_path = path.join(env.next_dir, env.relative_deploy_dir,
+                                   'bootstrap.py')
     else:
         bootstrap_path = path.join(env.deploy_dir, 'bootstrap.py')
     if full_rebuild:
@@ -841,7 +844,7 @@ def setup_db_dumps():
 def touch_wsgi():
     """ touch wsgi file to trigger reload """
     require('vcs_root_dir', provided_by=env.valid_envs)
-    wsgi_dir = path.join(env.vcs_root_dir, 'wsgi')
+    wsgi_dir = path.join(env.vcs_root_dir, env.relative_wsgi_dir)
     sudo_or_run('touch ' + path.join(wsgi_dir, 'wsgi_handler.py'))
 
 
@@ -870,7 +873,9 @@ def link_webserver_conf(maintenance=False):
     require('webserver', 'vcs_root_dir', provided_by=env.valid_envs)
     if env.webserver is None:
         return
-    vcs_config_stub = path.join(env.vcs_root_dir, env.webserver, env.environment)
+
+    vcs_config_stub = path.join(env.vcs_root_dir, env.relative_webserver_dir,
+                                env.environment)
     vcs_config_live = vcs_config_stub + '.conf'
     vcs_config_maintenance = vcs_config_stub + '-maintenance.conf'
     webserver_conf = _webserver_conf_path()
