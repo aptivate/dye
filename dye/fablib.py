@@ -19,6 +19,9 @@ def _setup_paths(project_settings):
 
     # set the timestamp - used for directory names at least
     env.timestamp = datetime.now()
+    # we want the first use of sudo to be for something where we don't
+    # read the result
+    env.sudo_has_been_used = False
 
     # allow for project_settings having set up some of these differently
     env.setdefault('verbose', False)
@@ -749,6 +752,12 @@ def _checkout_or_update_cvs(vcs_root_dir, revision=None):
 
 def sudo_or_run(command):
     if env.use_sudo:
+        # we want the first use of sudo to be for something where we don't
+        # read the result - otherwise the result can include asking for the
+        # password, or the first run message about "with great power ..."
+        if not env.sudo_has_been_used:
+            sudo("true")
+            env.sudo_has_been_used = True
         return sudo(command)
     else:
         return run(command)
