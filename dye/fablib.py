@@ -34,7 +34,7 @@ def _setup_paths(project_settings):
     env.setdefault('relative_deploy_dir', 'deploy')
     env.setdefault('deploy_dir', path.join(env.vcs_root_dir, env.relative_deploy_dir))
     env.setdefault('settings', '%(project_name)s.settings' % env)
-    env.setdefault('relative_webserver_dir', 'apache')
+    env.setdefault('relative_webserver_dir', env.webserver)
 
     if env.project_type == "django":
         env.setdefault('relative_django_dir', env.project_name)
