@@ -25,7 +25,10 @@ import sys
 from .django import (collect_static, create_private_settings,
         _install_django_jenkins, link_local_settings, _manage_py,
         _manage_py_jenkins, clean_db, update_db, _infer_environment)
-from .util import _check_call_wrapper, _call_wrapper, _rm_all_pyc
+from .util import (_check_call_wrapper,
+                   _call_wrapper,
+                   _rm_all_pyc,
+                   _capture_command)
 # this is a global dictionary
 from .environment import env
 
@@ -73,6 +76,10 @@ def _setup_paths(project_settings, localtasks):
     if env['verbose']:
         print "Using Python from %s" % chosen_python
     env.setdefault('python_bin', chosen_python)
+    django_version_cmd = (env['manage_py'], '--version')
+    django_version = _capture_command(django_version_cmd).strip().split('.')
+    env.setdefault('django_version',
+                   [int(x) for x in django_version])
 
 
 def update_git_submodules():
