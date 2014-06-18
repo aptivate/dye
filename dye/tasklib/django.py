@@ -174,14 +174,11 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=True, databas
         if cache_table and not env['db'].test_db_table_exists(cache_table):
             _manage_py(['createcachetable', cache_table])
 
-        sync_args = ['syncdb', '--noinput']
-
         django_version = _get_django_version()
 
         if django_version[0] >= 1 and django_version[1] >= 5:
-            # --no-initial-data appears in Django 1.5
-            sync_args.append('--no-initial-data')
-        _manage_py(sync_args)
+            # syncdb with --no-initial-data appears in Django 1.5
+            _manage_py(['syncdb', '--noinput', '--no-initial-data'])
 
         # always call migrate - shouldn't fail (I think)
         # first without initial data:
