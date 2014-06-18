@@ -76,10 +76,6 @@ def _setup_paths(project_settings, localtasks):
     if env['verbose']:
         print "Using Python from %s" % chosen_python
     env.setdefault('python_bin', chosen_python)
-    django_version_cmd = (env['manage_py'], '--version')
-    django_version = _capture_command(django_version_cmd).strip().split('.')
-    env.setdefault('django_version',
-                   [int(x) for x in django_version])
 
 
 def update_git_submodules():

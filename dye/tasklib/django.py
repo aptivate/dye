@@ -140,6 +140,12 @@ def _get_cache_table():
     return settings.CACHES['default']['LOCATION']
 
 
+def _get_django_version():
+    version_string = _manage_py(['--version'])[0].strip().split('.')
+
+    return [int(x) for x in version_string]
+
+
 def update_db(syncdb=True, drop_test_db=True, force_use_migrations=True, database='default'):
     """ create the database, and do syncdb and migrations
     Note that if syncdb is true, then migrations will always be done if one of
@@ -170,7 +176,9 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=True, databas
 
         sync_args = ['syncdb', '--noinput']
 
-        if env['django_version'][0] >= 1 and env['django_version'][1] >= 5:
+        django_version = _get_django_version()
+
+        if django_version[0] >= 1 and django_version[1] >= 5:
             # --no-initial-data appears in Django 1.5
             sync_args.append('--no-initial-data')
         _manage_py(sync_args)
