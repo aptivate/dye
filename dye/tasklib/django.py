@@ -179,6 +179,8 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=True, databas
         if django_version[0] >= 1 and django_version[1] >= 5:
             # syncdb with --no-initial-data appears in Django 1.5
             _manage_py(['syncdb', '--noinput', '--no-initial-data'])
+        else:
+            _manage_py(['syncdb', '--noinput'])
 
         # always call migrate - shouldn't fail (I think)
         # first without initial data:
