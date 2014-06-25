@@ -34,6 +34,9 @@ project_type = "django"
 # does this virtualenv for python packages
 use_virtualenv = True
 
+# python version - major version must be exact, minor version is the minimum
+python_version = (2, 6)
+
 ################################
 # PATHS TO IMPORTANT DIRECTORIES
 ################################
