@@ -21,6 +21,8 @@ You can now add an optional `python_version` tuple to `deploy/project_settings.p
 The major version must match exactly, the minor version is a minimum.  The default (if
 nothing is set in project_settings) is `(2, 6)`
 
+As part of this you will need to update your copy of ve_mgr.py from the dye project.
+
 ## 26/02/2014
 
 You can now (optionally) set the django jenkins version in your `deploy/project_settings.py`
