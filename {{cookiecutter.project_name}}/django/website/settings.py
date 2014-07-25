@@ -143,15 +143,16 @@ THIRD_PARTY_APPS = (
     'menus',
     'sekizai',
     'filer',
-    'cms.plugins.link',
-    'cms.plugins.snippet',
-    'cms.plugins.googlemap',
+    'djangocms_admin_style',
+    'djangocms_link',
+    'djangocms_snippet',
+    'cmsplugin_googlemap',
     'cmsplugin_filer_file',
     'cmsplugin_filer_folder',
     'cmsplugin_filer_image',
     'cmsplugin_filer_teaser',
     'cmsplugin_filer_video',
-    'cms_redirects',
+    'cms_redirects', # is this built into Django-CMS 3?
     'reversion',
     'djangocms_text_ckeditor',  # must load after Django CMS
     #{% endif %}
