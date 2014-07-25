@@ -119,11 +119,11 @@ class UpdateVE(object):
         if not path.exists(ve_python):
             return False
         major_version = capture_command(
-            [ve_python, '-c', 'import sys; print sys.version_info.major'])
+            [ve_python, '-c', 'import sys; print sys.version_info[0]'])
         if int(major_version) != self.python_version[0]:
             return False
         minor_version = capture_command(
-            [ve_python, '-c', 'import sys; print sys.version_info.minor'])
+            [ve_python, '-c', 'import sys; print sys.version_info[1]'])
         if int(minor_version) < self.python_version[1]:
             return False
         return True
