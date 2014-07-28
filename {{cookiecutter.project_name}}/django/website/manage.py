@@ -52,7 +52,7 @@ if __name__ == "__main__":
         import pytest
         # We need to remove "test" so that pytest picks up additional args only
         sys.argv.pop(1)
-        pytest.main()
+        sys.exit(pytest.main())
     else:
         from django.core.management import execute_from_command_line
         execute_from_command_line(sys.argv)
