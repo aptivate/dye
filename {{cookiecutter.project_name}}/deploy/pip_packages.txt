@@ -15,9 +15,10 @@ image_diet==0.7.1
 {% if cookiecutter.django_type == 'cms' %}
 # django cms bits
 django-cms<3.1
-django-filer==0.9.5
-cmsplugin-filer==0.9.5
-cmsplugin-blog==1.1.1
+# use our fork of django-filer until https://github.com/stefanfoulis/django-filer/issues/353 is fixed:
+-e git+https://github.com/aptivate/django-filer.git@ff931f86c077d54d0cccc2292fa5edc2897447a4#egg=django-filer
+cmsplugin-filer==0.9.9
+cmsplugin-blog==1.1.2
 djangocms-link==1.3.5
 djangocms-snippet==1.0.2
 cmsplugin-googlemap==0.1.5
