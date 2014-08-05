@@ -24,7 +24,8 @@ import sys
 
 from .django import (collect_static, create_private_settings,
         _install_django_jenkins, link_local_settings, _manage_py,
-        _manage_py_jenkins, clean_db, update_db, _infer_environment)
+        _manage_py_jenkins, clean_db, update_db, _infer_environment,
+        create_uploads_dir)
 from .util import _check_call_wrapper, _call_wrapper, _rm_all_pyc
 # this is a global dictionary
 from .environment import env
@@ -163,6 +164,9 @@ def deploy(environment=None):
     update_db()
 
     collect_static()
+
+    if env['project_type'] in ["django", "cms"]:
+        create_uploads_dir()
 
     if hasattr(env['localtasks'], 'post_deploy'):
         env['localtasks'].post_deploy(env['environment'])
