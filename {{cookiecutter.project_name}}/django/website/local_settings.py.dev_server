@@ -36,7 +36,7 @@ HAYSTACK_CONNECTIONS = {
 
 EMAIL_HOST = 'localhost'
 
-EMAIL_BACKEND = 'djcelery_email.backends.CeleryEmailBackend'
+# EMAIL_BACKEND = 'djcelery_email.backends.CeleryEmailBackend'
 
 
 # vi: ft=python

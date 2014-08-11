@@ -38,7 +38,7 @@ HAYSTACK_CONNECTIONS = {
 
 EMAIL_HOST = 'localhost'
 
-EMAIL_BACKEND = 'djcelery_email.backends.CeleryEmailBackend'
+# EMAIL_BACKEND = 'djcelery_email.backends.CeleryEmailBackend'
 
 from settings import INSTALLED_APPS
 # add the jenkins app here
