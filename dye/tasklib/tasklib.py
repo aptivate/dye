@@ -59,6 +59,7 @@ def _setup_paths(project_settings, localtasks):
     env.setdefault('ve_dir',
                    path.join(env['vcs_root_dir'], env['relative_ve_dir']))
     env.setdefault('manage_py', path.join(env['django_dir'], 'manage.py'))
+    env.setdefault('uploads_dir_path', path.join(env['django_dir'], 'uploads'))
 
     python26 = path.join('/', 'usr', 'bin', 'python2.6')
     python27 = path.join('/', 'usr', 'bin', 'python2.7')
