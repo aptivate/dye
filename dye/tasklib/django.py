@@ -335,7 +335,7 @@ def create_uploads_dir(environment=None):
     uploads_dir_path = env['uploads_dir_path']
     filer_dir_path = path.join(uploads_dir_path, 'filer_public')
     filer_thumbnails_dir_path = path.join(uploads_dir_path, 'filer_public_thumbnails')
-    if environment in ['dev_server', 'staging', 'production']:
+    if environment in env['host_list'].keys():
         owner = 'apache:apache'
     else:
         owner = None
