@@ -817,7 +817,7 @@ def get_remote_dump(filename=None, local_filename=None, rsync=True):
             raise Exception(
                 'Cannot write to local dump file you specified: %s' % local_filename)
     if rsync:
-        _tasks('dump_db:' + filename + ',for_rsync=true')
+        _tasks('dump_db:' + filename)
         local("rsync -vz -e 'ssh -p %s' %s@%s:%s %s" % (
             env.port, env.user, env.host, filename, local_filename))
     else:
