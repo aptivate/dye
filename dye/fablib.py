@@ -788,6 +788,10 @@ def collect_static_files():
     _tasks('collect_static')
 
 
+def cleanup_sessions():
+    """ run django session cleanup """
+    _tasks("cleanup_sessions")
+
 def clean_db(revision=None):
     """ delete the entire database """
     if env.environment == 'production':
