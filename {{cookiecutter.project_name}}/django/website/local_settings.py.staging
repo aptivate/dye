@@ -5,6 +5,8 @@ TEMPLATE_DEBUG = DEBUG
 ASSETS_DEBUG = DEBUG
 ASSETS_AUTO_BUILD = DEBUG
 
+USE_X_FORWARDED_HOST = True
+
 # used in admin template so we know which site we're looking at
 DEPLOY_ENV = "staging"
 DEPLOY_ENV_NAME = "Staging Server"
