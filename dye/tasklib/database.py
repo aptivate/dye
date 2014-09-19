@@ -147,6 +147,25 @@ class MySQLManager(DBManager):
         """Try a no-op with the root password"""
         return self.test_sql_user_password(user='root', password=password)
 
+    def test_grants(self):
+        try:
+            cursor = self.get_user_db_cursor()
+        except:
+            return False
+        # do "SHOW GRANTS FOR CURRENT USER"
+        try:
+            cursor.execute("SHOW GRANTS FOR CURRENT_USER")
+            # check for GRANT ALL PRIVILEGES ON `dbname`.* TO `user ...
+            grant_list = [row[0] for row in cursor.fetchall()]
+            for grant in grant_list:
+                if grant.lower().startswith(
+                        "grant all privileges on `%s`.* to '%s'@" %
+                        (self.name, self.user)):
+                    return True
+        finally:
+            cursor.close()
+        return False
+
     def create_db_connection(self, **kwargs):
         if self.host:
             kwargs.setdefault('host', self.host)
@@ -283,12 +302,16 @@ class MySQLManager(DBManager):
         try:
             self.get_user_db_cursor()
             # the user and database obviously exist already
-            return
+            if self.test_grants():
+                return
         except:
+            # this except block is only to skip the return if
+            # get_user_db_cursor fails
             self.create_user_if_not_exists()
             self.set_user_password()
             self.create_db_if_not_exists()
-            self.grant_all_privileges_for_database()
+        # if we get here we've skipped the return and need to grant privileges
+        self.grant_all_privileges_for_database()
 
     def drop_db(self):
         self.exec_as_root('DROP DATABASE IF EXISTS %s' % self.name)

@@ -168,8 +168,9 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=True, databas
     if not drop_test_db:
         env['test_db'].create_db_if_not_exists()
 
-    if not env['test_db'].test_sql_user_password():
-    	env['test_db'].grant_all_privileges_for_database()
+    if not env['test_db'].test_sql_user_password() or \
+            not env['test_db'].test_grants():
+        env['test_db'].grant_all_privileges_for_database()
 
     if env['project_type'] == "django" and syncdb:
         # if we are using the database cache we need to create the table
