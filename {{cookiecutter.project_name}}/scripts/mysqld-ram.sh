@@ -4,9 +4,9 @@
 # This can dramatically speed up things like running tests (The
 # Django test suite takes 455 secs with this, 7843 secs without
 # it on my machine - that's almost factor 20).
-# 
-# Written and tested on Ubuntu Karmic. 
-# 
+#
+# Written and tested on Ubuntu Karmic.
+#
 # TODO: Possible things could be even faster; options to consider:
 # * DELAY_KEY_WRITE
 # * Disable logging
@@ -32,14 +32,14 @@ MYSQL_APPARMOR_PROFILE=/etc/apparmor.d/usr.sbin.mysqld
 
 
 get_bind_args() {
-    # pass "server" for use with mysqld    
+    # pass "server" for use with mysqld
     host_option='--host'
-    if [ ${1?"get_bind_args() needs one argument"} = "server" ]; then 
-        host_option="--bind"; 
+    if [ ${1?"get_bind_args() needs one argument"} = "server" ]; then
+        host_option="--bind-address";
     fi
-    
+
     args=""
-    if [ -n "${BIND_SOCKET:+x}" ]; then args="$args --socket=${BIND_SOCKET}"; fi    
+    if [ -n "${BIND_SOCKET:+x}" ]; then args="$args --socket=${BIND_SOCKET}"; fi
     if [ -n "${BIND_HOST:+x}" ]; then args="$args $host_option=${BIND_HOST}"; fi
     if [ -n "${BIND_PORT:+x}" ]; then args="$args --port=${BIND_PORT}"; fi
     echo $args
@@ -56,16 +56,16 @@ fi
 # We're now going to do stuff we don't want to be persistent,
 # so make sure we are going to properly cleanup.
 cleanup() {
-    # Run without errexit, we want to do as much cleanup 
+    # Run without errexit, we want to do as much cleanup
     # as possible.
     set +e
-    
+
     # Unmount ramdisk
     if mountpoint -q $DATA_DIR; then
-        echo "Unmounting ramdisk..." 
-        umount $DATA_DIR 
+        echo "Unmounting ramdisk..."
+        umount $DATA_DIR
     fi
-    
+
     set -e
     exit
 }

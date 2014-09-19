@@ -31,7 +31,7 @@ First, get cookiecutter. Trust me, it's awesome::
 
 Now run it against this repo::
 
-    $ cookiecutter --commit develop git://github.com/aptivate/dye.git
+    $ cookiecutter --checkout develop https://github.com/aptivate/dye.git
 
 You'll be prompted for some questions, answer them, then it will create a Django project for you.
 

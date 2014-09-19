@@ -5,6 +5,10 @@ import subprocess
 from os import path
 
 
+def capture_command(argv):
+    return subprocess.Popen(argv, stdout=subprocess.PIPE).communicate()[0]
+
+
 def find_package_dir_in_ve(ve_dir, package):
     python = os.listdir(path.join(ve_dir, 'lib'))[0]
     site_dir = path.join(ve_dir, 'lib', python, 'site-packages')
@@ -102,12 +106,30 @@ class UpdateVE(object):
 
         import project_settings
         self.pypi_cache_url = getattr(project_settings, 'pypi_cache_url', None)
+        # the major version must be exact, the minor version is a minimum
+        self.python_version = getattr(project_settings, 'python_version', (2, 6))
 
     def update_ve_timestamp(self):
         os.utime(self.ve_dir, None)
         file(self.ve_timestamp, 'w').close()
 
+    def check_virtualenv_python_version(self):
+        """ returns True if the virtualenv python exists and is new enough """
+        ve_python = path.join(self.ve_dir, 'bin', 'python')
+        if not path.exists(ve_python):
+            return False
+        major_version = capture_command(
+            [ve_python, '-c', 'import sys; print sys.version_info[0]'])
+        if int(major_version) != self.python_version[0]:
+            return False
+        minor_version = capture_command(
+            [ve_python, '-c', 'import sys; print sys.version_info[1]'])
+        if int(minor_version) < self.python_version[1]:
+            return False
+        return True
+
     def virtualenv_needs_update(self):
+        """ returns True if the virtualenv needs an update """
         # timestamp of last modification of .ve/ directory
         ve_dir_mtime = path.exists(self.ve_dir) and path.getmtime(self.ve_dir) or 0
         # timestamp of last modification of .ve/timestamp file (touched by this
@@ -122,6 +144,10 @@ class UpdateVE(object):
         # if the requirements file is newer than the virtualenv timestamp file,
         # then the virtualenv needs updating
         elif ve_timestamp_mtime < reqs_timestamp:
+            return True
+        # if the virtualenv python version is not correct then the virtualenv
+        # needs updating
+        elif not self.check_virtualenv_python_version():
             return True
         else:
             return False
@@ -174,18 +200,18 @@ class UpdateVE(object):
             pypi_cache_args = ['-i', self.pypi_cache_url]
         else:
             pypi_cache_args = []
-        
+
         # install the pip requirements and exit
         pip_path = path.join(self.ve_dir, 'bin', 'pip')
         # first ensure we have an up to date version of distribute
         command = [pip_path, 'install', '-U', 'distribute'] + pypi_cache_args
-        
+
         try:
             pip_retcode = subprocess.call(command)
         except OSError, e:
             print "command failed: %s: %s" % (" ".join(command), e)
             return 1
-            
+
         if pip_retcode != 0:
             print "command failed: %s" % " ".join(command)
             return pip_retcode

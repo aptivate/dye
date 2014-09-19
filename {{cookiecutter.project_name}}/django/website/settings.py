@@ -8,6 +8,8 @@ BASE_DIR = path.abspath(path.dirname(__file__))
 ########## DEFAULT DEBUG SETTINGS - OVERRIDE IN local_settings
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
+ASSETS_DEBUG = DEBUG
+ASSETS_AUTO_BUILD = DEBUG
 ##########
 
 
@@ -44,6 +46,10 @@ TIME_ZONE = 'Europe/London'
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#language-code
 LANGUAGE_CODE = 'en'
+
+LANGUAGES = [
+    ('en', 'English'),
+]
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#site-id
 SITE_ID = 1
@@ -95,9 +101,15 @@ STATICFILES_DIRS = (
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    #{% if cookiecutter.django_type == "normal" or cookiecutter.django_type == "cms" %}
+    'django_assets.finders.AssetsFinder',
+    #{% endif %}
 )
 ########## END STATIC FILE CONFIGURATION
 
+LOCALE_DIR = path.join(BASE_DIR, 'locale')
+if path.isdir(LOCALE_DIR):
+    LOCALE_PATHS = (LOCALE_DIR,)
 
 ########## APP CONFIGURATION
 DJANGO_APPS = (
@@ -123,23 +135,26 @@ THIRD_PARTY_APPS = (
     'easy_thumbnails',
     'registration',
     'haystack',
+    'django_assets',
     #{% endif %}
     #{% if cookiecutter.django_type == "cms" %}
-    'djangocms_text_ckeditor',
     'cms',
     'mptt',
     'menus',
     'sekizai',
     'filer',
-    'cms.plugins.link',
-    'cms.plugins.snippet',
-    'cms.plugins.googlemap',
+    'djangocms_admin_style',
+    'djangocms_link',
+    'djangocms_snippet',
+    'cmsplugin_googlemap',
     'cmsplugin_filer_file',
     'cmsplugin_filer_folder',
     'cmsplugin_filer_image',
     'cmsplugin_filer_teaser',
     'cmsplugin_filer_video',
-    'cms_redirects',
+    'cms_redirects', # is this built into Django-CMS 3?
+    'reversion',
+    'djangocms_text_ckeditor',  # must load after Django CMS
     #{% endif %}
 )
 
@@ -220,8 +235,9 @@ HAYSTACK_CONNECTIONS = {
 }
 
 HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
-HAYSTACK_SEARCH_RESULTS_PER_PAGE = 1000
+# HAYSTACK_SEARCH_RESULTS_PER_PAGE = 25
 ########## END HAYSTACK SEARCH CONFIGURATION
+#{% endif %}
 
 ########## Custom user app defaults
 # Select the correct user model
@@ -255,13 +271,22 @@ LOGGING = {
             'level': 'ERROR',
             'filters': ['require_debug_false'],
             'class': 'django.utils.log.AdminEmailHandler'
-        }
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            # 'formatter': 'simple'
+        },
     },
     'loggers': {
         'django.request': {
             'handlers': ['mail_admins'],
             'level': 'ERROR',
             'propagate': True,
+        },
+        '': {
+            'handlers': ['console'],
+            'level': 'INFO',
         },
     }
 }
@@ -275,6 +300,19 @@ LOGGING = {
 
 #MONKEY_PATCHES = ['intranet_binder.monkeypatches']
 ########## END BINDER STUFF
+
+
+#{% if cookiecutter.django_type == "cms" %}
+# https://django-filer.readthedocs.org/en/0.8.3/getting_started.html#configuration
+THUMBNAIL_PROCESSORS = (
+    'easy_thumbnails.processors.colorspace',
+    'easy_thumbnails.processors.autocrop',
+    #'easy_thumbnails.processors.scale_and_crop',
+    'filer.thumbnail_processors.scale_and_crop_with_subject_location',
+    'easy_thumbnails.processors.filters',
+)
+#{% endif %}
+
 
 # this section allows us to do a deep update of dictionaries
 import collections
@@ -346,7 +384,7 @@ if DEBUG is False:
     ALLOWED_HOSTS = [
         '.{{ cookiecutter.domain_name }}',
         'www.{{ cookiecutter.domain_name }}',
-        'fen-vz-{{ cookiecutter.project_name }}.fen.aptivate.org',
+        'fen-vz-{{ cookiecutter.project_name }}-stage.fen.aptivate.org',
         'fen-vz-{{ cookiecutter.project_name }}-dev.fen.aptivate.org',
         '{{ cookiecutter.project_name }}.dev.aptivate.org',
         '{{ cookiecutter.project_name }}.stage.aptivate.org',

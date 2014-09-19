@@ -7,7 +7,7 @@ import subprocess
 from .exceptions import TasksError
 from .database import get_db_manager
 from .exceptions import InvalidProjectError, ShellCommandError
-from .util import _check_call_wrapper
+from .util import _check_call_wrapper, _create_dir_if_not_exists
 # global dictionary for state
 from .environment import env
 
@@ -140,6 +140,12 @@ def _get_cache_table():
     return settings.CACHES['default']['LOCATION']
 
 
+def _get_django_version():
+    version_string = _manage_py(['--version'])[0].strip().split('.')
+
+    return [int(x) for x in version_string]
+
+
 def update_db(syncdb=True, drop_test_db=True, force_use_migrations=True, database='default'):
     """ create the database, and do syncdb and migrations
     Note that if syncdb is true, then migrations will always be done if one of
@@ -171,9 +177,25 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=True, databas
         cache_table = _get_cache_table()
         if cache_table and not env['db'].test_db_table_exists(cache_table):
             _manage_py(['createcachetable', cache_table])
-        _manage_py(['syncdb', '--noinput'])
-        # always call migrate - shouldn't fail (I think)
-        _manage_py(['migrate', '--noinput'])
+
+        django_version = _get_django_version()
+
+        if django_version[0] >= 1 and django_version[1] >= 5:
+            # syncdb with --no-initial-data appears in Django 1.5
+            _manage_py(['syncdb', '--noinput', '--no-initial-data'])
+            # always call migrate - shouldn't fail (I think)
+            # first without initial data:
+            _manage_py(['migrate', '--noinput', '--no-initial-data'])
+            # then with initial data, AFTER tables have been created:
+            _manage_py(['syncdb', '--noinput'])
+            _manage_py(['migrate', '--noinput'])
+        else:
+            _manage_py(['syncdb', '--noinput'])
+            # always call migrate - shouldn't fail (I think)
+            # first without initial data:
+            _manage_py(['migrate', '--noinput', '--no-initial-data'])
+            # then with initial data, AFTER tables have been created:
+            _manage_py(['migrate', '--noinput'])
 
 
 def create_test_db(drop_after_create=True, database='default'):
@@ -271,9 +293,25 @@ def create_private_settings():
         # despite having been created by root
         #os.chmod(private_settings_file, 0400)
 
+def cleanup_sessions():
+    """ run session cleanup commands on Django 1.3+ """
+    django_version = _get_django_version()
+
+    if django_version[0] >= 1:
+        if django_version[1] >= 5:
+            _manage_py(['clearsessions'])
+        elif django_version[1] >= 3:
+            _manage_py(['cleanup'])
 
 def collect_static():
-    return _manage_py(["collectstatic", "--noinput"])
+    print '### Collecting static files and building webassets'
+    _manage_py(["collectstatic", "--noinput"])
+
+    sys.path.append(env['django_settings_dir'])
+    import settings
+    if 'django_assets' in settings.INSTALLED_APPS:
+        _manage_py(['assets', 'clean'])
+        _manage_py(['assets', 'build'])
 
 
 def _install_django_jenkins():
@@ -302,3 +340,17 @@ def _manage_py_jenkins():
     if not env['quiet']:
         print "### Running django-jenkins, with args; %s" % args
     _manage_py(args, cwd=env['vcs_root_dir'])
+
+
+def create_uploads_dir(environment=None):
+    if environment is None:
+        environment = _infer_environment()
+    uploads_dir_path = env['uploads_dir_path']
+    filer_dir_path = path.join(uploads_dir_path, 'filer_public')
+    filer_thumbnails_dir_path = path.join(uploads_dir_path, 'filer_public_thumbnails')
+    if environment in env['host_list'].keys():
+        owner = 'apache:apache'
+    else:
+        owner = None
+    for dir_path in (uploads_dir_path, filer_dir_path, filer_thumbnails_dir_path):
+        _create_dir_if_not_exists(dir_path, owner=owner)

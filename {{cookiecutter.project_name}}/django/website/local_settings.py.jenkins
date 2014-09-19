@@ -1,11 +1,9 @@
 import private_settings
 
-DEBUG = False
+DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 ASSETS_DEBUG = DEBUG
 ASSETS_AUTO_BUILD = DEBUG
-
-USE_X_FORWARDED_HOST = True
 
 # used in admin template so we know which site we're looking at
 DEPLOY_ENV = "staging"
@@ -15,7 +13,9 @@ DEPLOY_ENV_COLOR = '#33ccff'  # bright blue
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',  # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': '{{ cookiecutter.project_name }}',                      # Or path to database file if using sqlite3.
+        'NAME': 'jenkins_{{ cookiecutter.project_name }}',                      # Or path to database file if using sqlite3.
+        'TEST_NAME': 'jenkins_{{ cookiecutter.project_name }}',                      # Or path to database file if using sqlite3.
+        'TEST_MIRROR': 'default',  # trick django into not creating the default test database
         'USER': '{{ cookiecutter.project_name|truncate(16, True, "") }}',                      # Not used with sqlite3.
         'PASSWORD': private_settings.DB_PASSWORD,                  # Not used with sqlite3.
         'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
@@ -39,5 +39,23 @@ HAYSTACK_CONNECTIONS = {
 EMAIL_HOST = 'localhost'
 
 # EMAIL_BACKEND = 'djcelery_email.backends.CeleryEmailBackend'
+
+from settings import INSTALLED_APPS
+# add the jenkins app here
+INSTALLED_APPS = (
+      'django_jenkins',
+    )  + INSTALLED_APPS
+
+SOUTH_TESTS_MIGRATE = True
+
+JENKINS_TASKS = (
+    'django_jenkins.tasks.run_pylint',
+)
+# JENKINS_TEST_RUNNER = 'main.runner.CustomCITestSuiteRunner'
+
+# Access the server using LiveServerTestCase running on port 8008:
+# PAGESPEED_PUBLIC_URL = "http://washwatch-8008.jenkins.aptivate.org"
+# Access the server using Apache and mod_wsgi:
+# PAGESPEED_PUBLIC_URL = "http://dfidbeamexchange.jenkins.aptivate.org"
 
 # vi: ft=python
