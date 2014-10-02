@@ -63,6 +63,15 @@ class SqliteManager(DBManager):
     def ensure_user_and_db_exist(self):
         pass
 
+    def test_sql_user_password(self, user=None, password=None):
+        # try to connect
+        conn = sqlite3.connect(self.file_path)
+        try:
+            result = conn.execute("select 1")
+            return len(list(result.fetchall())) != 0
+        finally:
+            conn.close()
+
     def test_db_table_exists(self, table):
         conn = sqlite3.connect(self.file_path)
         try:
