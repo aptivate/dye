@@ -81,11 +81,11 @@ def update_git_submodules():
     """If this is a git project then check for submodules and update"""
     git_modules_file = path.join(env['vcs_root_dir'], '.gitmodules')
     if path.exists(git_modules_file):
-        if not env['quiet']:
-            print "### updating git submodules"
-            git_submodule_cmd = 'git submodule update --init'
+        git_submodule_cmd = 'git submodule update --init --recursive'
+        if env['quiet']:
+            git_submodule_cmd += ' --quiet'
         else:
-            git_submodule_cmd = 'git submodule --quiet update --init'
+            print "### updating git submodules"
         _check_call_wrapper(git_submodule_cmd, cwd=env['vcs_root_dir'], shell=True)
 
 
