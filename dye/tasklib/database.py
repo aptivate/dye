@@ -55,6 +55,11 @@ class SqliteManager(DBManager):
         else:
             self.file_path = path.abspath(path.join(root_dir, name))
 
+    def get_test_database(self):
+        test_db_filename = path.join(path.dirname(self.file_path),
+            'test_%s' % path.basename(self.file_path))
+        return SqliteManager(name=test_db_filename, root_dir=None)
+
     def drop_db(self):
         if path.exists(self.file_path):
             os.remove(self.file_path)
@@ -81,6 +86,10 @@ class SqliteManager(DBManager):
             return len(list(result.fetchall())) != 0
         finally:
             conn.close()
+
+    # There is no security on SQLite databases
+    def test_grants(self):
+        return True
 
     # this is used directly for the test database
     def grant_all_privileges_for_database(self):
@@ -121,6 +130,11 @@ class MySQLManager(DBManager):
         # user
         self.user_db_conn = None
         self.root_db_conn = None
+
+    def get_test_database(self):
+        return MySQLManager(name='test_%s' % self.name, user=self.user,
+            password=self.password, port=self.port, host=self.host,
+            root_password=sef.root_password, grant_enabled=self.grant_enabled)
 
     def get_root_password(self):
         """This can be overridden (by monkeypatching) if required."""

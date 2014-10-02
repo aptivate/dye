@@ -118,8 +118,7 @@ def _create_db_objects(database='default'):
     # and create the objects that hold the db details
     env['db'] = get_db_manager(**db_details)
     # and the test db object
-    db_details['name'] = 'test_' + db_details['name']
-    env['test_db'] = get_db_manager(**db_details)
+    env['test_db'] = env['db'].get_test_database()
 
 
 def clean_db(database='default'):
