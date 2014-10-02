@@ -87,6 +87,17 @@ class SqliteManager(DBManager):
         # no privileges in sqlite world
         pass
 
+    def dump_db(self, dump_filename='db_dump.sql', for_rsync=False):
+        """Dump the database in the current working directory"""
+        dump_cmd = 'echo .dump | sqlite3 %s' % self.file_path
+
+        with open(dump_filename, 'w') as dump_file:
+            if env['verbose']:
+                print 'Executing dump command: %s\nSending stdout to %s' % \
+                    (' '.join(dump_cmd), dump_filename)
+            _call_command(dump_cmd, stdout=dump_file, shell=True)
+        dump_file.close()
+
 
 class MySQLManager(DBManager):
 
