@@ -44,6 +44,49 @@ class DBManager(object):
     def setup_db_dumps(self, dump_dir):
         raise NotImplementedError()
 
+    def create_dbdump_cron_file(self, cron_file, dump_file_stub):
+        # write something like:
+        # #!/bin/sh
+        # /usr/bin/mysqldump --user=projectname --password=aptivate --host=127.0.0.1 projectname >  /var/projectname/dumps/daily-dump-`/bin/date +\%d`.sql
+        #
+        # cron file should be an open file like object
+
+        # don't use "with" for compatibility with python 2.3 on whov2hinari
+        cron_file.write('#!/bin/sh\n')
+        cron_file.write("%s/tasks.py dump_db:%s`/bin/date +%%d`.sql\n" %
+            (env['deploy_dir'], dump_file_stub))
+
+    def setup_db_dumps(self, dump_dir):
+        """ set up mysql database dumps in root crontab """
+        if not path.isabs(dump_dir):
+            raise InvalidArgumentError(
+                'dump_dir must be an absolute path, you gave %s' % dump_dir)
+        cron_file = path.join('/etc', 'cron.daily', 'dump_' + env['project_name'])
+
+        _create_dir_if_not_exists(dump_dir)
+        dump_file_stub = path.join(dump_dir, 'daily-dump-')
+
+        # has it been set up already
+        cron_set = True
+        try:
+            _check_call_wrapper(
+                'sudo crontab -l | grep mysqldump | grep %s' % env['project_name'],
+                shell=True)
+        except CalledProcessError:
+            cron_set = False
+
+        if cron_set:
+            return
+
+        # don't use "with" for compatibility with python 2.3 on whov2hinari
+        f = open(cron_file, 'w')
+        try:
+            self.create_dbdump_cron_file(f, dump_file_stub)
+        finally:
+            f.close()
+
+        os.chmod(cron_file, 0755)
+
 
 class SqliteManager(DBManager):
 
@@ -348,52 +391,6 @@ class MySQLManager(DBManager):
                 print 'Executing mysql restore command: %s\nSending stdin to %s' % \
                     (' '.join(restore_cmd), dump_filename)
             _call_command(restore_cmd, stdin=dump_file)
-
-    def create_dbdump_cron_file(self, cron_file, dump_file_stub):
-        # write something like:
-        # #!/bin/sh
-        # /usr/bin/mysqldump --user=projectname --password=aptivate --host=127.0.0.1 projectname >  /var/projectname/dumps/daily-dump-`/bin/date +\%d`.sql
-        #
-        # cron file should be an open file like object
-
-        # don't use "with" for compatibility with python 2.3 on whov2hinari
-        cron_file.write('#!/bin/sh\n')
-        cron_file.write('/usr/bin/mysqldump ' +
-                        ' '.join(self.create_cmdline_args()))
-        cron_file.write(' > %s' % dump_file_stub)
-        cron_file.write(r'`/bin/date +\%d`.sql')
-        cron_file.write('\n')
-
-    def setup_db_dumps(self, dump_dir):
-        """ set up mysql database dumps in root crontab """
-        if not path.isabs(dump_dir):
-            raise InvalidArgumentError(
-                'dump_dir must be an absolute path, you gave %s' % dump_dir)
-        cron_file = path.join('/etc', 'cron.daily', 'dump_' + env['project_name'])
-
-        _create_dir_if_not_exists(dump_dir)
-        dump_file_stub = path.join(dump_dir, 'daily-dump-')
-
-        # has it been set up already
-        cron_set = True
-        try:
-            _check_call_wrapper(
-                'sudo crontab -l | grep mysqldump | grep %s' % env['project_name'],
-                shell=True)
-        except CalledProcessError:
-            cron_set = False
-
-        if cron_set or path.exists(cron_file):
-            return
-
-        # don't use "with" for compatibility with python 2.3 on whov2hinari
-        f = open(cron_file, 'w')
-        try:
-            self.create_dbdump_cron_file(f, dump_file_stub)
-        finally:
-            f.close()
-
-        os.chmod(cron_file, 0755)
 
 
 def get_db_manager(engine, **kwargs):
