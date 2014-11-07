@@ -137,3 +137,15 @@ def _get_file_contents(file_path, sudo=False):
             return None
         contents = open(file_path).read()
     return contents.rstrip()
+
+
+def _linux_type():
+    # work out if we're based on redhat or centos
+    # TODO: look up stackoverflow question about this.
+    if path.isfile('/etc/redhat-release'):
+        return 'redhat'
+    elif path.isfile('/etc/debian_version'):
+        return 'debian'
+    else:
+        # TODO: should we print a warning here?
+        raise Exception("could not determine linux type of machine")

@@ -7,7 +7,7 @@ import subprocess
 from .exceptions import TasksError
 from .database import get_db_manager
 from .exceptions import InvalidProjectError, ShellCommandError
-from .util import _check_call_wrapper, _create_dir_if_not_exists
+from .util import _check_call_wrapper, _create_dir_if_not_exists, _linux_type
 # global dictionary for state
 from .environment import env
 
@@ -292,7 +292,8 @@ def create_private_settings():
             f.close()
         # need to think about how to ensure this is owned by apache
         # despite having been created by root
-        #os.chmod(private_settings_file, 0400)
+        # os.chmod(private_settings_file, 0400)
+
 
 def cleanup_sessions():
     """ run session cleanup commands on Django 1.3+ """
@@ -303,6 +304,7 @@ def cleanup_sessions():
             _manage_py(['clearsessions'])
         elif django_version[1] >= 3:
             _manage_py(['cleanup'])
+
 
 def collect_static():
     print '### Collecting static files and building webassets'
@@ -350,7 +352,11 @@ def create_uploads_dir(environment=None):
     filer_dir_path = path.join(uploads_dir_path, 'filer_public')
     filer_thumbnails_dir_path = path.join(uploads_dir_path, 'filer_public_thumbnails')
     if environment in env['host_list'].keys():
-        owner = 'apache:apache'
+        linux_type = _linux_type()
+        if linux_type == 'redhat':
+            owner = 'apache:apache'
+        elif linux_type == 'debian':
+            owner = 'www-data:www-data'
     else:
         owner = None
     for dir_path in (uploads_dir_path, filer_dir_path, filer_thumbnails_dir_path):
