@@ -24,7 +24,7 @@ BIND_HOST=127.0.0.1
 BIND_PORT=3307
 
 
-DATA_DIR=/dev/shm
+DATA_DIR=/dev/shm/mysqld-ram
 PID_FILE=/var/run/mysqld/mysqld-ram.pid
 USER=mysql
 GROUP=mysql
