@@ -24,7 +24,7 @@ BIND_HOST=127.0.0.1
 BIND_PORT=3307
 
 
-DATA_DIR=/dev/shm
+DATA_DIR=/dev/shm/mysqld-ram
 PID_FILE=/var/run/mysqld/mysqld-ram.pid
 USER=mysql
 GROUP=mysql
@@ -92,7 +92,10 @@ mysql_install_db --user $USER --datadir=$DATA_DIR > /dev/null
 trap '/usr/bin/mysqladmin $(get_bind_args client) refresh & wait' 1 # HUP
 trap '/usr/bin/mysqladmin $(get_bind_args client) shutdown & wait' 2 3 15 # INT QUIT and TERM
 # Run MySQL in the background.
-mysqld $(get_bind_args server) --datadir="$DATA_DIR" --pid-file="$PID_FILE" --console --skip-grant-tables &
+mysqld $(get_bind_args server) --datadir="$DATA_DIR" --pid-file="$PID_FILE" \
+	--console --skip-grant-tables --innodb_log_file_size=200M \
+	--innodb_buffer_pool_size=800M --innodb_file_per_table \
+	--innodb_file_format=Barracuda &
 
 # Enable apparmor again right away; it's enough that we
 # started up the mysqld without the profile.
