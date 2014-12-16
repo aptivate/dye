@@ -5,7 +5,7 @@
 Django<1.7
 pytz==2013.9
 MySQL-python>=1.2.3
-south==0.8.4
+south==1.0.1
 {% if cookiecutter.django_type == 'cms' or cookiecutter.django_type == 'normal' %}
 easy-thumbnails==1.4
 pillow==2.3.1
