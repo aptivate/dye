@@ -3,7 +3,7 @@
 
 # core django
 Django<1.7
-pytz==2013.9
+pytz==2014.10
 MySQL-python>=1.2.3
 south==1.0.1
 {% if cookiecutter.django_type == 'cms' or cookiecutter.django_type == 'normal' %}
@@ -42,7 +42,7 @@ django-registration==1.0
 {% endif %}
 
 # testing
-{% if cookiecutter.use_pytest == 'yes' %}pytest-django==2.6{% endif %}
+{% if cookiecutter.use_pytest == 'yes' %}pytest-django==2.7{% endif %}
 django-dynamic-fixture==1.6.5
 mock==1.0.1
 
