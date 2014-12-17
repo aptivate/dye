@@ -177,7 +177,7 @@ class MySQLManager(DBManager):
     def get_test_database(self):
         return MySQLManager(name='test_%s' % self.name, user=self.user,
             password=self.password, port=self.port, host=self.host,
-            root_password=sef.root_password, grant_enabled=self.grant_enabled)
+            root_password=self.root_password, grant_enabled=self.grant_enabled)
 
     def get_root_password(self):
         """This can be overridden (by monkeypatching) if required."""
