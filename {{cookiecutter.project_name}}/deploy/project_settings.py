@@ -1,4 +1,6 @@
 # this is for settings to be used by tasks.py
+from __future__ import unicode_literals, absolute_import
+
 import os
 from os import path
 

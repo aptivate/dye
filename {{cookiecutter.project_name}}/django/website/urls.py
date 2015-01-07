@@ -1,3 +1,5 @@
+from __future__ import unicode_literals, absolute_import
+
 from django.conf.urls import patterns, include, url
 from django.conf.urls.i18n import i18n_patterns
 from django.views.generic.base import RedirectView
@@ -21,7 +23,7 @@ urlpatterns = patterns('',
     # The apache conf is set up to do this for you, but you will need to do it
     # on dev
     (r'^favicon.ico$', RedirectView.as_view(url='{0}images/favicon.ico'.format(settings.STATIC_URL))),
-) 
+)
 
 if settings.DEBUG:
     urlpatterns = patterns('',

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # a script to set up the virtualenv so we can use fabric and tasks
+from __future__ import unicode_literals, absolute_import
 
 import os
 from os import path
