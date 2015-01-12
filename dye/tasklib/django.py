@@ -305,7 +305,18 @@ def cleanup_sessions():
             _manage_py(['cleanup'])
 
 
-def collect_static():
+def get_webserver_user_group(environment=None):
+    if environment in env['host_list'].keys():
+        linux_type = _linux_type()
+        if linux_type == 'redhat':
+            return 'apache:apache'
+        elif linux_type == 'debian':
+            return 'www-data:www-data'
+    else:
+        return None
+
+
+def collect_static(environment):
     print '### Collecting static files and building webassets'
     _manage_py(["collectstatic", "--noinput"])
 
@@ -314,6 +325,11 @@ def collect_static():
     if 'django_assets' in settings.INSTALLED_APPS:
         _manage_py(['assets', 'clean'])
         _manage_py(['assets', 'build'])
+        # and ensure the webserver can read the cached files
+        owner = get_webserver_user_group(environment)
+        if owner:
+            cache_path = path.join(env['django_dir'], 'static', '.webassets-cache')
+            _create_dir_if_not_exists(cache_path, owner=owner)
 
 
 def _install_django_jenkins():
@@ -350,13 +366,6 @@ def create_uploads_dir(environment=None):
     uploads_dir_path = env['uploads_dir_path']
     filer_dir_path = path.join(uploads_dir_path, 'filer_public')
     filer_thumbnails_dir_path = path.join(uploads_dir_path, 'filer_public_thumbnails')
-    if environment in env['host_list'].keys():
-        linux_type = _linux_type()
-        if linux_type == 'redhat':
-            owner = 'apache:apache'
-        elif linux_type == 'debian':
-            owner = 'www-data:www-data'
-    else:
-        owner = None
+    owner = get_webserver_user_group(environment)
     for dir_path in (uploads_dir_path, filer_dir_path, filer_thumbnails_dir_path):
         _create_dir_if_not_exists(dir_path, owner=owner)

@@ -164,7 +164,7 @@ def deploy(environment=None):
     update_git_submodules()
     update_db()
 
-    collect_static()
+    collect_static(environment)
 
     if env['project_type'] in ["django", "cms"]:
         create_uploads_dir()
