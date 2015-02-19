@@ -146,10 +146,6 @@ class UpdateVE(object):
         # then the virtualenv needs updating
         elif ve_timestamp_mtime < reqs_timestamp:
             return True
-        # if the virtualenv python version is not correct then the virtualenv
-        # needs updating
-        elif not self.check_virtualenv_python_version():
-            return True
         else:
             return False
 

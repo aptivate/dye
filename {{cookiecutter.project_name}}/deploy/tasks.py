@@ -29,6 +29,13 @@ if updater.virtualenv_needs_update():
     print 'Run deploy/bootstrap.py'
     sys.exit(1)
 
+# if the virtualenv python version is not correct then the virtualenv
+# needs updating
+if updater.check_virtualenv_python_version():
+    print "VirtualEnv has wrong python version"
+    print 'Run deploy/bootstrap.py'
+    sys.exit(1)
+
 # depending on how you've installed dye, you may need to edit this line
 tasks = path.join(ve_dir, 'bin', 'tasks.py')
 
