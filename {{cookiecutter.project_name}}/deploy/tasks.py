@@ -31,7 +31,7 @@ if updater.virtualenv_needs_update():
 
 # if the virtualenv python version is not correct then the virtualenv
 # needs updating
-if updater.check_virtualenv_python_version():
+if not updater.check_virtualenv_python_version():
     print "VirtualEnv has wrong python version"
     print 'Run deploy/bootstrap.py'
     sys.exit(1)
