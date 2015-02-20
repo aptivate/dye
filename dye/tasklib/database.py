@@ -44,6 +44,49 @@ class DBManager(object):
     def setup_db_dumps(self, dump_dir):
         raise NotImplementedError()
 
+    def create_dbdump_cron_file(self, cron_file, dump_file_stub):
+        # write something like:
+        # #!/bin/sh
+        # /usr/bin/mysqldump --user=projectname --password=aptivate --host=127.0.0.1 projectname >  /var/projectname/dumps/daily-dump-`/bin/date +\%d`.sql
+        #
+        # cron file should be an open file like object
+
+        # don't use "with" for compatibility with python 2.3 on whov2hinari
+        cron_file.write('#!/bin/sh\n')
+        cron_file.write("%s/tasks.py dump_db:%s`/bin/date +%%d`.sql\n" %
+            (env['deploy_dir'], dump_file_stub))
+
+    def setup_db_dumps(self, dump_dir):
+        """ set up mysql database dumps in root crontab """
+        if not path.isabs(dump_dir):
+            raise InvalidArgumentError(
+                'dump_dir must be an absolute path, you gave %s' % dump_dir)
+        cron_file = path.join('/etc', 'cron.daily', 'dump_' + env['project_name'])
+
+        _create_dir_if_not_exists(dump_dir)
+        dump_file_stub = path.join(dump_dir, 'daily-dump-')
+
+        # has it been set up already
+        cron_set = True
+        try:
+            _check_call_wrapper(
+                'sudo crontab -l | grep mysqldump | grep %s' % env['project_name'],
+                shell=True)
+        except CalledProcessError:
+            cron_set = False
+
+        if cron_set:
+            return
+
+        # don't use "with" for compatibility with python 2.3 on whov2hinari
+        f = open(cron_file, 'w')
+        try:
+            self.create_dbdump_cron_file(f, dump_file_stub)
+        finally:
+            f.close()
+
+        os.chmod(cron_file, 0755)
+
 
 class SqliteManager(DBManager):
 
@@ -55,6 +98,11 @@ class SqliteManager(DBManager):
         else:
             self.file_path = path.abspath(path.join(root_dir, name))
 
+    def get_test_database(self):
+        test_db_filename = path.join(path.dirname(self.file_path),
+            'test_%s' % path.basename(self.file_path))
+        return SqliteManager(name=test_db_filename, root_dir=None)
+
     def drop_db(self):
         if path.exists(self.file_path):
             os.remove(self.file_path)
@@ -62,6 +110,15 @@ class SqliteManager(DBManager):
     # django syncdb will create the sqlite table
     def ensure_user_and_db_exist(self):
         pass
+
+    def test_sql_user_password(self, user=None, password=None):
+        # try to connect
+        conn = sqlite3.connect(self.file_path)
+        try:
+            result = conn.execute("select 1")
+            return len(list(result.fetchall())) != 0
+        finally:
+            conn.close()
 
     def test_db_table_exists(self, table):
         conn = sqlite3.connect(self.file_path)
@@ -73,10 +130,25 @@ class SqliteManager(DBManager):
         finally:
             conn.close()
 
+    # There is no security on SQLite databases
+    def test_grants(self):
+        return True
+
     # this is used directly for the test database
     def grant_all_privileges_for_database(self):
         # no privileges in sqlite world
         pass
+
+    def dump_db(self, dump_filename='db_dump.sql', for_rsync=False):
+        """Dump the database in the current working directory"""
+        dump_cmd = 'echo .dump | sqlite3 %s' % self.file_path
+
+        with open(dump_filename, 'w') as dump_file:
+            if env['verbose']:
+                print 'Executing dump command: %s\nSending stdout to %s' % \
+                    (' '.join(dump_cmd), dump_filename)
+            _call_command(dump_cmd, stdout=dump_file, shell=True)
+        dump_file.close()
 
 
 class MySQLManager(DBManager):
@@ -101,6 +173,11 @@ class MySQLManager(DBManager):
         # user
         self.user_db_conn = None
         self.root_db_conn = None
+
+    def get_test_database(self):
+        return MySQLManager(name='test_%s' % self.name, user=self.user,
+            password=self.password, port=self.port, host=self.host,
+            root_password=self.root_password, grant_enabled=self.grant_enabled)
 
     def get_root_password(self):
         """This can be overridden (by monkeypatching) if required."""
@@ -146,6 +223,25 @@ class MySQLManager(DBManager):
     def test_root_password(self, password):
         """Try a no-op with the root password"""
         return self.test_sql_user_password(user='root', password=password)
+
+    def test_grants(self):
+        try:
+            cursor = self.get_user_db_cursor()
+        except:
+            return False
+        # do "SHOW GRANTS FOR CURRENT USER"
+        try:
+            cursor.execute("SHOW GRANTS FOR CURRENT_USER")
+            # check for GRANT ALL PRIVILEGES ON `dbname`.* TO `user ...
+            grant_list = [row[0] for row in cursor.fetchall()]
+            for grant in grant_list:
+                if grant.lower().startswith(
+                        "grant all privileges on `%s`.* to '%s'@" %
+                        (self.name, self.user)):
+                    return True
+        finally:
+            cursor.close()
+        return False
 
     def create_db_connection(self, **kwargs):
         if self.host:
@@ -269,16 +365,29 @@ class MySQLManager(DBManager):
 
     def create_db_if_not_exists(self):
         if not self.db_exists():
-            self.exec_as_root(
-                'CREATE DATABASE %s CHARACTER SET utf8' % self.name)
+            try:
+                cursor = self.create_db_connection(user=self.user, passwd=self.password)
+                cursor.execute('CREATE DATABASE %s CHARACTER SET utf8' % self.name)
+            except:
+                self.exec_as_root('CREATE DATABASE %s CHARACTER SET utf8' % self.name)
 
     def ensure_user_and_db_exist(self):
         # the below just make sure things line up at the end of the process
         # TODO: should we do more fine grained checks and ask the user what
         # they would like to do.
-        self.create_user_if_not_exists()
-        self.set_user_password()
-        self.create_db_if_not_exists()
+
+        try:
+            self.get_user_db_cursor()
+            # the user and database obviously exist already
+            if self.test_grants():
+                return
+        except:
+            # this except block is only to skip the return if
+            # get_user_db_cursor fails
+            self.create_user_if_not_exists()
+            self.set_user_password()
+            self.create_db_if_not_exists()
+        # if we get here we've skipped the return and need to grant privileges
         self.grant_all_privileges_for_database()
 
     def drop_db(self):
@@ -307,52 +416,6 @@ class MySQLManager(DBManager):
                 print 'Executing mysql restore command: %s\nSending stdin to %s' % \
                     (' '.join(restore_cmd), dump_filename)
             _call_command(restore_cmd, stdin=dump_file)
-
-    def create_dbdump_cron_file(self, cron_file, dump_file_stub):
-        # write something like:
-        # #!/bin/sh
-        # /usr/bin/mysqldump --user=projectname --password=aptivate --host=127.0.0.1 projectname >  /var/projectname/dumps/daily-dump-`/bin/date +\%d`.sql
-        #
-        # cron file should be an open file like object
-
-        # don't use "with" for compatibility with python 2.3 on whov2hinari
-        cron_file.write('#!/bin/sh\n')
-        cron_file.write('/usr/bin/mysqldump ' +
-                        ' '.join(self.create_cmdline_args()))
-        cron_file.write(' > %s' % dump_file_stub)
-        cron_file.write(r'`/bin/date +\%d`.sql')
-        cron_file.write('\n')
-
-    def setup_db_dumps(self, dump_dir):
-        """ set up mysql database dumps in root crontab """
-        if not path.isabs(dump_dir):
-            raise InvalidArgumentError(
-                'dump_dir must be an absolute path, you gave %s' % dump_dir)
-        cron_file = path.join('/etc', 'cron.daily', 'dump_' + env['project_name'])
-
-        _create_dir_if_not_exists(dump_dir)
-        dump_file_stub = path.join(dump_dir, 'daily-dump-')
-
-        # has it been set up already
-        cron_set = True
-        try:
-            _check_call_wrapper(
-                'sudo crontab -l | grep mysqldump | grep %s' % env['project_name'],
-                shell=True)
-        except CalledProcessError:
-            cron_set = False
-
-        if cron_set or path.exists(cron_file):
-            return
-
-        # don't use "with" for compatibility with python 2.3 on whov2hinari
-        f = open(cron_file, 'w')
-        try:
-            self.create_dbdump_cron_file(f, dump_file_stub)
-        finally:
-            f.close()
-
-        os.chmod(cron_file, 0755)
 
 
 def get_db_manager(engine, **kwargs):

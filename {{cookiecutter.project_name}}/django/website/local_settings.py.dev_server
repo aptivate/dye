@@ -1,7 +1,11 @@
+from __future__ import unicode_literals, absolute_import
+
 import private_settings
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
+ASSETS_DEBUG = DEBUG
+ASSETS_AUTO_BUILD = DEBUG
 
 # used in admin template so we know which site we're looking at
 DEPLOY_ENV = "dev_server"
@@ -34,7 +38,7 @@ HAYSTACK_CONNECTIONS = {
 
 EMAIL_HOST = 'localhost'
 
-EMAIL_BACKEND = 'djcelery_email.backends.CeleryEmailBackend'
+# EMAIL_BACKEND = 'djcelery_email.backends.CeleryEmailBackend'
 
 
 # vi: ft=python

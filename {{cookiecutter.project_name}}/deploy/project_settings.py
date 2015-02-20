@@ -1,4 +1,6 @@
 # this is for settings to be used by tasks.py
+from __future__ import unicode_literals, absolute_import
+
 import os
 from os import path
 
@@ -33,6 +35,9 @@ project_type = "django"
 
 # does this virtualenv for python packages
 use_virtualenv = True
+
+# python version - major version must be exact, minor version is the minimum
+python_version = (2, 6)
 
 ################################
 # PATHS TO IMPORTANT DIRECTORIES
@@ -74,7 +79,7 @@ test_cmd = ' manage.py test -v0 ' + ' '.join(django_apps)
 # production server - if commented out then the production task will abort
 host_list = {
     'production':   ['lin-' + project_name + '.aptivate.org:48001'],
-    'staging':      ['fen-vz-' + project_name + '.fen.aptivate.org'],
+    'staging':      ['fen-vz-' + project_name + '-stage.fen.aptivate.org'],
     'staging_test': ['fen-vz-' + project_name + '.fen.aptivate.org'],
     'dev_server':   ['fen-vz-' + project_name + '-dev.fen.aptivate.org'],
 }

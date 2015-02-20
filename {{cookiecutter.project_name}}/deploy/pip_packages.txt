@@ -2,24 +2,31 @@
 -e git+git://github.com/aptivate/dye.git#egg=dye
 
 # core django
-Django==1.5.5
-pytz==2013.9
+Django<1.7
+pytz==2014.10
 MySQL-python>=1.2.3
-south==0.8.4
+south==1.0.1
 {% if cookiecutter.django_type == 'cms' or cookiecutter.django_type == 'normal' %}
 easy-thumbnails==1.4
-pillow==2.2.1
+pillow==2.7.0
 image_diet==0.7.1
 {% endif %}
 
 {% if cookiecutter.django_type == 'cms' %}
 # django cms bits
-django-cms==2.4.3
-django-filer==0.9.5
-cmsplugin-filer==0.9.5
-cmsplugin-blog==1.1.1
+django-cms<3.1
+# use our fork of django-filer until https://github.com/stefanfoulis/django-filer/issues/353 is fixed:
+-e git+https://github.com/aptivate/django-filer.git@ff931f86c077d54d0cccc2292fa5edc2897447a4#egg=django-filer
+cmsplugin-filer==0.9.9
+cmsplugin-blog==1.1.2
+djangocms-link==1.3.5
+djangocms-snippet==1.0.2
+cmsplugin-googlemap==0.1.5
 -e git+git://github.com/salvaorenick/django-cms-redirects.git@95584ff87a669631bc4475a8482714af2505db7f#egg=django-cms-redirects
--e git+https://github.com/daniell/djangocms-text-ckeditor.git#egg=django-text-ckeditor
+djangocms-text-ckeditor==2.1.6
+# reversion 1.8.0 doesn't work with django-CMS 2.x, and 1.7.x isn't on PyPI
+django-reversion<1.9
+djangocms-admin-style==0.2.2
 {% endif %}
 
 {% if cookiecutter.django_type == 'cms' or cookiecutter.django_type == 'normal' %}
@@ -28,18 +35,32 @@ django-haystack==2.1.0
 pyelasticsearch==0.6
 
 # custom apps
+django-crispy-forms==1.4.0
 django-extended-choices==0.3.0
 django-recaptcha==0.0.6
 django-registration==1.0
 {% endif %}
 
 # testing
-{% if cookiecutter.use_pytest == 'yes' %}pytest-django==2.3.1{% endif %}
+{% if cookiecutter.use_pytest == 'yes' %}pytest-django==2.7{% endif %}
 django-dynamic-fixture==1.6.5
 mock==1.0.1
 
 {% if cookiecutter.django_type == 'cms' or cookiecutter.django_type == 'normal' %}
 # development
-django-extensions==1.0.2
+django-extensions
 django-debug-toolbar
+
+# CSS and assets
+
+# Until https://github.com/miracle2k/django-assets/pull/30 is fixed, we need
+# to use our fork of django-assets for tests to pass, and to fix command-line
+# build failures with no assets defined.
+# django-assets==0.8
+-e git+https://github.com/aptivate/django-assets.git@775e5bb619a44a29703f7c09eaf91b780e35e8cf#egg=django-assets
+# Need to use webassets >= 0.9. https://github.com/miracle2k/django-assets/pull/31
+webassets==0.9
+pyScss==1.2.0.post3
+cssmin==0.2.0
+argparse==1.2.1
 {% endif %}

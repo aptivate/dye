@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # a script to set up the virtualenv so we can use fabric and tasks
+from __future__ import unicode_literals, absolute_import
 
 import os
 from os import path
@@ -28,6 +29,13 @@ if updater.virtualenv_needs_update():
     print 'Run deploy/bootstrap.py'
     sys.exit(1)
 
+# if the virtualenv python version is not correct then the virtualenv
+# needs updating
+if not updater.check_virtualenv_python_version():
+    print "VirtualEnv has wrong python version"
+    print 'Run deploy/bootstrap.py'
+    sys.exit(1)
+
 fab_bin = path.join(ve_dir, 'bin', 'fab')
 
 dye_pkg_dir = find_package_dir_in_ve(ve_dir, 'dye')
@@ -48,7 +56,7 @@ fab_call += ['-f', fabfile]
 # add any arguments passed to this script
 fab_call += sys.argv[1:]
 
-#print "Running fab.py in ve: %s" % ' '.join(fab_call)
+# print "Running fab.py in ve: %s" % ' '.join(fab_call)
 
 # exit with the fabric exit code
 sys.exit(subprocess.call(fab_call, env=osenv))

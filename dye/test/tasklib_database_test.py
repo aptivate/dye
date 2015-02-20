@@ -257,6 +257,25 @@ class TestDatabaseTestFunctions(MysqlMixin, unittest.TestCase):
         finally:
             self.drop_database_user()
 
+    def test_test_grants_returns_false_when_user_and_table_exists_but_no_grant(self):
+        self.create_database_user()
+        self.create_database()
+        try:
+            self.assertFalse(self.db.test_grants())
+        finally:
+            self.drop_database()
+            self.drop_database_user()
+
+    def test_test_grants_returns_true_when_user_table_and_grants_exists(self):
+        self.create_database_user()
+        self.create_database()
+        self.grant_privileges()
+        try:
+            self.assertTrue(self.db.test_grants())
+        finally:
+            self.drop_database()
+            self.drop_database_user()
+
     def test_test_root_password_returns_true_when_password_works(self):
         password = self.get_mysql_root_password()
         self.assertTrue(self.db.test_root_password(password))

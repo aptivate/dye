@@ -4,9 +4,9 @@
 # This can dramatically speed up things like running tests (The
 # Django test suite takes 455 secs with this, 7843 secs without
 # it on my machine - that's almost factor 20).
-# 
-# Written and tested on Ubuntu Karmic. 
-# 
+#
+# Written and tested on Ubuntu Karmic.
+#
 # TODO: Possible things could be even faster; options to consider:
 # * DELAY_KEY_WRITE
 # * Disable logging
@@ -24,7 +24,7 @@ BIND_HOST=127.0.0.1
 BIND_PORT=3307
 
 
-DATA_DIR=/dev/shm
+DATA_DIR=/dev/shm/mysqld-ram
 PID_FILE=/var/run/mysqld/mysqld-ram.pid
 USER=mysql
 GROUP=mysql
@@ -32,14 +32,14 @@ MYSQL_APPARMOR_PROFILE=/etc/apparmor.d/usr.sbin.mysqld
 
 
 get_bind_args() {
-    # pass "server" for use with mysqld    
+    # pass "server" for use with mysqld
     host_option='--host'
-    if [ ${1?"get_bind_args() needs one argument"} = "server" ]; then 
-        host_option="--bind"; 
+    if [ ${1?"get_bind_args() needs one argument"} = "server" ]; then
+        host_option="--bind-address";
     fi
-    
+
     args=""
-    if [ -n "${BIND_SOCKET:+x}" ]; then args="$args --socket=${BIND_SOCKET}"; fi    
+    if [ -n "${BIND_SOCKET:+x}" ]; then args="$args --socket=${BIND_SOCKET}"; fi
     if [ -n "${BIND_HOST:+x}" ]; then args="$args $host_option=${BIND_HOST}"; fi
     if [ -n "${BIND_PORT:+x}" ]; then args="$args --port=${BIND_PORT}"; fi
     echo $args
@@ -56,16 +56,16 @@ fi
 # We're now going to do stuff we don't want to be persistent,
 # so make sure we are going to properly cleanup.
 cleanup() {
-    # Run without errexit, we want to do as much cleanup 
+    # Run without errexit, we want to do as much cleanup
     # as possible.
     set +e
-    
+
     # Unmount ramdisk
     if mountpoint -q $DATA_DIR; then
-        echo "Unmounting ramdisk..." 
-        umount $DATA_DIR 
+        echo "Unmounting ramdisk..."
+        umount $DATA_DIR
     fi
-    
+
     set -e
     exit
 }
@@ -92,7 +92,10 @@ mysql_install_db --user $USER --datadir=$DATA_DIR > /dev/null
 trap '/usr/bin/mysqladmin $(get_bind_args client) refresh & wait' 1 # HUP
 trap '/usr/bin/mysqladmin $(get_bind_args client) shutdown & wait' 2 3 15 # INT QUIT and TERM
 # Run MySQL in the background.
-mysqld $(get_bind_args server) --datadir="$DATA_DIR" --pid-file="$PID_FILE" --console --skip-grant-tables &
+mysqld $(get_bind_args server) --datadir="$DATA_DIR" --pid-file="$PID_FILE" \
+	--console --skip-grant-tables --innodb_log_file_size=200M \
+	--innodb_buffer_pool_size=800M --innodb_file_per_table \
+	--innodb_file_format=Barracuda &
 
 # Enable apparmor again right away; it's enough that we
 # started up the mysqld without the profile.

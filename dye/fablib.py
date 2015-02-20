@@ -16,6 +16,9 @@ def _setup_paths(project_settings):
 
     # set the timestamp - used for directory names at least
     env.timestamp = datetime.now()
+    # we want the first use of sudo to be for something where we don't
+    # read the result
+    env.sudo_has_been_used = False
 
     # allow for project_settings having set up some of these differently
     def copy_setting(name, default_value="NODEFAULT", required=False):
@@ -27,7 +30,7 @@ def _setup_paths(project_settings):
                 'Could not find the required setting "%s" in project_settings.py' %
                 name)
         elif default_value != "NODEFAULT":
-            setattr(env, name, default_value)
+            env.setdefault(name, default_value)
 
     # first do required settings
     for setting in ['project_name', 'project_type', 'server_home', 'repo_type',
@@ -40,6 +43,7 @@ def _setup_paths(project_settings):
         copy_setting(setting)
 
     # now do settings with defaults
+    copy_setting('verbose', False)
     copy_setting('use_sudo', True)
     copy_setting('default_branch', {'production': 'master', 'staging': 'master'})
     copy_setting('server_project_home',
@@ -49,14 +53,17 @@ def _setup_paths(project_settings):
     copy_setting('next_dir', path.join(env.server_project_home, _create_timestamp_dirname(env.timestamp)))
     copy_setting('versions_to_keep', 5)
     copy_setting('dump_dir', path.join(env.server_project_home, 'dbdumps'))
-    # TODO: use relative_deploy_dir
-    copy_setting('deploy_dir', path.join(env.vcs_root_dir, 'deploy'))
+    copy_setting('relative_deploy_dir', 'deploy')
+    copy_setting('deploy_dir', path.join(env.vcs_root_dir, env.relative_deploy_dir))
     copy_setting('settings', '%(project_name)s.settings' % env)
+    copy_setting('relative_webserver_dir', env.webserver)
 
     if env.project_type == "django":
         copy_setting('relative_django_dir', env.project_name)
         copy_setting('relative_django_settings_dir', env['relative_django_dir'])
         copy_setting('relative_ve_dir', path.join(env['relative_django_dir'], '.ve'))
+
+        copy_setting('relative_wsgi_dir', 'wsgi')
 
         # now create the absolute paths of everything else
         copy_setting('django_dir',
@@ -93,11 +100,15 @@ def _linux_type():
 
 def _get_python():
     if 'python_bin' not in env:
-        python26 = path.join('/', 'usr', 'bin', 'python2.6')
-        if files.exists(python26):
+        python_bin = path.join('/', 'usr', 'bin', 'python')
+        python26 = python_bin + '2.6'
+        python27 = python_bin + '2.7'
+        if files.exists(python27):
+            env.python_bin = python27
+        elif files.exists(python26):
             env.python_bin = python26
         else:
-            env.python_bin = path.join('/', 'usr', 'bin', 'python')
+            env.python_bin = python_bin
     return env.python_bin
 
 
@@ -112,7 +123,7 @@ def _tasks(tasks_args, verbose=False):
     tasks_cmd = _get_tasks_bin()
     if env.verbose or verbose:
         tasks_cmd += ' -v'
-    sudo_or_run(tasks_cmd + ' ' + tasks_args)
+    return sudo_or_run(tasks_cmd + ' ' + tasks_args)
 
 
 def _get_svn_user_and_pass():
@@ -427,12 +438,13 @@ def _dump_db_in_directory(dump_dir):
         with cd(dump_dir):
             # just in case there is some other reason why the dump fails
             with settings(warn_only=True):
-                _tasks('dump_db')
-            # and compress the dump
-            dump_file = 'db_dump.sql'
-            dump_file_compressed = dump_file + '.gz'
-            sudo_or_run('gzip -c %s > %s' % (dump_file, dump_file_compressed))
-            sudo_or_run('rm %s' % dump_file)
+                dump_result = _tasks('dump_db')
+            if dump_result.succeeded:
+                # and compress the dump (provided it worked)
+                dump_file = 'db_dump.sql'
+                dump_file_compressed = dump_file + '.gz'
+                sudo_or_run('gzip -c %s > %s' % (dump_file, dump_file_compressed))
+                sudo_or_run('rm %s' % dump_file)
 
 
 def _get_list_of_versions():
@@ -757,6 +769,12 @@ def _checkout_or_update_cvs(vcs_root_dir, revision=None):
 
 def sudo_or_run(command):
     if env.use_sudo:
+        # we want the first use of sudo to be for something where we don't
+        # read the result - otherwise the result can include asking for the
+        # password, or the first run message about "with great power ..."
+        if not env.sudo_has_been_used:
+            sudo("true")
+            env.sudo_has_been_used = True
         return sudo(command)
     else:
         return run(command)
@@ -766,8 +784,8 @@ def create_deploy_virtualenv(in_next=False, full_rebuild=True):
     """ if using new style dye stuff, create the virtualenv to hold dye """
     require('deploy_dir', 'next_dir', provided_by=env.valid_envs)
     if in_next:
-        # TODO: use relative_deploy_dir
-        bootstrap_path = path.join(env.next_dir, 'deploy', 'bootstrap.py')
+        bootstrap_path = path.join(env.next_dir, env.relative_deploy_dir,
+                                   'bootstrap.py')
     else:
         bootstrap_path = path.join(env.deploy_dir, 'bootstrap.py')
     if full_rebuild:
@@ -785,6 +803,11 @@ def update_requirements(in_next=False):
 def collect_static_files():
     """ collect static files in the 'static' directory """
     _tasks('collect_static')
+
+
+def cleanup_sessions():
+    """ run django session cleanup """
+    _tasks("cleanup_sessions")
 
 
 def clean_db(revision=None):
@@ -816,7 +839,7 @@ def get_remote_dump(filename=None, local_filename=None, rsync=True):
             raise Exception(
                 'Cannot write to local dump file you specified: %s' % local_filename)
     if rsync:
-        _tasks('dump_db:' + filename + ',for_rsync=true')
+        _tasks('dump_db:' + filename)
         local("rsync -vz -e 'ssh -p %s' %s@%s:%s %s" % (
             env.port, env.user, env.host, filename, local_filename))
     else:
@@ -852,7 +875,7 @@ def setup_db_dumps():
 def touch_wsgi():
     """ touch wsgi file to trigger reload """
     require('vcs_root_dir', provided_by=env.valid_envs)
-    wsgi_dir = path.join(env.vcs_root_dir, 'wsgi')
+    wsgi_dir = path.join(env.vcs_root_dir, env.relative_wsgi_dir)
     sudo_or_run('touch ' + path.join(wsgi_dir, 'wsgi_handler.py'))
 
 
@@ -881,7 +904,9 @@ def link_webserver_conf(maintenance=False):
     require('webserver', 'vcs_root_dir', provided_by=env.valid_envs)
     if env.webserver is None:
         return
-    vcs_config_stub = path.join(env.vcs_root_dir, env.webserver, env.environment)
+
+    vcs_config_stub = path.join(env.vcs_root_dir, env.relative_webserver_dir,
+                                env.environment)
     vcs_config_live = vcs_config_stub + '.conf'
     vcs_config_maintenance = vcs_config_stub + '-maintenance.conf'
     webserver_conf = _webserver_conf_path()

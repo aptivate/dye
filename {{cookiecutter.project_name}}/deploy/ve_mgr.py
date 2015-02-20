@@ -1,8 +1,13 @@
+from __future__ import unicode_literals, absolute_import
 import os
 import sys
 import shutil
 import subprocess
 from os import path
+
+
+def capture_command(argv):
+    return subprocess.Popen(argv, stdout=subprocess.PIPE).communicate()[0]
 
 
 def find_package_dir_in_ve(ve_dir, package):
@@ -102,12 +107,30 @@ class UpdateVE(object):
 
         import project_settings
         self.pypi_cache_url = getattr(project_settings, 'pypi_cache_url', None)
+        # the major version must be exact, the minor version is a minimum
+        self.python_version = getattr(project_settings, 'python_version', (2, 6))
 
     def update_ve_timestamp(self):
         os.utime(self.ve_dir, None)
         file(self.ve_timestamp, 'w').close()
 
+    def check_virtualenv_python_version(self):
+        """ returns True if the virtualenv python exists and is new enough """
+        ve_python = path.join(self.ve_dir, 'bin', 'python')
+        if not path.exists(ve_python):
+            return False
+        major_version = capture_command(
+            [ve_python, '-c', 'import sys; print sys.version_info[0]'])
+        if int(major_version) != self.python_version[0]:
+            return False
+        minor_version = capture_command(
+            [ve_python, '-c', 'import sys; print sys.version_info[1]'])
+        if int(minor_version) < self.python_version[1]:
+            return False
+        return True
+
     def virtualenv_needs_update(self):
+        """ returns True if the virtualenv needs an update """
         # timestamp of last modification of .ve/ directory
         ve_dir_mtime = path.exists(self.ve_dir) and path.getmtime(self.ve_dir) or 0
         # timestamp of last modification of .ve/timestamp file (touched by this
@@ -146,22 +169,15 @@ class UpdateVE(object):
         if path.exists(self.ve_dir):
             shutil.rmtree(self.ve_dir)
 
-    def update_ve(self, full_rebuild, force_update):
+    def get_pypi_cache_args(self):
+        if self.pypi_cache_url is not None:
+            return ['-i', self.pypi_cache_url]
+        else:
+            return []
 
-        if not path.exists(self.requirements):
-            print >> sys.stderr, "Could not find requirements: file %s" % self.requirements
-            return 1
-
-        update_required = self.virtualenv_needs_update()
-
-        if not update_required and not force_update:
-            # Nothing to be done
-            print "VirtualEnv does not need to be updated"
-            print "use --force to force an update"
-            return 0
-
+    def ensure_virtualenv_exists(self, full_rebuild):
         # if we need to create the virtualenv, then we must do that from
-        # outside the virtualenv. The code inside this if statement will only
+        # outside the virtualenv. The code inside this if statement should only
         # be run outside the virtualenv.
         if full_rebuild and path.exists(self.ve_dir):
             shutil.rmtree(self.ve_dir)
@@ -170,33 +186,48 @@ class UpdateVE(object):
             virtualenv.logger = virtualenv.Logger(consumers=[])
             virtualenv.create_environment(self.ve_dir, site_packages=False)
 
-        if self.pypi_cache_url is not None:
-            pypi_cache_args = ['-i', self.pypi_cache_url]
-        else:
-            pypi_cache_args = []
-        
-        # install the pip requirements and exit
+    def run_pip_command(self, pip_args, **call_kwargs):
         pip_path = path.join(self.ve_dir, 'bin', 'pip')
-        # first ensure we have an up to date version of distribute
-        command = [pip_path, 'install', '-U', 'distribute'] + pypi_cache_args
-        
+        command = [pip_path] + pip_args + self.get_pypi_cache_args()
         try:
-            pip_retcode = subprocess.call(command)
+            pip_retcode = subprocess.call(command, **call_kwargs)
         except OSError, e:
             print "command failed: %s: %s" % (" ".join(command), e)
             return 1
-            
+
         if pip_retcode != 0:
             print "command failed: %s" % " ".join(command)
+
+        return pip_retcode
+
+    def update_ve(self, full_rebuild, force_update):
+        if not path.exists(self.requirements):
+            print >> sys.stderr, "Could not find requirements: file %s" % self.requirements
+            return 1
+
+        update_required = self.virtualenv_needs_update()
+        if not update_required and not force_update:
+            # Nothing to be done
+            print "VirtualEnv does not need to be updated"
+            print "use --force to force an update"
+            return 0
+
+        # if we need to create the virtualenv, then we must do that from
+        # outside the virtualenv. This code should only be run outside the
+        # virtualenv.
+        self.ensure_virtualenv_exists(full_rebuild)
+
+        pip_retcode = self.run_pip_command(['install', '-U', 'distribute'])
+        if pip_retcode != 0:
             return pip_retcode
 
-        # use cwd to allow relative path specs in requirements file, e.g. ../tika
-        command = [pip_path, 'install', '--requirement=%s' % self.requirements] + pypi_cache_args
-        pip_retcode = subprocess.call(command, cwd=os.path.dirname(self.requirements))
+        pip_retcode = pip_retcode = self.run_pip_command(
+            ['install', '--requirement=%s' % self.requirements],
+            cwd=os.path.dirname(self.requirements)
+        )
         if pip_retcode == 0:
             self.update_ve_timestamp()
-        else:
-            print "command failed: %s" % " ".join(command)
+
         return pip_retcode
 
     def go_to_ve(self, file_path, args):
