@@ -60,15 +60,19 @@ def _setup_paths(project_settings, localtasks):
                    path.join(env['vcs_root_dir'], env['relative_ve_dir']))
     env.setdefault('manage_py', path.join(env['django_dir'], 'manage.py'))
     env.setdefault('uploads_dir_path', path.join(env['django_dir'], 'uploads'))
+    _find_python(env)
 
+
+def _find_python(env):
     python26 = path.join('/', 'usr', 'bin', 'python2.6')
     python27 = path.join('/', 'usr', 'bin', 'python2.7')
     generic_python = path.join('/', 'usr', 'bin', 'python')
-    paths_to_try = (python26, python27, generic_python, sys.executable)
+    paths_to_try = (python27, python26, generic_python, sys.executable)
     chosen_python = None
     for python in paths_to_try:
         if path.exists(python):
             chosen_python = python
+            break
     if chosen_python is None:
         raise Exception("Failed to find a valid Python executable " +
                 "in any of these locations: %s" % paths_to_try)
