@@ -8,7 +8,7 @@ BASE_DIR = path.abspath(path.dirname(__file__))
 
 
 ########## DEFAULT DEBUG SETTINGS - OVERRIDE IN local_settings
-DEBUG = True
+DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 ASSETS_DEBUG = DEBUG
 ASSETS_AUTO_BUILD = DEBUG
