@@ -129,6 +129,13 @@ class UpdateVE(object):
             return False
         return True
 
+    def check_current_python_version(self):
+        if sys.version_info[0] != self.python_version[0]:
+            return False
+        if sys.version_info[1] != self.python_version[1]:
+            return False
+        return True
+
     def virtualenv_needs_update(self):
         """ returns True if the virtualenv needs an update """
         # timestamp of last modification of .ve/ directory
@@ -182,9 +189,13 @@ class UpdateVE(object):
         if full_rebuild and path.exists(self.ve_dir):
             shutil.rmtree(self.ve_dir)
         if not path.exists(self.ve_dir):
+            if not self.check_current_python_version():
+                print "Running wrong version of python for virtualenv creation"
+                return 1
             import virtualenv
             virtualenv.logger = virtualenv.Logger(consumers=[])
             virtualenv.create_environment(self.ve_dir, site_packages=False)
+        return 0
 
     def run_pip_command(self, pip_args, **call_kwargs):
         pip_path = path.join(self.ve_dir, 'bin', 'pip')
@@ -215,7 +226,9 @@ class UpdateVE(object):
         # if we need to create the virtualenv, then we must do that from
         # outside the virtualenv. This code should only be run outside the
         # virtualenv.
-        self.ensure_virtualenv_exists(full_rebuild)
+        ve_retcode = self.ensure_virtualenv_exists(full_rebuild)
+        if ve_retcode != 0:
+            return ve_retcode
 
         pip_retcode = self.run_pip_command(['install', '-U', 'distribute'])
         if pip_retcode != 0:
