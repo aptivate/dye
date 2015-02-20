@@ -21,6 +21,7 @@
 import os
 from os import path
 import sys
+from types import ModuleType
 
 from .django import (collect_static, create_private_settings,
         _install_django_jenkins, link_local_settings, _manage_py,
@@ -34,7 +35,8 @@ from .environment import env
 def _setup_paths(project_settings, localtasks):
     """Set up the paths used by other tasks"""
     # first merge in variables from project_settings - but ignore __doc__ etc
-    user_settings = [x for x in vars(project_settings).keys() if not x.startswith('__')]
+    user_settings = [x for x in vars(project_settings).keys() if not
+                     (x.startswith('__') or callable(x) or isinstance(x, ModuleType))]
     for setting in user_settings:
         env.setdefault(setting, vars(project_settings)[setting])
 
