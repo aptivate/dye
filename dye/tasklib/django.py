@@ -11,6 +11,21 @@ from .util import _check_call_wrapper, _create_dir_if_not_exists, _linux_type
 # global dictionary for state
 from .environment import env
 
+def _setup_django_paths(env):
+    # the django settings will be in the django_dir for old school projects
+    # otherwise it should be defined in the project_settings
+    env.setdefault('relative_django_settings_dir', env['relative_django_dir'])
+    env.setdefault('relative_ve_dir', path.join(env['relative_django_dir'], '.ve'))
+
+    # now create the absolute paths of everything else
+    env.setdefault('django_dir',
+                   path.join(env['vcs_root_dir'], env['relative_django_dir']))
+    env.setdefault('django_settings_dir',
+                   path.join(env['vcs_root_dir'], env['relative_django_settings_dir']))
+    env.setdefault('ve_dir',
+                   path.join(env['vcs_root_dir'], env['relative_ve_dir']))
+    env.setdefault('manage_py', path.join(env['django_dir'], 'manage.py'))
+    env.setdefault('uploads_dir_path', path.join(env['django_dir'], 'uploads'))
 
 def _manage_py(args, cwd=None):
     # for manage.py, always use the system python
