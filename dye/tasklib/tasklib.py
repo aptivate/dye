@@ -26,7 +26,8 @@ from types import ModuleType
 from .django import (collect_static, create_private_settings,
         _install_django_jenkins, link_local_settings, _manage_py,
         _manage_py_jenkins, clean_db, update_db, _infer_environment,
-        create_uploads_dir)
+        create_uploads_dir, _setup_django_paths)
+
 from .util import _check_call_wrapper, _call_wrapper, _rm_all_pyc
 # this is a global dictionary
 from .environment import env
@@ -48,20 +49,9 @@ def _setup_paths(project_settings, localtasks):
         env['vcs_root_dir'] = \
             path.abspath(path.join(env['deploy_dir'], os.pardir))
 
-    # the django settings will be in the django_dir for old school projects
-    # otherwise it should be defined in the project_settings
-    env.setdefault('relative_django_settings_dir', env['relative_django_dir'])
-    env.setdefault('relative_ve_dir', path.join(env['relative_django_dir'], '.ve'))
+    if env['project_type'] in ["django", "cms"]:
+        _setup_django_paths(env)
 
-    # now create the absolute paths of everything else
-    env.setdefault('django_dir',
-                   path.join(env['vcs_root_dir'], env['relative_django_dir']))
-    env.setdefault('django_settings_dir',
-                   path.join(env['vcs_root_dir'], env['relative_django_settings_dir']))
-    env.setdefault('ve_dir',
-                   path.join(env['vcs_root_dir'], env['relative_ve_dir']))
-    env.setdefault('manage_py', path.join(env['django_dir'], 'manage.py'))
-    env.setdefault('uploads_dir_path', path.join(env['django_dir'], 'uploads'))
     _find_python(env)
 
 
