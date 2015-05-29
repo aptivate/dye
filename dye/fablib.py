@@ -726,7 +726,21 @@ def _checkout_or_update_git(vcs_root_dir, revision=None):
                 rev_is_branch = sudo_or_run('git branch -r | grep %s' % revision)
             # use old fabric style here to support Ubuntu 10.04
             if not rev_is_branch.failed:
-                sudo_or_run('git merge origin/%s' % revision)
+                # here we try to merge ONLY doing a fast-forward.  If that
+                # doesn't work, it means a merge commit message will be
+                # required.
+                with settings(warn_only=True):
+                    ff_merge = sudo_or_run('git merge --ff-only origin/%s' % revision)
+                if ff_merge.failed:
+                    cont = prompt(
+                        'There are commits on the server that need merging. '
+                        'Would you like to auto-merge and continue with '
+                        'deployment? (yes/no)',
+                        default='no', validate=r'^yes|no$')
+                    if cont == 'yes':
+                        sudo_or_run('git merge --no-edit origin/%s' % revision)
+                    else:
+                        utils.abort('Aborting deployment')
             # if we did a stash, now undo it
             if not stash_result.startswith("No local changes"):
                 sudo_or_run('git stash pop')
