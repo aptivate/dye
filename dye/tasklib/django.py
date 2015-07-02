@@ -27,7 +27,8 @@ def _setup_django_paths(env):
     env.setdefault('manage_py', path.join(env['django_dir'], 'manage.py'))
     env.setdefault('uploads_dir_path', path.join(env['django_dir'], 'uploads'))
 
-def _manage_py(args, cwd=None):
+
+def _manage_py(args, cwd=None, stderr=subprocess.STDOUT):
     # for manage.py, always use the system python
     # otherwise the update_ve will fail badly, as it deletes
     # the virtualenv part way through the process ...
@@ -52,7 +53,7 @@ def _manage_py(args, cwd=None):
     try:
         # TODO: make compatible with python 2.3
         popen = subprocess.Popen(manage_cmd, cwd=cwd, stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT)
+                                 stderr=stderr)
     except OSError, e:
         print "Failed to execute command: %s: %s" % (manage_cmd, e)
         raise e
@@ -155,7 +156,7 @@ def _get_cache_table():
 
 
 def _get_django_version():
-    version_string = _manage_py(['--version'])[0].strip().split('.')
+    version_string = _manage_py(['--version'], stderr=None)[0].strip().split('.')
 
     return [int(x) for x in version_string]
 
