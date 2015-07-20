@@ -373,7 +373,6 @@ def _install_django_jenkins():
 def _manage_py_jenkins():
     """ run the jenkins command """
     args = ['jenkins', ]
-    args += ['--pylint-rcfile', path.join(env['vcs_root_dir'], 'jenkins', 'pylint.rc')]
     coveragerc_filepath = path.join(env['vcs_root_dir'], 'jenkins', 'coverage.rc')
     if path.exists(coveragerc_filepath):
         args += ['--coverage-rcfile', coveragerc_filepath]
