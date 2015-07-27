@@ -39,7 +39,8 @@ if not updater.check_virtualenv_python_version():
 # depending on how you've installed dye, you may need to edit this line
 tasks = path.join(ve_dir, 'bin', 'tasks.py')
 
-current_dir = path.dirname(__file__)
+# having an empty string is unhelpful, so have '.' as the default
+current_dir = path.dirname(__file__) or '.'
 
 # call the tasks.py in the virtual env
 tasks_call = [tasks]
