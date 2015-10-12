@@ -945,10 +945,11 @@ def link_cron_files():
     for cron_dir in cron_dirs:
         proj_cron_dir = path.join(env['vcs_root_dir'], 'cron', cron_dir)
         etc_cron_dir = path.join('/etc', cron_dir)
-        for cron_file in os.listdir(proj_cron_dir):
-            proj_cron_file = path.join(proj_cron_dir, cron_file)
-            etc_cron_file = path.join(etc_cron_dir, cron_file)
-            _link_files(proj_cron_file, etc_cron_file)
+        if path.isdir(proj_cron_dir):
+            for cron_file in os.listdir(proj_cron_dir):
+                proj_cron_file = path.join(proj_cron_dir, cron_file)
+                etc_cron_file = path.join(etc_cron_dir, cron_file)
+                _link_files(proj_cron_file, etc_cron_file)
 
 
 def link_webserver_conf(maintenance=False):
