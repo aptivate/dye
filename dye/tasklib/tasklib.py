@@ -20,6 +20,7 @@
 
 import os
 from os import path
+import re
 import sys
 from types import ModuleType
 
@@ -28,7 +29,7 @@ from .django import (collect_static, create_private_settings,
         _manage_py_jenkins, clean_db, update_db, _infer_environment,
         create_uploads_dir, _setup_django_paths)
 
-from .util import _check_call_wrapper, _call_wrapper, _rm_all_pyc
+from .util import _check_call_wrapper, _call_wrapper, _rm_all_pyc, _create_link
 # this is a global dictionary
 from .environment import env
 
@@ -186,3 +187,42 @@ def patch_south():
     if patch_applied != 0:
         cmd = ['patch', '-N', '-p0', south_db_init, patch_file]
         _check_call_wrapper(cmd)
+
+
+def _make_cron_name_safe(cron_file):
+    safe_cron_re = r'[^a-zA-Z0-9_-]'
+    safe_cron_file = re.sub(safe_cron_re, '', cron_file)
+    if safe_cron_file != cron_file:
+        print (
+            "WARNING: Your cron file {} contains a '.' or other character "
+            "that means it will be ignored by cron.  The link created is "
+            "now called {}".format(cron_file, safe_cron_file)
+        )
+    return safe_cron_file
+
+
+def link_cron_files():
+    """ go through the cron directory in the root of the project and link cron
+    files from there to the relevant directory in the /etc/cron* on the server
+
+    So if the project contains:
+
+        cron/cron.daily/my_daily_cronjob
+        cron/cron.d/my_custom_cronjob
+
+    They would be linked to:
+
+        /etc/cron.daily/my_daily_cronjob
+        /etc/cron.d/my_custom_cronjob
+
+    We can also do some checks to make sure the files are executable and don't
+    contain a . - as that means cron won't run them - http://askubuntu.com/a/111034/150
+    """
+    cron_dirs = ['cron.d', 'cron.daily', 'cron.hourly', 'cron.weekly', 'cron.monthly']
+    for cron_dir in cron_dirs:
+        proj_cron_dir = path.join(env['vcs_root_dir'], 'cron', cron_dir)
+        etc_cron_dir = path.join('/etc', cron_dir)
+        for cron_file in os.listdir(proj_cron_dir):
+            proj_cron_file = path.join(proj_cron_dir, cron_file)
+            etc_cron_file = path.join(etc_cron_dir, _make_cron_name_safe(cron_file))
+            _create_link(proj_cron_file, etc_cron_file)

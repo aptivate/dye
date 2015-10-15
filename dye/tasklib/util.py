@@ -149,3 +149,21 @@ def _linux_type():
     else:
         # TODO: should we print a warning here?
         raise Exception("could not determine linux type of machine")
+
+
+def _create_link(source, target):
+    if os.name == 'posix':
+        os.symlink(source, target)
+    elif os.name == 'nt':
+        try:
+            import win32file
+        except ImportError:
+            raise StandardError(
+                "It looks like the PyWin32 extensions are not installed")
+        try:
+            win32file.CreateSymbolicLink(target, source)
+        except NotImplementedError:
+            win32file.CreateHardLink(target, source)
+    else:
+        import shutil
+        shutil.copy2(source, target)
