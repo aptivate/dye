@@ -220,9 +220,10 @@ def link_cron_files():
     """
     cron_dirs = ['cron.d', 'cron.daily', 'cron.hourly', 'cron.weekly', 'cron.monthly']
     for cron_dir in cron_dirs:
-        proj_cron_dir = path.join(env['vcs_root_dir'], 'cron', cron_dir)
+        vcs_cron_dir = path.join(env['vcs_root_dir'], 'cron', cron_dir)
         etc_cron_dir = path.join('/etc', cron_dir)
-        for cron_file in os.listdir(proj_cron_dir):
-            proj_cron_file = path.join(proj_cron_dir, cron_file)
-            etc_cron_file = path.join(etc_cron_dir, _make_cron_name_safe(cron_file))
-            _create_link(proj_cron_file, etc_cron_file)
+        if path.isdir(vcs_cron_dir):
+            for cron_file in os.listdir(vcs_cron_dir):
+                vcs_cron_file = path.join(vcs_cron_dir, cron_file)
+                etc_cron_file = path.join(etc_cron_dir, _make_cron_name_safe(cron_file))
+                _create_link(vcs_cron_file, etc_cron_file)
