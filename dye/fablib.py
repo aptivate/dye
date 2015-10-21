@@ -739,7 +739,7 @@ def _checkout_or_update_git(vcs_root_dir, revision=None):
                         'deployment? (yes/no)',
                         default='no', validate=r'^yes|no$')
                     if cont == 'yes':
-                        sudo_or_run('git merge --no-edit origin/%s' % revision)
+                        sudo_or_run('git merge origin/%s' % revision)
                     else:
                         utils.abort('Aborting deployment')
             # if we did a stash, now undo it
