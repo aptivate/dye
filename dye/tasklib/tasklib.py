@@ -226,4 +226,6 @@ def link_cron_files():
             for cron_file in os.listdir(vcs_cron_dir):
                 vcs_cron_file = path.join(vcs_cron_dir, cron_file)
                 etc_cron_file = path.join(etc_cron_dir, _make_cron_name_safe(cron_file))
+                if path.islink(etc_cron_file):
+                    os.unlink(etc_cron_file)
                 _create_link(vcs_cron_file, etc_cron_file)
