@@ -733,13 +733,20 @@ def _checkout_or_update_git(vcs_root_dir, revision=None):
                 with settings(warn_only=True):
                     ff_merge = sudo_or_run('git merge --ff-only origin/%s' % revision)
                 if ff_merge.failed:
-                    cont = prompt(
-                        'There are commits on the server that need merging. '
-                        'Would you like to auto-merge and continue with '
-                        'deployment? (yes/no)',
-                        default='no', validate=r'^yes|no$')
-                    if cont == 'yes':
+                    next_step = prompt(
+                        'There are commits on the server that could be merged. '
+                        'Your options are:\n'
+                        '* merge - merge with the remote branch and contine with deployment.\n'
+                        '          Probably best when deploying the same branch.\n'
+                        '* reset - ignore the local commits and set the server to the exact\n'
+                        '          remote branch contents - use this if switching branches.\n'
+                        '* abort - work out the branches on the server manually and then deploy again\n'
+                        'Please type the option you want (merge/reset/abort)',
+                        default='abort', validate=r'^merge|reset|abort$')
+                    if next_step == 'merge':
                         sudo_or_run('git merge origin/%s' % revision)
+                    elif next_step == 'reset':
+                        sudo_or_run('git reset origin/%s' % revision)
                     else:
                         utils.abort('Aborting deployment')
             # if we did a stash, now undo it
