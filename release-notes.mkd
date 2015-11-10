@@ -12,6 +12,16 @@ You shouldn't have to alter your `localtasks.py`
 
 # Notes on upgrading
 
+## 10/11/2015
+
+Some functionality has been added to ensure a smooth upgrade process when moving to 
+Django 1.8. If you are using Django 1.8 it will use --fake-initial when running the
+migrations and the first migration in apps where the tables exist will be faked.
+
+What won't be done is running any old migrations to get your database up to date first.
+All migrations from South must have been run on the databases used by the instance you're
+deploying before DYE can safely handle upgrading to Django 1.8.
+
 ## 25/06/2014
 
 You can now add an optional `python_version` tuple to `deploy/project_settings.py` eg
