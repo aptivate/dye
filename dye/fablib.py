@@ -233,6 +233,7 @@ def deploy(revision=None, keep=None, full_rebuild=True):
     downtime_end = datetime.now()
     touch_wsgi()
 
+    link_cron_files()
     delete_old_rollback_versions(keep)
     if env.environment == 'production':
         setup_db_dumps()
@@ -726,7 +727,28 @@ def _checkout_or_update_git(vcs_root_dir, revision=None):
                 rev_is_branch = sudo_or_run('git branch -r | grep %s' % revision)
             # use old fabric style here to support Ubuntu 10.04
             if not rev_is_branch.failed:
-                sudo_or_run('git merge origin/%s' % revision)
+                # here we try to merge ONLY doing a fast-forward.  If that
+                # doesn't work, it means a merge commit message will be
+                # required.
+                with settings(warn_only=True):
+                    ff_merge = sudo_or_run('git merge --ff-only origin/%s' % revision)
+                if ff_merge.failed:
+                    next_step = prompt(
+                        'There are commits on the server that could be merged. '
+                        'Your options are:\n'
+                        '* merge - merge with the remote branch and contine with deployment.\n'
+                        '          Probably best when deploying the same branch.\n'
+                        '* reset - ignore the local commits and set the server to the exact\n'
+                        '          remote branch contents - use this if switching branches.\n'
+                        '* abort - work out the branches on the server manually and then deploy again\n'
+                        'Please type the option you want (merge/reset/abort)',
+                        default='abort', validate=r'^merge|reset|abort$')
+                    if next_step == 'merge':
+                        sudo_or_run('git merge origin/%s' % revision)
+                    elif next_step == 'reset':
+                        sudo_or_run('git reset origin/%s' % revision)
+                    else:
+                        utils.abort('Aborting deployment')
             # if we did a stash, now undo it
             if not stash_result.startswith("No local changes"):
                 sudo_or_run('git stash pop')
@@ -897,6 +919,23 @@ def _delete_file(path):
 def _link_files(source_file, target_path):
     if not files.exists(target_path):
         sudo_or_run('ln -s %s %s' % (source_file, target_path))
+
+
+def link_cron_files():
+    """ go through the cron directory in the root of the project and link cron
+    files from there to the relevant directory in the /etc/cron* on the server
+
+    So if the project contains:
+
+        cron/cron.daily/my_daily_cronjob
+        cron/cron.d/my_custom_cronjob
+
+    They would be linked to:
+
+        /etc/cron.daily/my_daily_cronjob
+        /etc/cron.d/my_custom_cronjob
+    """
+    _tasks('link_cron_files')
 
 
 def link_webserver_conf(maintenance=False):

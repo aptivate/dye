@@ -1,6 +1,8 @@
 # for deploy - you probably should pin to a commit
 -e git+git://github.com/aptivate/dye.git#egg=dye
 
+linecache2==1.0.0
+
 # core django
 Django<1.7
 pytz==2014.10

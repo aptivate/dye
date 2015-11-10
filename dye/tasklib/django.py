@@ -7,12 +7,31 @@ import subprocess
 from .exceptions import TasksError
 from .database import get_db_manager
 from .exceptions import InvalidProjectError, ShellCommandError
-from .util import _check_call_wrapper, _create_dir_if_not_exists, _linux_type
+from .util import (
+    _check_call_wrapper, _create_dir_if_not_exists, _linux_type, _create_link
+)
 # global dictionary for state
 from .environment import env
 
 
-def _manage_py(args, cwd=None):
+def _setup_django_paths(env):
+    # the django settings will be in the django_dir for old school projects
+    # otherwise it should be defined in the project_settings
+    env.setdefault('relative_django_settings_dir', env['relative_django_dir'])
+    env.setdefault('relative_ve_dir', path.join(env['relative_django_dir'], '.ve'))
+
+    # now create the absolute paths of everything else
+    env.setdefault('django_dir',
+                   path.join(env['vcs_root_dir'], env['relative_django_dir']))
+    env.setdefault('django_settings_dir',
+                   path.join(env['vcs_root_dir'], env['relative_django_settings_dir']))
+    env.setdefault('ve_dir',
+                   path.join(env['vcs_root_dir'], env['relative_ve_dir']))
+    env.setdefault('manage_py', path.join(env['django_dir'], 'manage.py'))
+    env.setdefault('uploads_dir_path', path.join(env['django_dir'], 'uploads'))
+
+
+def _manage_cmd(args):
     # for manage.py, always use the system python
     # otherwise the update_ve will fail badly, as it deletes
     # the virtualenv part way through the process ...
@@ -27,6 +46,11 @@ def _manage_py(args, cwd=None):
     # Allow manual specification of settings file
     if 'manage_py_settings' in env:
         manage_cmd.append('--settings=%s' % env['manage_py_settings'])
+    return manage_cmd
+
+
+def _manage_py(args, cwd=None, stderr=subprocess.STDOUT):
+    manage_cmd = _manage_cmd(args)
 
     if cwd is None:
         cwd = env['django_dir']
@@ -36,8 +60,9 @@ def _manage_py(args, cwd=None):
     output_lines = []
     try:
         # TODO: make compatible with python 2.3
-        popen = subprocess.Popen(manage_cmd, cwd=cwd, stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT)
+        popen = subprocess.Popen(
+            manage_cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=stderr
+        )
     except OSError, e:
         print "Failed to execute command: %s: %s" % (manage_cmd, e)
         raise e
@@ -140,7 +165,7 @@ def _get_cache_table():
 
 
 def _get_django_version():
-    version_string = _manage_py(['--version'])[0].strip().split('.')
+    version_string = _manage_py(['--version'], stderr=None)[0].strip().split('.')
 
     return [int(x) for x in version_string]
 
@@ -180,6 +205,13 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=True, databas
 
         django_version = _get_django_version()
 
+        if django_version[0] >= 1 and django_version[1] >= 7:
+            # django 1.7 deprecates syncdb
+            # always call migrate - shouldn't fail (I think)
+            # first without initial data:
+            _manage_py(['migrate', '--noinput', '--no-initial-data'])
+            # then with initial data, AFTER tables have been created:
+            _manage_py(['migrate', '--noinput'])
         if django_version[0] >= 1 and django_version[1] >= 5:
             # syncdb with --no-initial-data appears in Django 1.5
             _manage_py(['syncdb', '--noinput', '--no-initial-data'])
@@ -237,11 +269,13 @@ def link_local_settings(environment):
     with open(settings_file_path) as settings_file:
         matching_lines = [line for line in settings_file if 'local_settings' in line]
     if not matching_lines:
-        raise InvalidProjectError("Fatal error: settings.py doesn't seem to import "
-            "local_settings.*: %s" % settings_file_path)
+        raise InvalidProjectError(
+            "Fatal error: settings.py doesn't seem to import "
+            "local_settings.*: %s" % settings_file_path
+        )
 
-    source = path.join(env['django_settings_dir'], 'local_settings.py.%s' %
-        environment)
+    source = path.join(
+        env['django_settings_dir'], 'local_settings.py.%s' % environment)
     target = path.join(env['django_settings_dir'], 'local_settings.py')
 
     # die if the correct local settings does not exist
@@ -253,21 +287,7 @@ def link_local_settings(environment):
         if path.exists(old_file):
             os.remove(old_file)
 
-    if os.name == 'posix':
-        os.symlink('local_settings.py.%s' % environment, target)
-    elif os.name == 'nt':
-        try:
-            import win32file
-        except ImportError:
-            raise Exception(
-                "It looks like the PyWin32 extensions are not installed")
-        try:
-            win32file.CreateSymbolicLink(target, source)
-        except NotImplementedError:
-            win32file.CreateHardLink(target, source)
-    else:
-        import shutil
-        shutil.copy2(source, target)
+    _create_link(source, target)
     env['environment'] = environment
 
 
@@ -350,7 +370,6 @@ def _install_django_jenkins():
 def _manage_py_jenkins():
     """ run the jenkins command """
     args = ['jenkins', ]
-    args += ['--pylint-rcfile', path.join(env['vcs_root_dir'], 'jenkins', 'pylint.rc')]
     coveragerc_filepath = path.join(env['vcs_root_dir'], 'jenkins', 'coverage.rc')
     if path.exists(coveragerc_filepath):
         args += ['--coverage-rcfile', coveragerc_filepath]
