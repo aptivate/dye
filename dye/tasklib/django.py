@@ -205,14 +205,21 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=True, databas
 
         django_version = _get_django_version()
 
-        if django_version[0] >= 1 and django_version[1] >= 7:
+        if django_version[0] >= 1 and django_version[1] >= 8:
+            # django 1.7 always checks whether migrations are done and fakes
+            # them if they are. For 1.8, you need the --fake-initial flag to
+            # achieve this, at least the first time round
+            _manage_py(['migrate', '--noinput', '--fake-initial', '--no-initial-data'])
+            # then with initial data, AFTER tables have been created:
+            _manage_py(['migrate', '--noinput'])
+        elif django_version[0] >= 1 and django_version[1] >= 7:
             # django 1.7 deprecates syncdb
             # always call migrate - shouldn't fail (I think)
             # first without initial data:
             _manage_py(['migrate', '--noinput', '--no-initial-data'])
             # then with initial data, AFTER tables have been created:
             _manage_py(['migrate', '--noinput'])
-        if django_version[0] >= 1 and django_version[1] >= 5:
+        elif django_version[0] >= 1 and django_version[1] >= 5:
             # syncdb with --no-initial-data appears in Django 1.5
             _manage_py(['syncdb', '--noinput', '--no-initial-data'])
             # always call migrate - shouldn't fail (I think)

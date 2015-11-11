@@ -225,6 +225,9 @@ class MySQLManager(DBManager):
         return self.test_sql_user_password(user='root', password=password)
 
     def test_grants(self):
+        if not self.grant_enabled:
+            return True
+
         try:
             cursor = self.get_user_db_cursor()
         except:
