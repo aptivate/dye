@@ -226,7 +226,7 @@ class MySQLManager(DBManager):
 
     def test_grants(self):
         if not self.grant_enabled:
-            return
+            return True
 
         try:
             cursor = self.get_user_db_cursor()
