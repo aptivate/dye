@@ -376,7 +376,17 @@ def _install_django_jenkins():
 
 def _manage_py_jenkins():
     """ run the jenkins command """
+    import pkg_resources
+    version = pkg_resources.get_distribution('django-jenkins').version
+
+    # Check if the jenkins version is above 0.16.0
+    jenkins_version_numbers = [int(a_number) for a_number in version.split('.')]
+
     args = ['jenkins', ]
+
+    if jenkins_version_numbers[0] > 0 or jenkins_version_numbers[1] >= 16:
+        args.append('--enable-coverage')
+
     coveragerc_filepath = path.join(env['vcs_root_dir'], 'jenkins', 'coverage.rc')
     if path.exists(coveragerc_filepath):
         args += ['--coverage-rcfile', coveragerc_filepath]
