@@ -1,4 +1,4 @@
-# Django settings for {{project_name}} project.
+# Django settings for {{ cookiecutter.project_name }} project.
 
 # Build paths inside the project like this: path.join(BASE_DIR, ...)
 from __future__ import unicode_literals, absolute_import
