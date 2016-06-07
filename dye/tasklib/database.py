@@ -413,6 +413,9 @@ class MySQLManager(DBManager):
 
     def restore_db(self, dump_filename):
         """Restore a database dump file by name"""
+        # first drop and recreate the database so we have a clean start
+        self.drop_db()
+        self.create_db_if_not_exists()
         restore_cmd = ['mysql'] + self.create_cmdline_args()
         with open(dump_filename, 'r') as dump_file:
             if env['verbose']:
