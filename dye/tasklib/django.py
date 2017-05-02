@@ -356,7 +356,8 @@ def collect_static(environment):
         owner = get_webserver_user_group(environment)
         if owner:
             cache_path = path.join(env['django_dir'], 'static', '.webassets-cache')
-            _check_call_wrapper(['chown', '-R', owner, cache_path])
+            if os.path.exists(cache_path):
+                _check_call_wrapper(['chown', '-R', owner, cache_path])
 
 
 def _install_django_jenkins():
