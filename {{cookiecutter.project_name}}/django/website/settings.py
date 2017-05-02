@@ -1,4 +1,4 @@
-# Django settings for test_project project.
+# Django settings for {{ cookiecutter.project_name }} project.
 
 # Build paths inside the project like this: path.join(BASE_DIR, ...)
 from __future__ import unicode_literals, absolute_import
@@ -29,16 +29,16 @@ SECRET_KEY = private_settings.SECRET_KEY
 # These email addresses will get all the error email for the production server
 # (and any other servers with DEBUG = False )
 ADMINS = (
-    ('Aptivate test_project team', 'test_project-team@aptivate.org'),
-    ('Daniel Levt', 'daniell@aptivate.org'),  # this is in case the above email doesn't work
+    ('Aptivate {{ cookiecutter.project_name }} team', '{{ cookiecutter.project_name }}-team@aptivate.org'),
+    ('{{ cookiecutter.author_name }}', '{{ cookiecutter.email }}'),  # this is in case the above email doesn't work
 )
 
 MANAGERS = ADMINS
 
 # these are the settings for production. We can override in the various
 # local_settings if we want to
-DEFAULT_FROM_EMAIL = 'donotreply@Domain name'
-SERVER_EMAIL = 'server@Domain name'
+DEFAULT_FROM_EMAIL = 'donotreply@{{ cookiecutter.domain_name }}'
+SERVER_EMAIL = 'server@{{ cookiecutter.domain_name }}'
 ########## MANAGER/EMAIL CONFIGURATION
 
 
@@ -103,9 +103,9 @@ STATICFILES_DIRS = (
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-    #
+    #{% if cookiecutter.django_type == "normal" or cookiecutter.django_type == "cms" %}
     'django_assets.finders.AssetsFinder',
-    #
+    #{% endif %}
 )
 ########## END STATIC FILE CONFIGURATION
 
@@ -131,16 +131,15 @@ DJANGO_APPS = (
     'django.contrib.admin',
 )
 THIRD_PARTY_APPS = (
-    #
+    #{% if cookiecutter.django_type == "normal" or cookiecutter.django_type == "cms" %}
     'crispy_forms',  # Form layouts
     'django_extensions',
     'easy_thumbnails',
     'registration',
     'haystack',
     'django_assets',
-    #
-    #
-    'treebeard',
+    #{% endif %}
+    #{% if cookiecutter.django_type == "cms" %}
     'cms',
     'mptt',
     'menus',
@@ -155,7 +154,7 @@ THIRD_PARTY_APPS = (
     'djangocms_redirect',  # is this built into Django-CMS 3?
     'reversion',
     'djangocms_text_ckeditor',  # must load after Django CMS
-    #
+    #{% endif %}
 )
 
 # Apps specific for this project go here.
@@ -176,7 +175,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # cms stuff
+    #{% if cookiecutter.django_type == "cms" %} cms stuff
     'cms.middleware.user.CurrentUserMiddleware',
     'cms.middleware.page.CurrentPageMiddleware',
     'cms.middleware.toolbar.ToolbarMiddleware',
@@ -184,7 +183,7 @@ MIDDLEWARE_CLASSES = (
     'djangocms_redirect.middleware.RedirectMiddleware',
     'cms.middleware.language.LanguageCookieMiddleware',
     'django.middleware.locale.LocaleMiddleware',
-    #
+    #{% endif %}
 )
 ########## END MIDDLEWARE CONFIGURATION
 
@@ -227,19 +226,19 @@ ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ########## END AUTHENTICATION CONFIGURATION
 
 
-########## HAYSTACK SEARCH CONFIGURATION
+#{% if cookiecutter.django_type == "normal" or cookiecutter.django_type == "cms" %}######### HAYSTACK SEARCH CONFIGURATION
 HAYSTACK_CONNECTIONS = {
     'default': {
         'ENGINE': 'haystack.backends.elasticsearch_backend.ElasticsearchSearchEngine',
         'URL': 'http://127.0.0.1:9200/',
-        'INDEX_NAME': 'test_project',
+        'INDEX_NAME': '{{ cookiecutter.project_name }}',
     },
 }
 
 HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
 # HAYSTACK_SEARCH_RESULTS_PER_PAGE = 25
 ########## END HAYSTACK SEARCH CONFIGURATION
-#
+#{% endif %}
 
 ########## Custom user app defaults
 # Select the correct user model
@@ -304,7 +303,7 @@ LOGGING = {
 ########## END BINDER STUFF
 
 
-#
+#{% if cookiecutter.django_type == "cms" %}
 # https://django-filer.readthedocs.org/en/0.8.3/getting_started.html#configuration
 THUMBNAIL_PROCESSORS = (
     'easy_thumbnails.processors.colorspace',
@@ -313,7 +312,7 @@ THUMBNAIL_PROCESSORS = (
     'filer.thumbnail_processors.scale_and_crop_with_subject_location',
     'easy_thumbnails.processors.filters',
 )
-#
+#{% endif %}
 
 
 # this section allows us to do a deep update of dictionaries
@@ -384,12 +383,12 @@ if DEBUG is False:
     # See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
     # ALLOWED_HOSTS = ["*"]
     ALLOWED_HOSTS = [
-        '.Domain name',
-        'www.Domain name',
-        'fen-vz-test_project-stage.fen.aptivate.org',
-        'fen-vz-test_project-dev.fen.aptivate.org',
-        'test_project.dev.aptivate.org',
-        'test_project.stage.aptivate.org',
+        '.{{ cookiecutter.domain_name }}',
+        'www.{{ cookiecutter.domain_name }}',
+        'fen-vz-{{ cookiecutter.project_name }}-stage.fen.aptivate.org',
+        'fen-vz-{{ cookiecutter.project_name }}-dev.fen.aptivate.org',
+        '{{ cookiecutter.project_name }}.dev.aptivate.org',
+        '{{ cookiecutter.project_name }}.stage.aptivate.org',
     ]
     ########## END SITE CONFIGURATION
 
