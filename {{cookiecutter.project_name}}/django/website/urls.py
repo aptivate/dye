@@ -24,8 +24,8 @@ urlpatterns = [
     url(r'^favicon.ico$', RedirectView.as_view(url='{0}images/favicon.ico'.format(settings.STATIC_URL))),
 ]
 
-#
+#{% if cookiecutter.django_type == "cms" %}
 urlpatterns += [
     url(r'^', include('cms.urls')),
-]
-#
+)
+#{% endif %}
