@@ -1,14 +1,13 @@
 from __future__ import unicode_literals, absolute_import
 
-from django.conf.urls import patterns, include, url
-from django.conf.urls.i18n import i18n_patterns
+from django.conf.urls import include, url
 from django.views.generic.base import RedirectView
 
 from django.contrib import admin
 from django.conf import settings
 admin.autodiscover()
 
-urlpatterns = patterns('',
+urlpatterns = [
     # Examples:
     # url(r'^$', 'myapp.views.home', name='home'),
     # url(r'^myapp/', include('myapp.urls')),
@@ -22,18 +21,11 @@ urlpatterns = patterns('',
     # This requires that static files are served from the 'static' folder.
     # The apache conf is set up to do this for you, but you will need to do it
     # on dev
-    (r'^favicon.ico$', RedirectView.as_view(url='{0}images/favicon.ico'.format(settings.STATIC_URL))),
-)
+    url(r'^favicon.ico$', RedirectView.as_view(url='{0}images/favicon.ico'.format(settings.STATIC_URL))),
+]
 
-if settings.DEBUG:
-    urlpatterns = patterns('',
-        url(r'^uploads/(?P<path>.*)$', 'django.views.static.serve',
-            {'document_root': settings.MEDIA_ROOT, 'show_indexes': True}),
-        url(r'', include('django.contrib.staticfiles.urls')),
-    ) + urlpatterns
-
-#{% if cookiecutter.django_type == "cms" %}
-urlpatterns += i18n_patterns('',
+#
+urlpatterns += [
     url(r'^', include('cms.urls')),
-)
-#{% endif %}
+]
+#

@@ -1,4 +1,4 @@
-# Django settings for {{ cookiecutter.project_name }} project.
+# Django settings for test_project project.
 
 # Build paths inside the project like this: path.join(BASE_DIR, ...)
 from __future__ import unicode_literals, absolute_import
@@ -29,16 +29,16 @@ SECRET_KEY = private_settings.SECRET_KEY
 # These email addresses will get all the error email for the production server
 # (and any other servers with DEBUG = False )
 ADMINS = (
-    ('Aptivate {{ cookiecutter.project_name }} team', '{{ cookiecutter.project_name }}-team@aptivate.org'),
-    ('{{ cookiecutter.author_name }}', '{{ cookiecutter.email }}'),  # this is in case the above email doesn't work
+    ('Aptivate test_project team', 'test_project-team@aptivate.org'),
+    ('Daniel Levt', 'daniell@aptivate.org'),  # this is in case the above email doesn't work
 )
 
 MANAGERS = ADMINS
 
 # these are the settings for production. We can override in the various
 # local_settings if we want to
-DEFAULT_FROM_EMAIL = 'donotreply@{{ cookiecutter.domain_name }}'
-SERVER_EMAIL = 'server@{{ cookiecutter.domain_name }}'
+DEFAULT_FROM_EMAIL = 'donotreply@Domain name'
+SERVER_EMAIL = 'server@Domain name'
 ########## MANAGER/EMAIL CONFIGURATION
 
 
@@ -103,9 +103,9 @@ STATICFILES_DIRS = (
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-    #{% if cookiecutter.django_type == "normal" or cookiecutter.django_type == "cms" %}
+    #
     'django_assets.finders.AssetsFinder',
-    #{% endif %}
+    #
 )
 ########## END STATIC FILE CONFIGURATION
 
@@ -127,37 +127,35 @@ DJANGO_APPS = (
     # 'django.contrib.humanize',
 
     # Admin
+    'djangocms_admin_style',
     'django.contrib.admin',
 )
 THIRD_PARTY_APPS = (
-    'south',  # Database migration helpers:
-    #{% if cookiecutter.django_type == "normal" or cookiecutter.django_type == "cms" %}
+    #
     'crispy_forms',  # Form layouts
     'django_extensions',
     'easy_thumbnails',
     'registration',
     'haystack',
     'django_assets',
-    #{% endif %}
-    #{% if cookiecutter.django_type == "cms" %}
+    #
+    #
+    'treebeard',
     'cms',
     'mptt',
     'menus',
     'sekizai',
     'filer',
-    'djangocms_admin_style',
     'djangocms_link',
     'djangocms_snippet',
-    'cmsplugin_googlemap',
-    'cmsplugin_filer_file',
-    'cmsplugin_filer_folder',
-    'cmsplugin_filer_image',
-    'cmsplugin_filer_teaser',
-    'cmsplugin_filer_video',
-    'cms_redirects', # is this built into Django-CMS 3?
+    'djangocms_googlemap',
+    'djangocms_picture',
+    'djangocms_teaser',
+    'djangocms_video',
+    'djangocms_redirect',  # is this built into Django-CMS 3?
     'reversion',
     'djangocms_text_ckeditor',  # must load after Django CMS
-    #{% endif %}
+    #
 )
 
 # Apps specific for this project go here.
@@ -178,13 +176,15 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    #{% if cookiecutter.django_type == "cms" %} cms stuff
+    # cms stuff
     'cms.middleware.user.CurrentUserMiddleware',
     'cms.middleware.page.CurrentPageMiddleware',
     'cms.middleware.toolbar.ToolbarMiddleware',
     # 'debug_toolbar.middleware.DebugToolbarMiddleware',
-    'cms_redirects.middleware.RedirectFallbackMiddleware',
-    #{% endif %}
+    'djangocms_redirect.middleware.RedirectMiddleware',
+    'cms.middleware.language.LanguageCookieMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
+    #
 )
 ########## END MIDDLEWARE CONFIGURATION
 
@@ -200,7 +200,7 @@ ROOT_URLCONF = 'urls'
 ########## django-secure - intended for sites that use SSL
 SECURE = False
 if SECURE:
-    INSTALLED_APPS += ("djangosecure", )
+    INSTALLED_APPS += ("djangosecure",)
 
     # set this to 60 seconds and then to 518400 when you can prove it works
     SECURE_HSTS_SECONDS = 60
@@ -217,39 +217,39 @@ if SECURE:
 ########## AUTHENTICATION CONFIGURATION
 AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
-    #"allauth.account.auth_backends.AuthenticationBackend",
+    # "allauth.account.auth_backends.AuthenticationBackend",
 )
 
 # Some really nice defaults
-#ACCOUNT_AUTHENTICATION_METHOD = "username"
+# ACCOUNT_AUTHENTICATION_METHOD = "username"
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ########## END AUTHENTICATION CONFIGURATION
 
 
-#{% if cookiecutter.django_type == "normal" or cookiecutter.django_type == "cms" %}######### HAYSTACK SEARCH CONFIGURATION
+########## HAYSTACK SEARCH CONFIGURATION
 HAYSTACK_CONNECTIONS = {
     'default': {
         'ENGINE': 'haystack.backends.elasticsearch_backend.ElasticsearchSearchEngine',
         'URL': 'http://127.0.0.1:9200/',
-        'INDEX_NAME': '{{ cookiecutter.project_name }}',
+        'INDEX_NAME': 'test_project',
     },
 }
 
 HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
 # HAYSTACK_SEARCH_RESULTS_PER_PAGE = 25
 ########## END HAYSTACK SEARCH CONFIGURATION
-#{% endif %}
+#
 
 ########## Custom user app defaults
 # Select the correct user model
-#AUTH_USER_MODEL = "users.User"
-#LOGIN_REDIRECT_URL = "users:redirect"
+# AUTH_USER_MODEL = "users.User"
+# LOGIN_REDIRECT_URL = "users:redirect"
 ########## END Custom user app defaults
 
 
 ########## SLUGLIFIER
-#AUTOSLUG_SLUGIFY_FUNCTION = "slugify.slugify"
+# AUTOSLUG_SLUGIFY_FUNCTION = "slugify.slugify"
 ########## END SLUGLIFIER
 
 
@@ -300,20 +300,20 @@ LOGGING = {
 # The name of the class to use to run the test suite
 # TEST_RUNNER = 'intranet_binder.testing.SmartTestSuiteRunner'
 
-#MONKEY_PATCHES = ['intranet_binder.monkeypatches']
+# MONKEY_PATCHES = ['intranet_binder.monkeypatches']
 ########## END BINDER STUFF
 
 
-#{% if cookiecutter.django_type == "cms" %}
+#
 # https://django-filer.readthedocs.org/en/0.8.3/getting_started.html#configuration
 THUMBNAIL_PROCESSORS = (
     'easy_thumbnails.processors.colorspace',
     'easy_thumbnails.processors.autocrop',
-    #'easy_thumbnails.processors.scale_and_crop',
+    # 'easy_thumbnails.processors.scale_and_crop',
     'filer.thumbnail_processors.scale_and_crop_with_subject_location',
     'easy_thumbnails.processors.filters',
 )
-#{% endif %}
+#
 
 
 # this section allows us to do a deep update of dictionaries
@@ -332,7 +332,7 @@ def update_recursive(dest, source):
 # tasks.py expects to find local_settings.py so the database stuff is there
 #--------------------------------
 # local settings import
-#from http://djangosnippets.org/snippets/1873/
+# from http://djangosnippets.org/snippets/1873/
 #--------------------------------
 try:
     import local_settings
@@ -382,48 +382,55 @@ if DEBUG is False:
     ########## SITE CONFIGURATION
     # Hosts/domain names that are valid for this site
     # See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
-    #ALLOWED_HOSTS = ["*"]
+    # ALLOWED_HOSTS = ["*"]
     ALLOWED_HOSTS = [
-        '.{{ cookiecutter.domain_name }}',
-        'www.{{ cookiecutter.domain_name }}',
-        'fen-vz-{{ cookiecutter.project_name }}-stage.fen.aptivate.org',
-        'fen-vz-{{ cookiecutter.project_name }}-dev.fen.aptivate.org',
-        '{{ cookiecutter.project_name }}.dev.aptivate.org',
-        '{{ cookiecutter.project_name }}.stage.aptivate.org',
+        '.Domain name',
+        'www.Domain name',
+        'fen-vz-test_project-stage.fen.aptivate.org',
+        'fen-vz-test_project-dev.fen.aptivate.org',
+        'test_project.dev.aptivate.org',
+        'test_project.stage.aptivate.org',
     ]
     ########## END SITE CONFIGURATION
 
 ########## TEMPLATE CONFIGURATION
-# See: https://docs.djangoproject.com/en/dev/ref/settings/#template-context-processors
-TEMPLATE_CONTEXT_PROCESSORS = (
-    'django.contrib.auth.context_processors.auth',
-    'django.core.context_processors.debug',
-    'django.core.context_processors.i18n',
-    'django.core.context_processors.media',
-    'django.core.context_processors.static',
-    'django.core.context_processors.tz',
-    'django.contrib.messages.context_processors.messages',
-    'django.core.context_processors.request',
-    # Your stuff: custom template context processers go here
-    #{% if cookiecutter.django_type == "cms" %} cms stuff
-    'cms.context_processors.media',
-    'sekizai.context_processors.sekizai',
-    #{% endif %}
-)
+# See: https://docs.djangoproject.com/en/1.11/ref/settings/#std:setting-TEMPLATES
 
-
-# See: https://docs.djangoproject.com/en/dev/ref/settings/#template-dirs
-TEMPLATE_DIRS = (
-    path.join(BASE_DIR, 'templates'),
-)
+TEMPLATES = [{
+    'BACKEND': 'django.template.backends.django.DjangoTemplates',
+    'DIRS': [
+        path.join(BASE_DIR, 'templates'),
+    ],
+    'OPTIONS': {
+        'context_processors': [
+            'django.contrib.auth.context_processors.auth',
+            'django.template.context_processors.debug',
+            'django.template.context_processors.i18n',
+            'django.template.context_processors.media',
+            'django.template.context_processors.static',
+            'django.template.context_processors.tz',
+            'django.contrib.messages.context_processors.messages',
+            'django.template.context_processors.request',
+            # Your stuff: custom template context processers go here
+            # cms stuff
+            'cms.context_processors.cms_settings',
+            'sekizai.context_processors.sekizai',
+        ],
+        'debug': DEBUG,
+        'loaders': [
+            'django.template.loaders.filesystem.Loader',
+            'django.template.loaders.app_directories.Loader',
+        ]
+    }
+}]
 
 if DEBUG:
-    TEMPLATE_LOADERS = (
+    TEMPLATES[0]['OPTIONS']['loaders'] = (
         'django.template.loaders.filesystem.Loader',
         'django.template.loaders.app_directories.Loader',
     )
 else:
-    TEMPLATE_LOADERS = (
+    TEMPLATES[0]['OPTIONS']['loaders'] = (
         ('django.template.loaders.cached.Loader', (
             'django.template.loaders.filesystem.Loader',
             'django.template.loaders.app_directories.Loader',
