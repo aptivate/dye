@@ -10,11 +10,11 @@ setup(
     url='http://pypi.python.org/pypi/Dye/',
     license='LICENSE.txt',
     description='A set of functions to improve deploy scripts',
-    #long_description=open('README.md').read(),
+    # long_description=open('README.md').read(),
     install_requires=[
         "fabric == 1.4",
         "docopt >= 0.6.1",
-        "MySQL-python >= 1.2.3",
+        "mysqlclient >= 1.3.10",
         "unittest2 >= 0.5.1",
     ],
 )
