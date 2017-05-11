@@ -27,5 +27,5 @@ urlpatterns = [
 #{% if cookiecutter.django_type == "cms" %}
 urlpatterns += [
     url(r'^', include('cms.urls')),
-)
+]
 #{% endif %}
