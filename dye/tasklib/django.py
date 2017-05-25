@@ -205,7 +205,12 @@ def update_db(syncdb=True, drop_test_db=True, force_use_migrations=True, databas
 
         django_version = _get_django_version()
 
-        if django_version[0] >= 1 and django_version[1] >= 8:
+        if django_version[0] >= 1 and django_version[1] >= 11:
+            # django 1.11 doesn't allow loading data through fixtures
+            # It uses data migrations instead, so migrations only need to be
+            # done once
+            _manage_py(['migrate', '--noinput', '--fake-initial'])
+        elif django_version[0] >= 1 and django_version[1] >= 8:
             # django 1.7 always checks whether migrations are done and fakes
             # them if they are. For 1.8, you need the --fake-initial flag to
             # achieve this, at least the first time round
