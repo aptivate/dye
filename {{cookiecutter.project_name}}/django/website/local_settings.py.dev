@@ -4,7 +4,6 @@ import private_settings
 import sys
 
 DEBUG = True
-TEMPLATE_DEBUG = DEBUG
 ASSETS_DEBUG = DEBUG
 ASSETS_AUTO_BUILD = DEBUG
 

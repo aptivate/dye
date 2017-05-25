@@ -3,7 +3,6 @@ from __future__ import unicode_literals, absolute_import
 import private_settings
 
 DEBUG = True
-TEMPLATE_DEBUG = DEBUG
 ASSETS_DEBUG = DEBUG
 ASSETS_AUTO_BUILD = DEBUG
 
