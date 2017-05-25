@@ -127,7 +127,9 @@ DJANGO_APPS = (
     # 'django.contrib.humanize',
 
     # Admin
+    #{% if cookiecutter.django_type == "cms" %}
     'djangocms_admin_style',
+    #{% endif %}
     'django.contrib.admin',
 )
 THIRD_PARTY_APPS = (
