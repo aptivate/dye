@@ -230,11 +230,17 @@ class UpdateVE(object):
         if ve_retcode != 0:
             return ve_retcode
 
-        pip_retcode = self.run_pip_command(['install', '-U', 'distribute'])
-        if pip_retcode != 0:
-            return pip_retcode
+        command_list = [
+            ['install', '-U', 'pip'],
+            ['install', '-U', 'setuptools'],
+        ]
 
-        pip_retcode = pip_retcode = self.run_pip_command(
+        for command in command_list:
+            pip_retcode = self.run_pip_command(command)
+            if pip_retcode != 0:
+                return pip_retcode
+
+        pip_retcode = self.run_pip_command(
             ['install', '--requirement=%s' % self.requirements],
             cwd=os.path.dirname(self.requirements)
         )
