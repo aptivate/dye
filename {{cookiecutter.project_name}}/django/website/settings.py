@@ -378,20 +378,22 @@ else:
 ##### which is set in LOCAL_SETTINGS
 
 
-if DEBUG is False:
-    ########## SITE CONFIGURATION
-    # Hosts/domain names that are valid for this site
-    # See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
-    # ALLOWED_HOSTS = ["*"]
-    ALLOWED_HOSTS = [
-        '.{{ cookiecutter.domain_name }}',
-        'www.{{ cookiecutter.domain_name }}',
-        'fen-vz-{{ cookiecutter.project_name }}-stage.fen.aptivate.org',
-        'fen-vz-{{ cookiecutter.project_name }}-dev.fen.aptivate.org',
-        '{{ cookiecutter.project_name }}.dev.aptivate.org',
-        '{{ cookiecutter.project_name }}.stage.aptivate.org',
-    ]
-    ########## END SITE CONFIGURATION
+########## SITE CONFIGURATION
+# Hosts/domain names that are valid for this site
+# See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
+# ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    '[::1]',
+    '.{{ cookiecutter.domain_name }}',
+    'www.{{ cookiecutter.domain_name }}',
+    'fen-vz-{{ cookiecutter.project_name }}-stage.fen.aptivate.org',
+    'fen-vz-{{ cookiecutter.project_name }}-dev.fen.aptivate.org',
+    '{{ cookiecutter.project_name }}.dev.aptivate.org',
+    '{{ cookiecutter.project_name }}.stage.aptivate.org',
+]
+########## END SITE CONFIGURATION
 
 ########## TEMPLATE CONFIGURATION
 # See: https://docs.djangoproject.com/en/1.11/ref/settings/#std:setting-TEMPLATES
