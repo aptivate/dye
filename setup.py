@@ -12,7 +12,7 @@ setup(
     description='A set of functions to improve deploy scripts',
     # long_description=open('README.md').read(),
     install_requires=[
-        "fabric == 1.4",
+        "fabric >= 1.13.2",
         "docopt >= 0.6.1",
         "mysqlclient >= 1.3.10",
         "unittest2 >= 0.5.1",
