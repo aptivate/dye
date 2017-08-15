@@ -42,7 +42,7 @@ django-registration==2.2
 
 # testing
 {% if cookiecutter.use_pytest == 'yes' %}pytest-django==3.1.2{% endif %}
-django-dynamic-fixture==1.9.4
+django-dynamic-fixture==1.9.5
 mock==2.0.0
 
 {% if cookiecutter.django_type == 'cms' or cookiecutter.django_type == 'normal' %}
