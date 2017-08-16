@@ -1,6 +1,7 @@
 from __future__ import unicode_literals, absolute_import
 
 from django.conf.urls import include, url
+from django.conf.urls.static import static
 from django.views.generic.base import RedirectView
 
 from django.contrib import admin
@@ -22,7 +23,8 @@ urlpatterns = [
     # The apache conf is set up to do this for you, but you will need to do it
     # on dev
     url(r'^favicon.ico$', RedirectView.as_view(url='{0}images/favicon.ico'.format(settings.STATIC_URL))),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT, show_indexes=True)
+
 
 #{% if cookiecutter.django_type == "cms" %}
 urlpatterns += [
