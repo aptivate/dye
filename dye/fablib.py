@@ -52,6 +52,7 @@ def _setup_paths(project_settings):
     copy_setting('vcs_root_dir', env.current_link)
     copy_setting('next_dir', path.join(env.server_project_home, _create_timestamp_dirname(env.timestamp)))
     copy_setting('versions_to_keep', 5)
+    copy_setting('max_disk_use', 85)
     copy_setting('dump_dir', path.join(env.server_project_home, 'dbdumps'))
     copy_setting('relative_deploy_dir', 'deploy')
     copy_setting('deploy_dir', path.join(env.vcs_root_dir, env.relative_deploy_dir))
@@ -188,6 +189,15 @@ def deploy(revision=None, keep=None, full_rebuild=True):
 
     # this really needs to be first - other things assume the directory exists
     _create_dir_if_not_exists(env.server_project_home)
+
+    max_disk_use = getattr(env, 'max_disk_use', 85)
+    actual_disk_use = check_disk_use()
+
+    if actual_disk_use >= max_disk_use:
+        cont = prompt('Would you like to continue with deployment? (yes/no)',
+                      default='no', validate=r'^yes|no$')
+        if cont == 'no':
+            utils.abort('Aborting deployment')
 
     # if the <server_project_home>/previous/ directory doesn't exist, this does
     # nothing
@@ -1023,3 +1033,19 @@ def webserver_cmd(cmd):
             sudo(cmd_strings[key] + ' ' + cmd)
         else:
             utils.abort('webserver %s is not supported' % env.webserver)
+
+
+def check_disk_use():
+    actual_disk_use = _get_disk_use()
+    print 'Disk use is {0}%. '.format(actual_disk_use)
+
+    return actual_disk_use
+
+
+def _get_disk_use():
+    """ Get disk used as % for deploy directory """
+    command = "df -P {} | grep -v Filesystem | awk '{{ print $5 }}' | sed 's/%//g'".format(
+        env.server_project_home)
+    require('server_project_home', provided_by=env.valid_envs)
+
+    return int(run(command))
