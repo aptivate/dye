@@ -17,8 +17,14 @@ virtualenv, either locally or on a remote server. It is built on fabric. It is
 most well developed for Django web apps, but we have used it for PHP projects
 aswell.
 
-You can create a compatible project using cookiecutter - see
-readme-cookiecutter.rst for details.
+A Cookiecutter Project
+======================
+
+You can create a compatible project using [cookiecutter].
+
+[cookiecutter]: https://github.com/audreyr/cookiecutter
+
+See `readme-cookiecutter.rst` for details on how to do this.
 
 Expected Project Structure
 ==========================
@@ -109,9 +115,9 @@ with:
 
     ../../deploy/bootstrap.py
 
-Note that this will only update the virtualenv if it's required, though you can 
-use `--force` to do it anyway. Also note that by default it will only update the 
-packages that need updating - use `--full-rebuild` to force it to delete the 
+Note that this will only update the virtualenv if it's required, though you can
+use `--force` to do it anyway. Also note that by default it will only update the
+packages that need updating - use `--full-rebuild` to force it to delete the
 virtual env and then rebuild. To see all options use `--help`.
 
 Fabric and DYE
