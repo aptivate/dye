@@ -1,3 +1,5 @@
+[![pipeline status](https://gitlab.com/aptivate/dye/badges/master/pipeline.svg)](https://gitlab.com/aptivate/dye/commits/master)
+
 DYE
 ===
 
