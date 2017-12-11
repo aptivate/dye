@@ -167,12 +167,19 @@ class MySQLManager(DBManager):
             self.host = 'localhost'
         else:
             self.host = host
-        self.root_password = root_password
+        self.root_password = root_password or self.ask_env_for_root_password()
         self.grant_enabled = grant_enabled
         # connections to the database for the normal user and the root
         # user
         self.user_db_conn = None
         self.root_db_conn = None
+
+    def ask_env_for_root_password(self):
+        """Attempt to retrieve the root password from the environment."""
+        try:
+            return os.environ['DATABASE_ROOT_PASSWORD']
+        except KeyError:
+            return None
 
     def get_test_database(self):
         return MySQLManager(name='test_%s' % self.name, user=self.user,
