@@ -147,7 +147,7 @@ def run_jenkins():
     _manage_py_jenkins()
 
 
-def gitlab():
+def gitlab(coverage=False):
     """Prepare the necessaries for Gitlab CI."""
     env['verbose'] = True
 
@@ -157,7 +157,10 @@ def gitlab():
     if hasattr(env['localtasks'], 'pre_deploy'):
         env['localtasks'].pre_deploy('gitlab')
 
-    _manage_py(['test', '-v'])
+    args = ['test', '-v']
+    if coverage:
+        args += ['--cov']
+    _manage_py(args)
 
 
 def deploy(environment=None):
