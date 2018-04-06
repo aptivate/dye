@@ -147,6 +147,16 @@ def run_jenkins():
     _manage_py_jenkins()
 
 
+def gitlab():
+    """Prepare the necessaries for Gitlab CI."""
+    env['verbose'] = True
+    _rm_all_pyc()
+    create_private_settings()
+    link_local_settings('gitlab')
+    if hasattr(env['localtasks'], 'pre_deploy'):
+        env['localtasks'].pre_deploy()
+
+
 def deploy(environment=None):
     """Do all the required steps in order"""
     if environment:
