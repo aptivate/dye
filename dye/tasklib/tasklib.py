@@ -154,7 +154,7 @@ def gitlab():
     create_private_settings()
     link_local_settings('gitlab')
     if hasattr(env['localtasks'], 'pre_deploy'):
-        env['localtasks'].pre_deploy()
+        env['localtasks'].pre_deploy('gitlab')
 
 
 def deploy(environment=None):
