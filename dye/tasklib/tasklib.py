@@ -150,11 +150,17 @@ def run_jenkins():
 def gitlab():
     """Prepare the necessaries for Gitlab CI."""
     env['verbose'] = True
-    _rm_all_pyc()
+
+    deploy_path = path.abspath(path.join(env['vcs_root_dir'], env['deploy_dir']))
+    _check_call_wrapper('python bootstrap.py', cwd=deploy_path, shell=True)
+
     create_private_settings()
     link_local_settings('gitlab')
+
     if hasattr(env['localtasks'], 'pre_deploy'):
         env['localtasks'].pre_deploy('gitlab')
+
+    _manage_py(['test', '-v'])
 
 
 def deploy(environment=None):
