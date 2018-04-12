@@ -172,6 +172,9 @@ def deploy(environment=None):
         if env['verbose']:
             print "Inferred environment as %s" % env['environment']
 
+    if hasattr(env['localtasks'], 'pre_deploy'):
+        env['localtasks'].pre_deploy(environment)
+
     create_private_settings()
     link_local_settings(env['environment'])
     update_git_submodules()
