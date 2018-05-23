@@ -163,6 +163,7 @@ def prune(num_days):
 
         if not os.path.exists(PATH):
             print '%s does not exist, bailing out' % PATH
+            return
 
         db_dumps_to_prune = []
         for dbdump in os.listdir(PATH):
@@ -170,7 +171,7 @@ def prune(num_days):
             try:
                 modified_int = os.path.getmtime(abs_path)
                 modified_dt = dt.fromtimestamp(modified_int)
-                prune_limit = dt.now() - timedelta(days=num_days)
+                prune_limit = dt.now() - timedelta(days=int(num_days))
                 if modified_dt < prune_limit:
                     db_dumps_to_prune.append(abs_path)
             except os.error:
