@@ -4,6 +4,9 @@ from datetime import datetime
 import getpass
 import re
 from distutils.util import strtobool
+from datetime import datetime as dt
+from datetime import timedelta
+from pprint import pprint
 
 from fabric.context_managers import cd, hide, settings
 from fabric.operations import require, prompt, get, run, sudo, local, put
@@ -152,6 +155,49 @@ def verbose(verbose=True):
     """Set verbose output"""
     env.verbose = verbose
 
+
+def prune(num_days):
+    """Do some cleaning up on the remote machine."""
+    def _prune_db_dumps():
+        PATH = '/var/django/%s/dbdumps/' % env.project_name
+
+        if not os.path.exists(PATH):
+            print '%s does not exist, bailing out' % PATH
+
+        db_dumps_to_prune = []
+        for dbdump in os.listdir(PATH):
+            abs_path = os.path.join(PATH, dbdump)
+            try:
+                modified_int = os.path.getmtime(abs_path)
+                modified_dt = dt.fromtimestamp(modified_int)
+                prune_limit = dt.now() - timedelta(days=num_days)
+                if modified_dt < prune_limit:
+                    db_dumps_to_prune.append(abs_path)
+            except os.error:
+                print 'Failed to handle date wrangling for %s ' % abs_path
+
+            if not db_dumps_to_prune:
+                print 'Found 0 dumps to prune, bailing out'
+                return
+
+            print 'Discovered the following files for pruning: '
+            pprint(db_dumps_to_prune)
+
+            bail_out = False
+
+            message = 'Would you like to continue with pruning? (yes/no)'
+            answer = prompt(message, default='no', validate=r'^yes|no$')
+            if answer == 'no':
+                bail_out = True
+
+            if bail_out is True:
+                print 'Bailing out!'
+                return
+
+            for db_dump_abs_path in db_dumps_to_prune:
+                os.remove(db_dump_abs_path)
+
+    _prune_db_dumps()
 
 def deploy_clean(revision=None):
     """ delete the entire install and do a clean install """
@@ -905,7 +951,7 @@ def setup_db_dumps():
     _tasks('setup_db_dumps:' + env.dump_dir)
 
 
-def push_django_dir(django_subdir=None, remote_temp_dir=None, 
+def push_django_dir(django_subdir=None, remote_temp_dir=None,
         keep_remote_copy=True, rsync=True):
     """copy the uploads directory from local system to remote, so that
     filer files match the database contents."""

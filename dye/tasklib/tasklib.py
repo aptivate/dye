@@ -21,10 +21,7 @@
 import os
 import re
 import sys
-from datetime import datetime as dt
-from datetime import timedelta
 from os import path
-from pprint import pprint
 from types import ModuleType
 
 from .django import (collect_static, create_private_settings,
@@ -36,8 +33,6 @@ from .util import _check_call_wrapper, _call_wrapper, _rm_all_pyc, _create_link
 
 # this is a global dictionary
 from .environment import env
-
-from fabric.operations import prompt
 
 
 def _setup_paths(project_settings, localtasks):
@@ -151,49 +146,6 @@ def run_jenkins():
     clean_db()
     update_db()
     _manage_py_jenkins()
-
-def prune(num_days):
-    """Do some cleaning up on the remote machine."""
-    def _prune_db_dumps():
-        PATH = '/var/django/%s/dbdumps/' % env['project_name']
-
-        if not os.path.exists(PATH):
-            print '%s does not exist, bailing out' % PATH
-
-        db_dumps_to_prune = []
-        for dbdump in os.listdir(PATH):
-            abs_path = os.path.join(PATH, dbdump)
-            try:
-                modified_int = os.path.getmtime(abs_path)
-                modified_dt = dt.fromtimestamp(modified_int)
-                prune_limit = dt.now() - timedelta(days=num_days)
-                if modified_dt < prune_limit:
-                    db_dumps_to_prune.append(abs_path)
-            except os.error:
-                print 'Failed to handle date wrangling for %s ' % abs_path
-
-            if not db_dumps_to_prune:
-                print 'Found 0 dumps to prune, bailing out'
-                return
-
-            print 'Discovered the following files for pruning: '
-            pprint(db_dumps_to_prune)
-
-            bail_out = False
-
-            message = 'Would you like to continue with pruning? (yes/no)'
-            answer = prompt(message, default='no', validate=r'^yes|no$')
-            if answer == 'no':
-                bail_out = True
-
-            if bail_out is True:
-                print 'Bailing out!'
-                return
-
-            for db_dump_abs_path in db_dumps_to_prune:
-                os.remove(db_dump_abs_path)
-
-    _prune_db_dumps()
 
 
 def gitlab(coverage=False):
