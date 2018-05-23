@@ -6,7 +6,6 @@ import re
 from distutils.util import strtobool
 from datetime import datetime as dt
 from datetime import timedelta
-from pprint import pprint
 
 from fabric.context_managers import cd, hide, settings
 from fabric.operations import require, prompt, get, run, sudo, local, put
@@ -182,7 +181,10 @@ def prune(num_days):
                 return
 
             print 'Discovered the following files for pruning: '
-            pprint(db_dumps_to_prune)
+            for db_dump in db_dumps_to_prune:
+                human_readable_time = str(dt.fromtimestamp(os.path.getmtime(db_dump)))
+                print '%s with modified time of %s' % (db_dump, human_readable_time)
+                print '\n'
 
             bail_out = False
 
