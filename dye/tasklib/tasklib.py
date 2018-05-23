@@ -155,7 +155,7 @@ def run_jenkins():
 def prune(num_days):
     """Do some cleaning up on the remote machine."""
     def _prune_db_dumps():
-        PATH = '/var/django/dbdumps/'
+        PATH = '/var/django/%s/dbdumps/' % env.project_name
 
         if not os.path.exists(PATH):
             print '%s does not exist, bailing out' % PATH
