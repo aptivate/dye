@@ -19,6 +19,7 @@ from tasklib.exceptions import InvalidPasswordError
 tasklib.env['verbose'] = False
 tasklib.env['quiet'] = True
 tasklib.env['noinput'] = True
+tasklib.env['deploy_dir'] = os.path.dirname(__file__)
 
 # cache this in a global variable so that we only need it once
 mysql_root_password = None
@@ -434,10 +435,12 @@ class TestMysqlDumpCron(MysqlMixin, unittest.TestCase):
         output_file = StringIO.StringIO()
         self.db.create_dbdump_cron_file(output_file, dump_file_stub)
         actual_output = output_file.getvalue()
-        expected_output = \
-            "#!/bin/sh\n" \
-            "/usr/bin/mysqldump -u dye_user -pdye_password " \
-            "--host=localhost dyedb > /var/dumps/dye-`/bin/date +\%d`.sql\n"
+        expected_output = (
+            '#!/bin/sh\n'
+            '%s/tasks.py dump_db:/var/dumps/dye-`/bin/date +%%d`.sql\n' % (
+                tasklib.env['deploy_dir'],
+            )
+        )
         self.assertEqual(expected_output, actual_output)
 
 
