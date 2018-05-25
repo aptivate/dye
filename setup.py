@@ -17,4 +17,7 @@ setup(
         "mysqlclient >= 1.3.10",
         "unittest2 >= 0.5.1",
     ],
+    tests_require=[
+    ],
+    test_suite = "dye.test",
 )

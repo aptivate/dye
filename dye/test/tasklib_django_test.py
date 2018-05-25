@@ -98,7 +98,10 @@ class TestLinkLocalSettings(unittest.TestCase):
         self.assertTrue(path.islink(local_settings_path))
         # assert the link goes to the correct file
         linkto = os.readlink(local_settings_path)
-        self.assertEqual(linkto, 'local_settings.py.dev')
+        self.assertEqual(
+            linkto,
+            path.join(tasklib.env['django_settings_dir'], 'local_settings.py.dev')
+        )
 
     def test_link_local_settings_replaces_old_local_settings(self):
         self.create_settings_py()
@@ -112,7 +115,10 @@ class TestLinkLocalSettings(unittest.TestCase):
         self.assertTrue(path.islink(local_settings_path))
         # assert the link goes to the correct file
         linkto = os.readlink(local_settings_path)
-        self.assertEqual(linkto, 'local_settings.py.dev')
+        self.assertEqual(
+            linkto,
+            path.join(tasklib.env['django_settings_dir'], 'local_settings.py.dev')
+        )
 
     def test_link_local_settings_removes_local_settings_pyc(self):
         self.create_settings_py()
