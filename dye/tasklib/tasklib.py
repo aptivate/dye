@@ -284,7 +284,6 @@ def prune(num_days):
         for db_dump in db_dumps_to_prune:
             human_readable_time = str(dt.fromtimestamp(os.path.getmtime(db_dump)))
             print '%s with modified time of %s' % (db_dump, human_readable_time)
-            print '\n'
 
         bail_out = False
 
