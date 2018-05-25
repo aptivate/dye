@@ -276,28 +276,28 @@ def prune(num_days):
             except os.error:
                 print 'Failed to handle date wrangling for %s ' % abs_path
 
-            if not db_dumps_to_prune:
-                print 'Found 0 dumps to prune, bailing out'
-                return
+        if not db_dumps_to_prune:
+            print 'Found 0 dumps to prune, bailing out'
+            return
 
-            print 'Discovered the following files for pruning: '
-            for db_dump in db_dumps_to_prune:
-                human_readable_time = str(dt.fromtimestamp(os.path.getmtime(db_dump)))
-                print '%s with modified time of %s' % (db_dump, human_readable_time)
-                print '\n'
+        print 'Discovered the following files for pruning: '
+        for db_dump in db_dumps_to_prune:
+            human_readable_time = str(dt.fromtimestamp(os.path.getmtime(db_dump)))
+            print '%s with modified time of %s' % (db_dump, human_readable_time)
+            print '\n'
 
-            bail_out = False
+        bail_out = False
 
-            message = 'Would you like to continue with pruning? (yes/no)'
-            answer = prompt(message, default='no', validate=r'^yes|no$')
-            if answer == 'no':
-                bail_out = True
+        message = 'Would you like to continue with pruning? (yes/no)'
+        answer = prompt(message, default='no', validate=r'^yes|no$')
+        if answer == 'no':
+            bail_out = True
 
-            if bail_out is True:
-                print 'Bailing out!'
-                return
+        if bail_out is True:
+            print 'Bailing out!'
+            return
 
-            for db_dump_abs_path in db_dumps_to_prune:
-                os.remove(db_dump_abs_path)
+        for db_dump_abs_path in db_dumps_to_prune:
+            os.remove(db_dump_abs_path)
 
     _prune_db_dumps()
