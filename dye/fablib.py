@@ -155,7 +155,7 @@ def verbose(verbose=True):
 
 def prune(num_days):
     """Do some cleaning up on the remote machine."""
-    _tasks('prune')
+    _tasks('prune:%s' % num_days)
 
 def deploy_clean(revision=None):
     """ delete the entire install and do a clean install """
