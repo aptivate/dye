@@ -167,6 +167,9 @@ def gitlab(coverage=False):
         args += ['--cov']
     _manage_py(args)
 
+    if hasattr(env['localtasks'], 'post_deploy'):
+        env['localtasks'].pre_deploy('gitlab')
+
 
 def deploy(environment=None):
     """Do all the required steps in order"""
