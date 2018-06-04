@@ -152,18 +152,18 @@ def run_jenkins():
     _manage_py_jenkins()
 
 
-def gitlab(coverage=False):
+def gitlab(coverage=False, local_tasks=False):
     """Prepare the necessaries for Gitlab CI."""
     env['verbose'] = True
 
     create_private_settings()
     link_local_settings('gitlab')
 
-    if hasattr(env['localtasks'], 'pre_deploy'):
-        env['localtasks'].pre_deploy('gitlab')
-
-    if hasattr(env['localtasks'], 'post_deploy'):
-        env['localtasks'].post_deploy('gitlab')
+    if local_tasks:
+        if hasattr(env['localtasks'], 'pre_deploy'):
+            env['localtasks'].pre_deploy('gitlab')
+        if hasattr(env['localtasks'], 'post_deploy'):
+            env['localtasks'].post_deploy('gitlab')
 
     args = ['test', '-v']
     if coverage:
