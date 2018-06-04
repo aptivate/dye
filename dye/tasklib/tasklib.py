@@ -163,7 +163,7 @@ def gitlab(coverage=False):
         env['localtasks'].pre_deploy('gitlab')
 
     if hasattr(env['localtasks'], 'post_deploy'):
-        env['localtasks'].pre_deploy('gitlab')
+        env['localtasks'].post_deploy('gitlab')
 
     args = ['test', '-v']
     if coverage:
