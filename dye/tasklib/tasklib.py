@@ -162,13 +162,13 @@ def gitlab(coverage=False):
     if hasattr(env['localtasks'], 'pre_deploy'):
         env['localtasks'].pre_deploy('gitlab')
 
+    if hasattr(env['localtasks'], 'post_deploy'):
+        env['localtasks'].pre_deploy('gitlab')
+
     args = ['test', '-v']
     if coverage:
         args += ['--cov']
     _manage_py(args)
-
-    if hasattr(env['localtasks'], 'post_deploy'):
-        env['localtasks'].pre_deploy('gitlab')
 
 
 def deploy(environment=None):
