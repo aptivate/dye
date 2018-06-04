@@ -152,8 +152,8 @@ def run_jenkins():
     _manage_py_jenkins()
 
 
-def gitlab(coverage=False, local_tasks=False):
-    """Prepare the necessaries for Gitlab CI."""
+def gitlab(local_tasks=True, coverage=False, marker=False, create_db=False):
+    """Prepare the necessaries for Gitlab CI and run the tests."""
     env['verbose'] = True
 
     create_private_settings()
@@ -168,6 +168,11 @@ def gitlab(coverage=False, local_tasks=False):
     args = ['test', '-v']
     if coverage:
         args += ['--cov']
+    if marker:
+        args += ['-m', marker]
+    if create_db:
+        args += ['--create-db']
+
     _manage_py(args)
 
 
