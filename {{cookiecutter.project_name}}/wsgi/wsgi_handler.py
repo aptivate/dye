@@ -28,8 +28,14 @@ from project_settings import relative_django_dir, relative_ve_dir
 
 # ensure the virtualenv for this instance is added
 python = 'python%d.%d' % (sys.version_info[0], sys.version_info[1])
-site.addsitedir(
-    path.join(vcs_root_dir, relative_ve_dir, 'lib', python, 'site-packages'))
+local_site_packages = path.join(vcs_root_dir, relative_ve_dir, 'lib', python, 'site-packages')
+
+# https://bugs.python.org/issue7744
+# We need to ensure our site packages go before the global ones so
+# that we can pick up newer setuptools
+sys.path, remainder = sys.path[:1], sys.path[1:]
+site.addsitedir(local_site_packages)
+sys.path.extend(remainder)
 
 sys.path.append(path.join(vcs_root_dir, relative_django_dir))
 
