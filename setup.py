@@ -14,10 +14,10 @@ setup(
     install_requires=[
         "fabric >= 1.13.2",
         "docopt >= 0.6.1",
-        "mysqlclient >= 1.3.10",
+        "mysqlclient == 1.4.4",
         "unittest2 >= 0.5.1",
     ],
     tests_require=[
     ],
-    test_suite = "dye.test",
+    test_suite="dye.test",
 )
